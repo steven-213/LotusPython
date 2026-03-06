@@ -1,6 +1,6 @@
 from django.db import models
 
-class Users(models.Nodel):
+class Users(models.Model):
     documento = models.BigIntegerField(unique=True)
     nombre = models.CharField(max_length=50)
     apellido = models. CharField(max_length=50)
