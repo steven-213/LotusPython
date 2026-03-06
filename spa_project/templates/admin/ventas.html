@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <title>Registro de Ventas - SPA Manicura</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/ventas.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Registro de Ventas</h1>
+    <p>Historial completo de ventas del spa</p>
+</section>
+
+<div class="tabla-container">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Teléfono</th>
+                <th>Dirección</th>
+                <th>Correo</th>
+                <th>Total</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="v : ${ventas}">
+                <td th:text="${v.id}"></td>
+                <td th:text="${v.clienteNombre}"></td>
+                <td th:text="${v.clienteTelefono}"></td>
+                <td th:text="${v.clienteDireccion}"></td>
+                <td th:text="${v.clienteCorreo}"></td>
+                <td th:text="${v.total}"></td>
+                <td th:text="${v.fecha}"></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</body>
+</html>

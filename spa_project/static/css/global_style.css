@@ -1,0 +1,158 @@
+/* ===== FUENTE Y FONDO GENERAL ===== */
+body {
+    font-family: "Helvetica Neue", sans-serif;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+}
+
+/* ===== HERO / CABECERA PRINCIPAL ===== */
+.hero {
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+    color: #333;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.hero h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-size: 20px;
+    margin-bottom: 30px;
+}
+
+/* ===== BOTONES ===== */
+.btn {
+    display: inline-block;
+    background-color: pink;
+    color: #333;
+    padding: 12px 25px;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.btn:hover {
+    background-color: #ff6f91;
+    transform: scale(1.05);
+}
+
+/* ===== SECCIONES GENERALES ===== */
+section {
+    padding: 60px 0;
+}
+
+section h2 {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: 36px;
+    color: #333;
+}
+
+/* ===== SERVICIOS / PRODUCTOS / PROMOCIONES ===== */
+.service-list,
+.product-list,
+.promotion-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+}
+
+.service-item,
+.product-item,
+.promotion-item {
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    overflow: hidden;
+    width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+    transition: transform 0.3s ease;
+}
+
+.service-item:hover,
+.product-item:hover,
+.promotion-item:hover {
+    transform: translateY(-6px);
+}
+
+.service-item img,
+.product-item img,
+.promotion-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.service-item h3,
+.product-item h3,
+.promotion-item h3 {
+    margin: 15px 0 10px;
+    font-size: 24px;
+    color: rgb(231, 104, 125);
+}
+
+.service-item p,
+.product-item p,
+.promotion-item p {
+    padding: 0 15px 20px;
+    font-size: 16px;
+    color: #555;
+}
+
+/* ===== HORARIOS ===== */
+.horarios {
+    background-color: #fff0f5;
+    padding: 60px 20px;
+}
+
+.tabla-horarios {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+
+.tabla-horarios th,
+.tabla-horarios td {
+    border: 1px solid #e7e7e7;
+    padding: 15px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.tabla-horarios thead {
+    background-color: #fce4ec;
+    color: rgb(231, 104, 125);
+    font-weight: bold;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .service-list,
+    .product-list,
+    .promotion-list {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .service-item,
+    .product-item,
+    .promotion-item {
+        width: 90%;
+    }
+
+    .hero h1 {
+        font-size: 36px;
+    }
+
+    .hero p {
+        font-size: 18px;
+    }
+}

@@ -1,0 +1,123 @@
+.card {
+    width: 90%;
+    max-width: 900px;
+    margin: 40px auto;
+    background-color: #f9f9f9;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+}
+
+.upload-box {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.upload-box form {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.upload-box button {
+    background-color: pink;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.upload-box button:hover {
+    background-color: #ff6f91;
+    color: white;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+thead {
+    background-color: #fce4ec;
+}
+
+th {
+    padding: 14px;
+    color: rgb(231, 104, 125);
+}
+
+td {
+    padding: 12px;
+    text-align: center;
+    border-top: 1px solid #eee;
+}
+
+td img {
+    width: 70px;
+    border-radius: 8px;
+}
+
+.eliminar {
+    background-color: #ffb6c1;
+    color: #333;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+}
+
+.eliminar:hover {
+    background-color: #ff6f91;
+    color: white;
+}
+
+.volver {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 50px;
+}
+
+.volver button {
+    background-color: pink;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.volver button:hover {
+    background-color: #ff6f91;
+    color: white;
+}
+/* ================= BACK BUTTON ================= */
+.btn-back {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #8f4259;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 22px;
+  border: 2px solid #efd6de;
+
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  backdrop-filter: blur(6px);
+
+  transition: all 0.25s ease;
+}
+
+.btn-back:hover {
+  background: linear-gradient(135deg, #b45a75, #e2a1b6);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+}

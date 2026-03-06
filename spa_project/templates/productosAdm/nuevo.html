@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Producto</title>
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/productos/nuevo.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Registrar Nuevo Producto</h1>
+    <p>Agrega un nuevo producto al sistema</p>
+</section>
+
+
+
+<form th:action="@{/productos/guardar}" th:object="${producto}" method="post">
+
+    <label>Nombre</label>
+    <input type="text" th:field="*{nombre}" required>
+
+    <label>Precio</label>
+    <input type="number" th:field="*{precio}" step="0.01" required>
+
+    <label>Descripción</label>
+    <input type="text" th:field="*{descripcion}" required>
+
+    <label>Stock</label>
+    <input type="number" th:field="*{stock}" required>
+
+    <label>Imagen</label>
+    <select th:field="*{imagen.id}">
+        <option value="">Seleccione una imagen</option>
+        <option th:each="img : ${imagenes}"
+                th:value="${img.id}"
+                th:text="${img.nombre}">
+        </option>
+    </select>
+
+    <button type="submit">Guardar Producto</button>
+
+</form>
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</body>
+</html>

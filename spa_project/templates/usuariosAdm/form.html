@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario Empleado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="/css/global_style.css"> <!-- CSS global -->
+    <style>
+        body {
+            font-family: "Helvetica Neue", sans-serif;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ===== NAVBAR MODERNA ===== */
+        .nav-container {
+            background: #fce4ec;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .nav-container .logo img {
+            height: 40px;
+            transition: transform 0.2s ease, filter 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-container .logo img:hover {
+            transform: scale(1.08);
+            filter: brightness(1.1);
+        }
+
+        .nav-container ul {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .nav-container ul li a {
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            transition: color 0.2s ease;
+        }
+
+        .nav-container ul li a:hover {
+            color: rgb(231, 104, 125);
+        }
+
+        /* ===== CARD FORM ===== */
+        .container {
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            background-color: #f9f9f9;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.12);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .card-header {
+            font-size: 24px;
+            color: rgb(231, 104, 125);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: bold;
+            display: block;
+            margin-top: 12px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            background-color: pink;
+            color: #333;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #ff6f91;
+            color: #fff;
+            transform: scale(1.02);
+        }
+
+        .volver {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            text-decoration: none;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR MODERNA -->
+<div class="nav-container">
+    <div class="logo">
+        <img src="/img/logo.png" alt="Logo SPA"> <!-- Cambia por tu logo -->
+    </div>
+    <ul>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/listar">Empleados</a></li>
+        <li><a href="/logout">Cerrar sesión</a></li>
+    </ul>
+</div>
+
+<!-- FORMULARIO -->
+<div class="container">
+    <div class="card">
+
+        <div class="card-header" th:text="${titulo}">Formulario Empleado</div>
+
+        <form th:action="@{/form}" th:object="${empleado}" method="post">
+
+            <input type="hidden" th:field="*{id}"/>
+
+            <label>Nombre</label>
+            <input type="text" th:field="*{nombre}" required/>
+
+            <label>Apellido</label>
+            <input type="text" th:field="*{apellido}" required/>
+
+            <label>Email</label>
+            <input type="email" th:field="*{email}" required/>
+
+            <label>Fecha</label>
+            <input type="date" th:field="*{fecha}" required/>
+
+            <label>Teléfono</label>
+            <input type="text" th:field="*{telefono}"/>
+
+            <label>Sexo</label>
+            <select th:field="*{sexo}">
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+            </select>
+
+            <label>Salario</label>
+            <input type="number" step="0.01" th:field="*{salario}" required/>
+
+            <button type="submit" class="btn">Guardar Empleado</button>
+
+        </form>
+
+        <a href="/listar" class="volver">← Volver al listado</a>
+
+    </div>
+</div>
+
+</body>
+</html>

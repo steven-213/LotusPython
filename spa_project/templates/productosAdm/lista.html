@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Productos</title>
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/productos/productos.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Lista de Productos</h1>
+    <p>Administra todos los productos del spa</p>
+</section>
+
+<div class="top-buttons">
+    <a th:href="@{/productos/nuevo}" class="btn">Nuevo Producto</a>
+    <a th:href="@{/imagenes}" class="btn">Imágenes</a>
+</div>
+
+<div class="tabla-container">
+    <form th:action="@{/productos/buscar}" method="get" class="filtro-form">
+
+        <input type="text" name="nombre"
+            placeholder="Nombre..."
+            th:value="${filtroNombre}">
+
+        <input type="number" name="precioMin"
+            placeholder="Precio mínimo"
+            th:value="${filtroPrecioMin}">
+
+        <input type="number" name="precioMax"
+            placeholder="Precio máximo"
+            th:value="${filtroPrecioMax}">
+
+        <button type="submit" class="btn">Buscar</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Precio</th>
+                <th>Descripción</th>
+                <th>Stock</th>
+                <th>Imagen</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="p : ${productos}">
+                <td th:text="${p.id}"></td>
+                <td th:text="${p.nombre}"></td>
+                <td th:text="${p.precio}"></td>
+                <td th:text="${p.descripcion}"></td>
+                <td th:text="${p.stock}"></td>
+                <td>
+                    <img th:if="${p.imagen != null}" th:src="@{'/img/' + ${p.imagen.nombre}}" class="img-tabla">
+                    <img th:if="${p.imagen == null}" src="/img/nulo.png" class="img-tabla">
+                </td>
+                <td>
+                    <a th:href="@{'/productos/editar/' + ${p.id}}" class="btn-edit">Editar</a>
+                    <a th:href="@{'/productos/eliminar/' + ${p.id}}" class="btn-delete">Eliminar</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+<a href="/dashboard" class="btn-back">← Volver</a>
+</body>
+</html>

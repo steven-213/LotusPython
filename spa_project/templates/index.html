@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+
+    <title>Lotus Dream Spa</title>
+</head>
+
+<body>
+        {% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="{% static 'css/index.css' %}">
+
+<title>Lotus Dream Spa</title>
+</head>
+
+<body>
+
+<header id="header">
+<nav class="nav-container">
+
+<a class="logo" href="{% url 'home' %}">
+<img src="{% static 'img/logo.png' %}" width="100">
+</a>
+
+<ul class="items_ul">
+
+<li><a href="{% url 'conocenos' %}">Conócenos</a></li>
+<li><a href="{% url 'servicios' %}">Servicios</a></li>
+<li><a href="{% url 'compra' %}">Productos</a></li>
+
+{% if user.is_authenticated %}
+
+<li class="saludo">
+Hola {{ user.username }}
+</li>
+
+<li>
+<form action="{% url 'logout' %}" method="post">
+{% csrf_token %}
+<button type="submit">Cerrar sesión</button>
+</form>
+</li>
+
+
+{% if user.is_staff %}
+<li>
+<a class="btn-panel" href="{% url 'dashboard' %}">Panel de control</a>
+</li>
+{% endif %}
+
+{% else %}
+
+<li>
+<a href="{% url 'login' %}">Inicia sesión</a>
+</li>
+
+<li>
+<a href="{% url 'registro' %}">Regístrate</a>
+</li>
+
+{% endif %}
+
+</ul>
+
+</nav>
+</header>
+
+       
+ <div class="cajaprincipal">
+
+        <section class="hero">
+            <h1>Bienvenido a Lotus Dream Spa</h1>
+            <p>Descubre una experiencia única de relajación y bienestar.</p>
+            <a href="#servicios" class="btn">Conoce nuestros servicios</a>
+        </section>
+
+        <section class="services">
+            <h2>Estamos ubicados en <strong>Carrera 7 #128 - 45</strong></h2>
+
+            <div class="service-item">
+                <img src="img/index/local.webp">
+                <p>Relaja tu cuerpo y mente con nuestras técnicas especializadas.</p>
+            </div>
+
+            <div class="service-item">
+                <img src="img/index/instalacion.jpg">
+                <p>Con nuestras excelentes instalaciones, siéntete como en casa.</p>
+            </div>
+        </section>
+
+        <section id="servicios" class="services">
+            <h2>Servicios Destacados</h2>
+
+            <div class="service-item">
+                <img src="img/index/masaje.jpg">
+                <h3>Masajes Corporales</h3>
+            </div>
+
+            <div class="service-item">
+                <img src="img/index/faciales.png">
+                <h3>Faciales</h3>
+            </div>
+
+            <div class="service-item">
+                <img src="img/index/pestañas.jpg">
+                <h3>Pestañas</h3>
+            </div>
+        </section>
+
+        <section class="products">
+            <h2>Productos Destacados</h2>
+
+            <div class="product-item">
+                <img src="img/Productos/MatizantesBukiPro.jpg">
+                <h3>Matizantes Buki Pro</h3>
+            </div>
+
+            <div class="product-item">
+                <img src="img/Productos/MantequillasHidratantesArtesanalesfrutosrojos.jpg">
+                <h3>Mantequillas Hidratantes</h3>
+            </div>
+
+            <div class="product-item">
+                <img src="img/Productos/serum.jpg">
+                <h3>Serum Facial</h3>
+            </div>
+        </section>
+
+        <section class="promotions">
+            <h2>Promociones</h2>
+
+            <div class="promotion-item">
+                <img src="img/Promociones/Promocion.jpg">
+                <h3>Descuento en Masajes</h3>
+            </div>
+
+            <div class="promotion-item">
+                <img src="img/Promociones/Promocion.jpg">
+                <h3>Combo Facial + Manicura</h3>
+            </div>
+        </section>
+
+        <section class="horarios">
+            <h2>Horarios de Atención</h2>
+
+            <table class="tabla-horarios">
+                <tr>
+                    <th>Día</th>
+                    <th>Horario</th>
+                </tr>
+                <tr>
+                    <td>Lunes a Viernes</td>
+                    <td>10:00 AM - 6:00 PM</td>
+                </tr>
+                <tr>
+                    <td>Sábados</td>
+                    <td>10:00 AM - 8:00 PM</td>
+                </tr>
+                <tr>
+                    <td>Domingos y Festivos</td>
+                    <td>Cerrado</td>
+                </tr>
+            </table>
+        </section>
+</div>
+</body>
+</html>

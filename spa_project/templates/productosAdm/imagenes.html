@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Imágenes</title>
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/productos/imagenes.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Imágenes Subidas</h1>
+    <p>Gestión de imágenes del sistema</p>
+</section>
+
+<div class="card">
+    <div class="upload-box">
+        <form th:action="@{/imagenes/guardar}" method="post" enctype="multipart/form-data">
+            <input type="file" name="imagen" required>
+            <button type="submit">Subir</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Previa</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="img : ${imagenes}">
+                <td th:text="${img.id}"></td>
+                <td th:text="${img.nombre}"></td>
+                <td>
+                    <img th:src="@{'/img/' + ${img.nombre}}">
+                </td>
+                <td>
+                    <a class="eliminar" th:href="@{'/imagenes/eliminar/' + ${img.id}}">Eliminar</a>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Servicios</title>
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/servicios/lista.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Lista de Servicios</h1>
+    <p>Administra todos los servicios del spa</p>
+</section>
+
+<div class="top-buttons">
+    <a th:href="@{/servicios/nuevo}" class="btn">Nuevo Servicio</a>
+</div>
+<div class="contenedorFiltro">
+    <form th:action="@{/servicios/buscar}" method="get" class="filtro-form">
+
+        <input type="text" name="nombre"
+            placeholder="Nombre..."
+            th:value="${filtroNombre}">
+
+        <input type="number" name="precioMin"
+            placeholder="Precio mínimo"
+            th:value="${filtroPrecioMin}">
+
+        <input type="number" name="precioMax"
+            placeholder="Precio máximo"
+            th:value="${filtroPrecioMax}">
+
+        <button type="submit" class="btn">Buscar</button>
+    </form>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Descripción</th>
+            <th>Imagen</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr th:each="s : ${servicios}">
+            <td th:text="${s.id}"></td>
+            <td th:text="${s.nombre}"></td>
+            <td th:text="${s.precio}"></td>
+            <td th:text="${s.descripcion}"></td>
+            <td>
+                <img th:if="${s.imagen != null}" th:src="@{'/img/' + ${s.imagen.nombre}}">
+                <img th:if="${s.imagen == null}" src="/img/nulo.png">
+            </td>
+            <td>
+                <a th:href="@{'/servicios/actualizar/' + ${s.id}}" class="btn-edit">Editar</a>
+                <a th:href="@{'/servicios/eliminar/' + ${s.id}}" class="btn-delete">Eliminar</a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+<a href="/dashboard" class="btn-back">← Volver</a>
+</body>
+</html>

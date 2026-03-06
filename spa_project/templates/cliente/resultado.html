@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultado de la Compra</title>
+</head>
+<body>
+    <h2>Resultado de la Compra</h2>
+
+    <div th:if="${mensaje}">
+        <p th:text="${mensaje}"></p>
+    </div>
+
+    <div th:if="${producto != null}">
+        <h3>Producto: <span th:text="${producto.nombre}"></span></h3>
+        <p>Precio: <span th:text="${producto.precio}"></span></p>
+        <p>Cantidad comprada: <span th:text="${cantidad}"></span></p>
+        <p>Total: <span th:text="${producto.precio * cantidad}"></span></p>
+    </div>
+
+    <a href="/compra">Realizar otra compra</a>
+</body>
+</html>
+    

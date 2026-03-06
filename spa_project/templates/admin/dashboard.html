@@ -1,0 +1,66 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Administrador - SPA Manicura</title>
+
+    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard/dashboard.css' %}">
+
+</head>
+<body>
+
+<nav class="navbar">
+    <h3>SPA Manicura</h3>
+    <ul>
+        <li><a href="{% url 'logout' %}" class="btn cerrar">Cerrar</a></li>
+    </ul>
+</nav>
+
+<section class="hero">
+    <h1>Panel del Administrador</h1>
+    <p>Bienvenido, aquí puedes administrar tu sistema de forma sencilla.</p>
+</section>
+
+<article class="dashboard">
+
+    <div class="cards">
+
+        <section class="card">
+            <h3>Productos</h3>
+            <img src="{% static 'img/productos.png' %}">
+            <a href="/productos/lista" class="btn">Administrar</a>
+        </section>
+
+        <section class="card">
+            <h3>Servicios</h3>
+            <img src="{% static 'img/Servicios.png' %}">
+            <a href="/servicios/lista" class="btn">Administrar</a>
+        </section>
+
+        <section class="card">
+            <h3>Citas</h3>
+            <img src="{% static 'img/citas.png' %}">
+            <a href="/calendar" class="btn">Ver Citas</a>
+        </section>
+
+        <section class="card">
+            <h3>Ventas</h3>
+            <img src="{% static 'img/usuarios.png' %}">
+            <a href="/ventas" class="btn">Ver Ventas</a>
+        </section>
+
+        <section class="card">
+            <h3>Empleados</h3>
+            <img src="{% static 'img/usuarios.png' %}">
+            <a href="/listar" class="btn">Ver Empleados</a>
+        </section>
+
+    </div>
+
+</article>
+
+</body>
+</html>

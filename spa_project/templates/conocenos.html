@@ -1,0 +1,122 @@
+{% load static %}
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lotus Dream Spa</title>
+
+    <link rel="icon" href="{% static 'img/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+    <link rel="stylesheet" href="{% static 'css/nosotros.css' %}">
+</head>
+
+<body>
+
+<header id="header">
+    <nav class="nav-container">
+
+        <a class="logo" href="/">
+            <img src="{% static 'img/logo.png' %}" width="100">
+        </a>
+
+        <ul class="items_ul">
+
+            <li><a href="/servicios">Servicios</a></li>
+            <li><a href="/tienda">Productos</a></li>
+
+            {% if user.is_authenticated %}
+
+                <li>
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit">Cerrar sesión</button>
+                    </form>
+                </li>
+
+                {% if user.is_staff %}
+                <li>
+                    <a href="/dashboard">
+                        <button class="btn-panel">Panel de control</button>
+                    </a>
+                </li>
+                {% endif %}
+
+            {% else %}
+
+                <li>
+                    <a href="{% url 'login' %}">Inicia Sesión</a>
+                </li>
+
+            {% endif %}
+
+        </ul>
+
+    </nav>
+</header>
+
+<div class="cajaprincipal">
+
+<div class="conocenos-container">
+
+<h2 class="titulo-seccion">🌸 Conócenos 🌸</h2>
+
+<div class="conocenos-intro">
+
+<div class="intro-texto">
+<p>
+En <strong>Lotus Dream Spa</strong> nos especializamos en brindarte un espacio de relajación,
+bienestar y belleza. Nuestro compromiso es ofrecer experiencias únicas que combinen
+tradición, innovación y un servicio de calidad.
+</p>
+
+<p>
+Creemos en el cuidado integral del cuerpo y la mente, por eso cada detalle
+está pensado para que disfrutes de un momento especial.
+</p>
+</div>
+
+<div class="intro-imagen">
+<img src="{% static 'img/spa.jpg' %}" alt="Spa Lotus Dream">
+</div>
+
+</div>
+
+<div class="conocenos-valores">
+
+<div class="valor-card">
+<img src="{% static 'img/icon/cuidado.png' %}" alt="Cuidado">
+<h4>Cuidado Personalizado</h4>
+<p>Tratamientos adaptados a tus necesidades y estilo de vida.</p>
+</div>
+
+<div class="valor-card">
+<img src="{% static 'img/icon/calidad.png' %}" alt="Calidad">
+<h4>Calidad y Confianza</h4>
+<p>Utilizamos productos de alta gama y profesionales certificados.</p>
+</div>
+
+<div class="valor-card">
+<img src="{% static 'img/icon/relax.png' %}" alt="Relajación">
+<h4>Ambiente de Relajación</h4>
+<p>Un espacio pensado para desconectar y renovar tus energías.</p>
+</div>
+
+</div>
+
+</div>
+</div>
+
+<footer class="footer">
+
+<p>&copy; 2025 Lotus Dream Spa</p>
+
+<div class="social-media">
+<img src="{% static 'img/icon/facebook.png' %}" width="50">
+<img src="{% static 'img/icon/instagram.png' %}" width="50">
+<img src="{% static 'img/icon/x.png' %}" width="50">
+</div>
+
+</footer>
+
+</body>
+</html>
