@@ -1,78 +1,157 @@
-<!DOCTYPE html>
+{% load static %}
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lotus Dream Spa</title>
+    <link rel="icon" href="{% static 'img/favicon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
 </head>
 
 <body>
 
-    <!-- Producto destacado -->
-    <section class="producto">
-        <div class="container">
-            <div class="producto-item">
-                <h3>Serum Facial</h3>
-                <p>Revitaliza tu rostro con nuestros serums especializados.</p>
-            </div>
-        </div>
-    </section>
+<header id="header">
+    <nav class="nav-container">
 
+        <a class="logo" href="/">
+            <img src="{% static 'img/logo.png' %}" width="100">
+        </a>
 
-    <!-- Promociones -->
-    <section id="promociones" class="promotions">
-        <div class="container">
-            <h2>Promociones</h2>
+        <ul class="items_ul">
+            <li><a href="#">Conócenos</a></li>
+            <li><a href="#">Servicios</a></li>
+            <li><a href="#">Productos</a></li>
 
-            <div class="promotion-list">
+            {% if user.is_authenticated %}
 
-                <div class="promotion-item">
-                    <img src="img/Promociones/Imagen de WhatsApp 2025-06-19 a las 15.04.28_e2c73d8c.jpg" alt="Promoción 1">
-                    <h3>Descuento en Masajes</h3>
-                    <p>15% de descuento en masajes corporales durante este mes.</p>
-                </div>
+                <li>
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit">Cerrar sesión</button>
+                    </form>
+                </li>
 
-                <div class="promotion-item">
-                    <img src="img/Promociones/Imagen de WhatsApp 2025-06-19 a las 15.04.28_e2c73d8c.jpg" alt="Promoción 2">
-                    <h3>Combo Facial + Manicura</h3>
-                    <p>Aprovecha nuestro combo especial para consentirte.</p>
-                </div>
+            {% else %}
 
-            </div>
-        </div>
-    </section>
+                <li>
+                    <a href="{% url 'login' %}">Inicia Sesión</a>
+                </li>
 
+            {% endif %}
 
-    <!-- Horarios de Atención -->
-    <section id="horarios" class="horarios">
-        <div class="container">
-            <h2>Horarios de Atención</h2>
+        </ul>
 
-            <table class="tabla-horarios">
-                <thead>
-                    <tr>
-                        <th>Día</th>
-                        <th>Horario</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Lunes a Viernes</td>
-                        <td>10:00 AM - 6:00 PM</td>
-                    </tr>
-                    <tr>
-                        <td>Sábados</td>
-                        <td>10:00 AM - 8:00 PM</td>
-                    </tr>
-                    <tr>
-                        <td>Domingos y Festivos</td>
-                        <td>Cerrado</td>
-                    </tr>
-                </tbody>
-            </table>
+    </nav>
+</header>
 
-        </div>
-    </section>
+<div class="cajaprincipal">
+
+<section class="hero">
+    <h1>Bienvenido a Lotus Dream Spa</h1>
+    <p>Descubre una experiencia única de relajación y bienestar.</p>
+    <a href="#servicios" class="btn">Conoce nuestros servicios</a>
+</section>
+
+<section class="services">
+    <h2>Estamos ubicados en <strong>Carrera 7 #128 - 45</strong></h2>
+
+    <div class="service-item">
+        <img src="{% static 'img/index/local.webp' %}">
+        <p>Relaja tu cuerpo y mente con nuestras técnicas especializadas.</p>
+    </div>
+
+    <div class="service-item">
+        <img src="{% static 'img/index/instalacion.jpg' %}">
+        <p>Con nuestras excelentes instalaciones, siéntete como en casa.</p>
+    </div>
+</section>
+
+<section id="servicios" class="services">
+    <h2>Servicios Destacados</h2>
+
+    <div class="service-item">
+        <img src="{% static 'img/index/masaje.jpg' %}">
+        <h3>Masajes Corporales</h3>
+    </div>
+
+    <div class="service-item">
+        <img src="{% static 'img/index/faciales.png' %}">
+        <h3>Faciales</h3>
+    </div>
+
+    <div class="service-item">
+        <img src="{% static 'img/index/pestañas.jpg' %}">
+        <h3>Pestañas</h3>
+    </div>
+</section>
+
+<section class="products">
+    <h2>Productos Destacados</h2>
+
+    <div class="product-item">
+        <img src="{% static 'img/Productos/MatizantesBukiPro.jpg' %}">
+        <h3>Matizantes Buki Pro</h3>
+    </div>
+
+    <div class="product-item">
+        <img src="{% static 'img/Productos/MantequillasHidratantesArtesanalesfrutosrojos.jpg' %}">
+        <h3>Mantequillas Hidratantes</h3>
+    </div>
+
+    <div class="product-item">
+        <img src="{% static 'img/Productos/serum.jpg' %}">
+        <h3>Serum Facial</h3>
+    </div>
+</section>
+
+<section class="promotions">
+    <h2>Promociones</h2>
+
+    <div class="promotion-item">
+        <img src="{% static 'img/Promociones/Promocion.jpg' %}">
+        <h3>Descuento en Masajes</h3>
+    </div>
+
+    <div class="promotion-item">
+        <img src="{% static 'img/Promociones/Promocion.jpg' %}">
+        <h3>Combo Facial + Manicura</h3>
+    </div>
+</section>
+
+<section class="horarios">
+    <h2>Horarios de Atención</h2>
+
+    <table class="tabla-horarios">
+        <tr>
+            <th>Día</th>
+            <th>Horario</th>
+        </tr>
+        <tr>
+            <td>Lunes a Viernes</td>
+            <td>10:00 AM - 6:00 PM</td>
+        </tr>
+        <tr>
+            <td>Sábados</td>
+            <td>10:00 AM - 8:00 PM</td>
+        </tr>
+        <tr>
+            <td>Domingos y Festivos</td>
+            <td>Cerrado</td>
+        </tr>
+    </table>
+</section>
+
+</div>
+
+<footer class="footer">
+    <p>&copy; 2025 Lotus Dream Spa</p>
+
+    <div class="social-media">
+        <img src="{% static 'img/icon/facebook.png' %}" width="50">
+        <img src="{% static 'img/icon/instagram.png' %}" width="50">
+        <img src="{% static 'img/icon/x.png' %}" width="50">
+    </div>
+</footer>
 
 </body>
 </html>

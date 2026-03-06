@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro Cliente</title>
+
+<style>
+
+body{
+    font-family: "Montserrat", Arial, sans-serif;
+    background: linear-gradient(135deg,#f6c1d1,#fde6ec);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+/* botón volver */
+
+.btn-back{
+    position:fixed;
+    top:20px;
+    left:20px;
+
+    padding:10px 18px;
+    border-radius:20px;
+    text-decoration:none;
+    font-weight:bold;
+    background:white;
+    color:#8f4259;
+    border:2px solid #efd6de;
+}
+
+.btn-back:hover{
+    background:#b45a75;
+    color:white;
+}
+
+/* caja */
+
+.cajaprincipal{
+    background:white;
+    padding:40px 30px;
+    width:340px;
+    border-radius:22px;
+    text-align:center;
+    box-shadow:0 15px 35px rgba(0,0,0,0.15);
+}
+
+.cajaprincipal p{
+    font-size:1.4em;
+    font-weight:bold;
+    color:#5a2f3e;
+}
+
+/* inputs */
+
+input{
+    width:100%;
+    padding:12px;
+    margin-bottom:14px;
+    border-radius:10px;
+    border:1px solid #ddd;
+}
+
+input:focus{
+    outline:none;
+    border-color:#b45a75;
+}
+
+/* botón */
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:18px;
+    font-weight:bold;
+    cursor:pointer;
+    color:white;
+
+    background:linear-gradient(135deg,#b45a75,#e2a1b6);
+}
+
+button:hover{
+    background:linear-gradient(135deg,#8f4259,#c7748f);
+}
+
+/* link */
+
+.link-login{
+    display:block;
+    margin-top:15px;
+    font-size:14px;
+    text-decoration:none;
+    color:#5a2f3e;
+}
+
+.link-login:hover{
+    text-decoration:underline;
+}
+
+/* error */
+
+.error{
+    margin-bottom:10px;
+    color:#842029;
+    background:#f8d7da;
+    padding:10px;
+    border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<a href="/" class="btn-back">← Volver</a>
+{% if messages %}
+    {% for message in messages %}
+        <p style="color:green; font-weight:bold;">
+            {{ message }}
+        </p>
+    {% endfor %}
+{% endif %}
+<form class="cajaprincipal" method="POST">
+
+{% csrf_token %}
+
+<p>Registro Cliente</p>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="error">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<input type="number" name="documento" placeholder="Documento" required>
+
+<input type="text" name="nombre" placeholder="Nombre" required>
+
+<input type="text" name="apellido" placeholder="Apellido" required>
+
+<input type="email" name="correo" placeholder="Correo electrónico" required>
+
+<input type="date" name="fechaNacimiento" required>
+
+<input type="password" name="clave" placeholder="Contraseña" required>
+
+<button type="submit">
+Registrarse
+</button>
+
+<a href="{% url 'login' %}" class="link-login">
+¿Ya tienes cuenta? Inicia sesión
+</a>
+
+</form>
+
+</body>
+</html>

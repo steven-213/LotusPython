@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Registrar Servicio</title>
+    <link rel="stylesheet" href="/css/global_style.css">
+    <link rel="stylesheet" href="/css/dashboard/servicios/nuevo.css">
+</head>
+<body>
+
+<section class="hero">
+    <h1>Registrar Servicio</h1>
+    <p>Agrega un nuevo servicio al spa</p>
+</section>
+
+<form th:action="@{/servicios/guardar}" th:object="${servicio}" method="post">
+
+    <label>Nombre</label>
+    <input type="text" th:field="*{nombre}" required>
+
+    <label>Precio</label>
+    <input type="number" th:field="*{precio}" step="0.01" required>
+
+    <label>Descripción</label>
+    <textarea th:field="*{descripcion}" required></textarea>
+
+    <label>Imagen</label>
+    <select th:field="*{imagen.id}">
+        <option th:each="img : ${imagenes}"
+                th:value="${img.id}"
+                th:text="${img.nombre}">
+        </option>
+    </select>
+
+    <button type="submit">Guardar Servicio</button>
+</form>
+
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</body>
+</html>

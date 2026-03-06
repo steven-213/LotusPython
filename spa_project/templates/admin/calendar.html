@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Calendario de Citas</title>
+    
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- FullCalendar 6 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/dashboard/calendario_style.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h3 class="text-center mb-4" style="background-color: #ffc0cb;">Calendario de Citas</h3>
+    <div id="calendar" data-store-url="/api/calendar" data-update-base="/api/calendar"></div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- FullCalendar 6 JS -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script th:inline="javascript">
+/* ====================== Funciones Auxiliares ====================== */
+function formatForMySQL(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2,'0') + '-' +
+        String(d.getDate()).padStart(2,'0') + ' ' +
+        String(d.getHours()).padStart(2,'0') + ':' +
+        String(d.getMinutes()).padStart(2,'0') + ':' +
+        String(d.getSeconds()).padStart(2,'0');
+}
+
+async function fetchJson(url, method, payload) {
+    const response = await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: payload ? JSON.stringify(payload) : null
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({message:'Error desconocido'}));
+        throw new Error(err.message || 'No se pudo completar la operación');
+    }
+    return await response.json();
+}
+
+/* ====================== Inicialización del Calendario ====================== */
+document.addEventListener('DOMContentLoaded', async function() {
+    const calendarEl = document.getElementById('calendar');
+    const storeUrl = calendarEl.getAttribute('data-store-url');
+    const updateBaseUrl = calendarEl.getAttribute('data-update-base');
+
+    // Cargar eventos iniciales
+    let events = [];
+    try {
+        events = await fetchJson(storeUrl, 'GET', null);
+    } catch (error) {
+        console.error('Error cargando eventos:', error);
+    }
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        editable: true,
+        selectable: true,
+        events: events,
+        height: 700,
+        locale: 'es',
+        headerToolbar: {left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay'},
+        buttonText: {today:'Hoy', month:'Mes', week:'Semana', day:'Día', list:'Lista'},
+        slotLabelFormat: {hour:'2-digit', minute:'2-digit', hour12:true},
+        eventTimeFormat: {hour:'2-digit', minute:'2-digit', hour12:true},
+
+        /* ------------------ Click en fecha ------------------ */
+        dateClick: function(info) {
+            if(info.view.type === 'dayGridMonth'){
+                calendar.changeView('timeGridDay', info.dateStr);
+            }
+        },
+
+        /* ------------------ Selección de rango ------------------ */
+        select: async function(info) {
+            const { value: title } = await Swal.fire({
+                title: 'Crear Nuevo Evento',
+                input: 'text',
+                inputLabel: 'Nombre del evento',
+                inputPlaceholder: 'Escribe el título aquí...',
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!title) return;
+
+            const payload = {
+                title: title,
+                startDate: formatForMySQL(info.start),
+                endDate: formatForMySQL(info.end),
+                allDay: info.allDay
+            };
+
+            try {
+                const data = await fetchJson(storeUrl, 'POST', payload);
+                calendar.addEvent({
+                    id: data.id,
+                    title: data.title,
+                    start: data.startDate,
+                    end: data.endDate,
+                    allDay: data.allDay,
+                    color: data.color || '#3788d8'
+                });
+                Swal.fire('¡Listo!', 'Evento creado correctamente', 'success');
+            } catch(error) {
+                Swal.fire('Error', 'No se pudo crear el evento: ' + error.message, 'error');
+            }
+        },
+
+        /* ------------------ Arrastrar evento ------------------ */
+        eventDrop: async function(info) {
+            const payload = {
+                startDate: formatForMySQL(info.event.start),
+                endDate: formatForMySQL(info.event.end),
+                allDay: info.event.allDay
+            };
+            const url = updateBaseUrl + '/' + info.event.id;
+
+            try {
+                await fetchJson(url, 'PATCH', payload);
+                Swal.fire('¡Bien!', 'Evento actualizado', 'success');
+            } catch(error) {
+                Swal.fire('Error', 'No se pudo actualizar el evento', 'error');
+                info.revert();
+            }
+        },
+
+        /* ------------------ Redimensionar evento ------------------ */
+        eventResize: async function(info) {
+            const payload = {
+                startDate: formatForMySQL(info.event.start),
+                endDate: formatForMySQL(info.event.end),
+                allDay: info.event.allDay
+            };
+            const url = updateBaseUrl + '/' + info.event.id;
+
+            try {
+                await fetchJson(url, 'PATCH', payload);
+                Swal.fire('¡Bien!', 'Evento actualizado', 'success');
+            } catch(error) {
+                Swal.fire('Error', 'No se pudo actualizar el evento', 'error');
+                info.revert();
+            }
+        },
+
+        /* ------------------ Click en evento ------------------ */
+        eventClick: async function(info) {
+            const result = await Swal.fire({
+                title: '¿Qué deseas hacer?',
+                html: `Evento: ${info.event.title}<br>Usuario: ${info.event.extendedProps.name || 'Desconocido'}`,
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: 'Eliminar',
+                denyButtonText: 'Editar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if(result.isConfirmed){
+                // Eliminar evento
+                const url = updateBaseUrl + '/' + info.event.id;
+                try {
+                    const response = await fetch(url, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('Error al eliminar el evento');
+                    info.event.remove();
+                    Swal.fire('¡Eliminado!', 'El evento ha sido eliminado.', 'success');
+                } catch(error) {
+                    Swal.fire('Error', 'No se pudo eliminar el evento', 'error');
+                }
+            }
+            else if(result.isDenied){
+                const { value: newTitle } = await Swal.fire({
+                    title: 'Editar Evento',
+                    input: 'text',
+                    inputLabel: 'Nuevo título',
+                    inputValue: info.event.title,
+                    showCancelButton: true,
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if(newTitle && newTitle !== info.event.title){
+                    const payload = {
+                        title: newTitle,
+                        startDate: formatForMySQL(info.event.start),
+                        endDate: formatForMySQL(info.event.end || info.event.start),
+                        allDay: info.event.allDay
+                    };
+                    const url = updateBaseUrl + '/' + info.event.id;
+
+                    try {
+                        await fetchJson(url, 'PATCH', payload);
+                        info.event.setProp('title', newTitle);
+                        Swal.fire('¡Listo!', 'Evento actualizado', 'success');
+                    } catch(error) {
+                        Swal.fire('Error', 'No se pudo actualizar el evento', 'error');
+                    }
+                }
+            }
+        }
+    });
+
+    calendar.render();
+});
+</script>
+</body>
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</html>

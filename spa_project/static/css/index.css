@@ -1,0 +1,241 @@
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #fdf7f9;
+    color: #4a3b41;
+}
+
+/* ================= HEADER / NAV ================= */
+#header {
+    background: #f3c6d3;
+    width: 100%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 14px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo img {
+    border-radius: 12px;
+}
+
+.items_ul {
+    list-style: none;
+    display: flex;
+    gap: 28px;
+}
+
+.items_ul a {
+    text-decoration: none;
+    color: #5a2f3e;
+    font-weight: 600;
+    transition: color 0.3s;
+}
+
+.items_ul a:hover {
+    color: #b45a75;
+}
+
+.items_ul form button {
+  background: linear-gradient(135deg, #b45a75, #e2a1b6);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 22px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  transition: all 0.25s ease;
+}
+
+.items_ul form button:hover {
+  background: linear-gradient(135deg, #8f4259, #c7748f);
+  transform: translateY(-2px);
+}
+
+
+
+/* ================= CONTENEDOR PRINCIPAL ================= */
+.cajaprincipal {
+    max-width: 1200px;
+    margin: auto;
+    padding: 30px 16px;
+}
+
+/* ================= HERO ================= */
+.hero {
+    background: linear-gradient(135deg, #f6c1d1, #fde6ec);
+    text-align: center;
+    padding: 90px 20px;
+    border-radius: 28px;
+    margin-bottom: 60px;
+}
+
+.hero h1 {
+    font-size: 44px;
+    margin-bottom: 16px;
+    color: #5a2f3e;
+}
+
+.hero p {
+    font-size: 18px;
+    margin-bottom: 30px;
+    color: #6d4b58;
+}
+
+.btn {
+    background: #b45a75;
+    color: white;
+    padding: 14px 32px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+.btn:hover {
+    background: #8f4259;
+}
+
+/* ================= SECCIONES ================= */
+.services,
+.products,
+.promotions,
+.horarios {
+    background: white;
+    border-radius: 28px;
+    padding: 50px 30px;
+    margin-bottom: 60px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    text-align: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 30px;
+}
+
+.services h2,
+.products h2,
+.promotions h2,
+.horarios h2 {
+    display: flex;
+    justify-content: center;
+    font-size: 34px;
+    margin-bottom: 30px;
+    color: #5a2f3e;
+}
+
+/* ================= CARDS ================= */
+.service-item,
+.product-item,
+.promotion-item {
+    background: #fdf1f5;
+    padding: 18px;
+    border-radius: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.service-item:hover,
+.product-item:hover,
+.promotion-item:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+}
+
+.service-item img,
+.product-item img,
+.promotion-item img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 18px;
+}
+
+.service-item h3,
+.product-item h3,
+.promotion-item h3 {
+    margin-top: 14px;
+    font-size: 20px;
+    color: #8f4259;
+}
+
+.service-item p,
+.product-item p,
+.promotion-item p {
+    margin-top: 10px;
+    font-size: 16px;
+    color: #6d4b58;
+}
+
+/* ================= HORARIOS ================= */
+.tabla-horarios {
+    width: 100%;
+    max-width: 620px;
+    margin: auto;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.tabla-horarios th {
+    background: #f3c6d3;
+    color: #5a2f3e;
+    font-size: 18px;
+}
+
+.tabla-horarios th,
+.tabla-horarios td {
+    border: 1px solid #efd6de;
+    padding: 14px;
+    text-align: center;
+}
+
+/* ================= FOOTER ================= */
+.footer {
+    background: #f3c6d3;
+    text-align: center;
+    padding: 40px 20px;
+    color: #5a2f3e;
+    margin-top: 60px;
+}
+
+.social-media img {
+    margin: 12px;
+    width: 46px;
+    transition: transform 0.2s;
+}
+
+.social-media img:hover {
+    transform: scale(1.1);
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+    .hero h1 {
+        font-size: 32px;
+    }
+
+    .services h2,
+    .products h2,
+    .promotions h2,
+    .horarios h2 {S
+        font-size: 26px;
+    }
+
+    .nav-container {
+        flex-direction: column;
+        gap: 14px;
+    }
+}

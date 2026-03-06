@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Producto</title>
+    <link rel="stylesheet" href="/css/dashboard/productos/actualizar.css">
+</head>
+<body>
+
+
+<h2>Actualizar Producto</h2>
+
+<form th:action="@{/productos/guardar}" th:object="${producto}" method="post">
+
+    <input type="hidden" th:field="*{id}">
+
+    <label>Nombre:</label>
+    <input type="text" th:field="*{nombre}" required>
+
+    <label>Precio:</label>
+    <input type="number" th:field="*{precio}" step="0.01" required><br>
+
+    <label>Descripción:</label>
+    <input type="text" th:field="*{descripcion}" required>
+
+    <label>Stock:</label>
+    <input type="number" th:field="*{stock}" required>
+
+    <label>Imagen:</label>
+    <select th:field="*{imagen.id}">
+        <option th:each="img : ${imagenes}"
+                th:value="${img.id}"
+                th:text="${img.nombre}">
+        </option>
+    </select>
+
+    <button type="submit">Actualizar</button>
+
+</form>
+<a href="javascript:history.back()" class="btn-back">← Volver</a>
+</body>
+</html>
