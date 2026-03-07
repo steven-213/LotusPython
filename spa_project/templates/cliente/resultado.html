@@ -1,24 +1,27 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Resultado de la Compra</title>
 </head>
+
 <body>
-    <h2>Resultado de la Compra</h2>
 
-    <div th:if="${mensaje}">
-        <p th:text="${mensaje}"></p>
-    </div>
+<h2>Resultado de la Compra</h2>
 
-    <div th:if="${producto != null}">
-        <h3>Producto: <span th:text="${producto.nombre}"></span></h3>
-        <p>Precio: <span th:text="${producto.precio}"></span></p>
-        <p>Cantidad comprada: <span th:text="${cantidad}"></span></p>
-        <p>Total: <span th:text="${producto.precio * cantidad}"></span></p>
-    </div>
+{% if mensaje %}
+    <p>{{ mensaje }}</p>
+{% endif %}
 
-    <a href="/compra">Realizar otra compra</a>
+{% if producto %}
+    <h3>Producto: <span>{{ producto.nombre }}</span></h3>
+    <p>Precio: <span>{{ producto.precio }}</span></p>
+    <p>Cantidad comprada: <span>{{ cantidad }}</span></p>
+    <p>Total: <span>{{ producto.precio|floatformat:2|add:"0" }}</span></p>
+{% endif %}
+
+<a href="{% url 'compra' %}">Realizar otra compra</a>
+
 </body>
 </html>
-    

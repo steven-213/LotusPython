@@ -1,11 +1,14 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Lista de Productos</title>
-    <link rel="stylesheet" href="/css/global_style.css">
-    <link rel="stylesheet" href="/css/dashboard/productos/productos.css">
+
+    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard/productos/productos.css' %}">
 </head>
+
 <body>
 
 <section class="hero">
@@ -14,59 +17,103 @@
 </section>
 
 <div class="top-buttons">
-    <a th:href="@{/productos/nuevo}" class="btn">Nuevo Producto</a>
-    <a th:href="@{/imagenes}" class="btn">Imágenes</a>
+    <a href="{% url 'nuevo_producto' %}" class="btn">Nuevo Producto</a>
+    <a href="{% url 'imagenes' %}" class="btn">Imágenes</a>
 </div>
 
 <div class="tabla-container">
-    <form th:action="@{/productos/buscar}" method="get" class="filtro-form">
 
-        <input type="text" name="nombre"
-            placeholder="Nombre..."
-            th:value="${filtroNombre}">
+<form action="{% url 'buscar_producto' %}" method="get" class="filtro-form">
 
-        <input type="number" name="precioMin"
-            placeholder="Precio mínimo"
-            th:value="${filtroPrecioMin}">
+<input type="text"
+name="nombre"
+placeholder="Nombre..."
+value="{{ filtroNombre }}">
 
-        <input type="number" name="precioMax"
-            placeholder="Precio máximo"
-            th:value="${filtroPrecioMax}">
+<input type="number"
+name="precioMin"
+placeholder="Precio mínimo"
+value="{{ filtroPrecioMin }}">
 
-        <button type="submit" class="btn">Buscar</button>
-    </form>
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Descripción</th>
-                <th>Stock</th>
-                <th>Imagen</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="p : ${productos}">
-                <td th:text="${p.id}"></td>
-                <td th:text="${p.nombre}"></td>
-                <td th:text="${p.precio}"></td>
-                <td th:text="${p.descripcion}"></td>
-                <td th:text="${p.stock}"></td>
-                <td>
-                    <img th:if="${p.imagen != null}" th:src="@{'/img/' + ${p.imagen.nombre}}" class="img-tabla">
-                    <img th:if="${p.imagen == null}" src="/img/nulo.png" class="img-tabla">
-                </td>
-                <td>
-                    <a th:href="@{'/productos/editar/' + ${p.id}}" class="btn-edit">Editar</a>
-                    <a th:href="@{'/productos/eliminar/' + ${p.id}}" class="btn-delete">Eliminar</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+<input type="number"
+name="precioMax"
+placeholder="Precio máximo"
+value="{{ filtroPrecioMax }}">
+
+<button type="submit" class="btn">
+Buscar
+</button>
+
+</form>
+
+
+<table>
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Nombre</th>
+<th>Precio</th>
+<th>Descripción</th>
+<th>Stock</th>
+<th>Imagen</th>
+<th>Acciones</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for p in productos %}
+
+<tr>
+
+<td>{{ p.id }}</td>
+
+<td>{{ p.nombre }}</td>
+
+<td>{{ p.precio }}</td>
+
+<td>{{ p.descripcion }}</td>
+
+<td>{{ p.stock }}</td>
+
+<td>
+
+{% if p.imagen %}
+<img src="/img/{{ p.imagen.nombre }}" class="img-tabla">
+{% else %}
+<img src="/img/nulo.png" class="img-tabla">
+{% endif %}
+
+</td>
+
+<td>
+
+<a href="{% url 'editar_producto' p.id %}" class="btn-edit">
+Editar
+</a>
+
+<a href="{% url 'eliminar_producto' p.id %}" class="btn-delete">
+Eliminar
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
 
 </div>
-<a href="/dashboard" class="btn-back">← Volver</a>
+
+<a href="{% url 'dashboard' %}" class="btn-back">
+← Volver
+</a>
+
 </body>
 </html>

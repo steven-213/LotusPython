@@ -1,57 +1,57 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
+    {% load static %}
+    <!DOCTYPE html>
+    <html lang="es">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicio Sesión</title>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Inicio Sesión</title>
 
-    <link rel="stylesheet" href="{% static 'css/login.css' %}">
-</head>
+        <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    </head>
 
-<body>
+    <body>
 
-<a href="/" class="btn-back">← Volver</a>
+    <a href="/" class="btn-back">← Volver</a>
 
-<form id="inicioSesion" method="POST">
-    {% csrf_token %}
+    <form id="inicioSesion" method="POST">
+        {% csrf_token %}
 
-    <div class="cajaprincipal">
+        <div class="cajaprincipal">
 
-        <p style="margin-bottom:10px;">Inicia Sesión</p>
+            <p style="margin-bottom:10px;">Inicia Sesión</p>
 
-        <input type="number" name="documento" placeholder="Documento" required>
+            <input type="number" name="documento" placeholder="Documento" required>
 
-        <input type="password" name="clave" placeholder="Contraseña" required>
+            <input type="password" name="clave" placeholder="Contraseña" required>
 
-        <div class="login-links">
+            <div class="login-links">
 
-            <a href="/recuperar-password" class="link-soft">
-                ¿Olvidaste tu contraseña?
-            </a>
+                <a href="/recuperar-password" class="link-soft">
+                    ¿Olvidaste tu contraseña?
+                </a>
 
-            <button id="accede" type="submit">
-                Acceder
-            </button>
+                <button id="accede" type="submit">
+                    Acceder
+                </button>
 
-            <a href="/registro" class="link-strong">
-                Crear cuenta
-            </a>
+                <a href="/registro" class="link-strong">
+                    Crear cuenta
+                </a>
+
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="error">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
 
         </div>
 
-        {% if messages %}
-            {% for message in messages %}
-                <div class="error">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
+    </form>
 
-    </div>
-
-</form>
-
-</body>
-</html>
+    </body>
+    </html>
