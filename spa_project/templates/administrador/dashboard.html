@@ -31,31 +31,31 @@
         <section class="card">
             <h3>Productos</h3>
             <img src="{% static 'img/productos.png' %}">
-            <a href="/productos/lista" class="btn">Administrar</a>
+            <a href="{% url 'lista' %}" class="btn">Administrar</a>
         </section>
 
         <section class="card">
             <h3>Servicios</h3>
             <img src="{% static 'img/Servicios.png' %}">
-            <a href="/servicios/lista" class="btn">Administrar</a>
+            <a href="{% url 'servicios_lista' %}" class="btn">Administrar</a>
         </section>
 
         <section class="card">
             <h3>Citas</h3>
             <img src="{% static 'img/citas.png' %}">
-            <a href="/calendar" class="btn">Ver Citas</a>
+            <a href="{% url 'calendario' %}" class="btn">Ver Citas</a>
         </section>
 
         <section class="card">
             <h3>Ventas</h3>
             <img src="{% static 'img/usuarios.png' %}">
-            <a href="/ventas" class="btn">Ver Ventas</a>
+            <a href="{% url 'ventas' %}" class="btn">Ver Ventas</a>
         </section>
 
         <section class="card">
             <h3>Empleados</h3>
             <img src="{% static 'img/usuarios.png' %}">
-            <a href="/listar" class="btn">Ver Empleados</a>
+            <a href="#" class="btn">Ver Empleados</a>
         </section>
 
     </div>
