@@ -1,20 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Detalle del Servicio</title>
+
+    {% load static %}
+
 </head>
+
 <body>
 
 <h2>Detalle del Servicio</h2>
 
-<p><b>ID:</b> </p>
-<p><b>Nombre:</b> </p>
-<p><b>Precio:</b> </p>
-<p><b>Descripción:</b> </p>
+<p><b>ID:</b> {{ servicio.id }}</p>
+<p><b>Nombre:</b> {{ servicio.nombre }}</p>
+<p><b>Precio:</b> ${{ servicio.precio }}</p>
+<p><b>Descripción:</b> {{ servicio.descripcion }}</p>
+
 <p><b>Imagen:</b></p>
 
-<a href="/servicios/lista"><button>Volver</button></a>
+{% if servicio.imagen %}
+<img src="{{ servicio.imagen.url }}" width="200">
+{% else %}
+<p>No tiene imagen</p>
+{% endif %}
+
+<br><br>
+
+<a href="{% url 'servicios_lista' %}">
+<button>Volver</button>
+</a>
+
 <a href="javascript:history.back()" class="btn-back">← Volver</a>
+
 </body>
 </html>

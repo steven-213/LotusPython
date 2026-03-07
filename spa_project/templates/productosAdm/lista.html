@@ -17,8 +17,7 @@
 </section>
 
 <div class="top-buttons">
-    <a href="{% url 'nuevo_producto' %}" class="btn">Nuevo Producto</a>
-    <a href="{% url 'imagenes' %}" class="btn">Imágenes</a>
+    <a href="{% url 'nuevo' %}" class="btn">Nuevo Producto</a>
 </div>
 
 <div class="tabla-container">
@@ -91,7 +90,7 @@ Buscar
 
 <td>
 
-<a href="{% url 'editar_producto' p.id %}" class="btn-edit">
+<a href="{% url 'actualizar_producto' p.id %}" class="btn-edit">
 Editar
 </a>
 
