@@ -12,13 +12,52 @@ class Users(models.Model):
         return self.nombre
 
 
-class Producto(models.Model):
-    nombre = models.CharField(max_length=100)
-    descripcion = models.TextField()
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-
+class Proveedor(models.Model):
+    nombre = models.CharField(max_length= 50)
+    contacto = models.EmailField()
+    
     def __str__(self):
         return self.nombre
+
+class Producto(models.Model):
+    nombre = models.CharField(max_length= 50)
+    descripcion = models.TextField()
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
+    stock = models.BigIntegerField()
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    precio = models.DecimalField(max_digits=12, decimal_places=2)
+    precioFinal = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    def __str__(self):
+        return f"{self.nombre} - Stock: {self.stock}"
+
+
+class Compra(models.Model):
+    fechaCompra = models.DateField()
+    total = models.DecimalField(max_digits=12, decimal_places=2)
+
+
+
+class DetallleCompra(models.Model):
+    unCompra = models.ForeignKey(Compra, on_delete=models.CASCADE)
+    unProducto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    lote = models.CharField(max_length=15)
+    fechaVencimiento = models.DateField()
+    cantidad = models.BigIntegerField()
+    proveedor = models.ForeignKey(Proveedor, on_delete=models.CASCADE)
+    valor = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    def save(self, *args, **kwargs):
+        self.total = self.valor * self.cantidad
+        
+        self.unProducto.stock += self.cantidad
+        self.unProducto.save()
+        super().save(*args, **kwargs)
+        
+    def __str__(self):
+        return f"Compra {self.unProducto.nombre} - {self.cantidad}"
+    
+
     
 
 class Servicio(models.Model):

@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Nuevo Producto</title>
+
+    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard/productos/nuevo.css' %}">
+</head>
+
+<body>
+
+    <section class="hero">
+        <h1>Registrar Nuevo Producto</h1>
+        <p>Agrega un nuevo producto al sistema</p>
+    </section>
+
+
+    <form method="post" action="{% if producto %}{% url 'editar_producto' producto.id %}{% else %}{% url 'crear_productos' %}{% endif %}">
+
+        {% csrf_token %}
+
+        <label>Nombre</label>
+        <input type="text" name="nombre" required value="{{ producto.nombre|default:'' }}">
+
+        <label>Descripción</label>
+        <input type="text" name="descripcion" required value="{{ producto.descripcion|default:'' }}">
+
+        <label>Proveedor</label>
+        <select name="proveedor" class="form-control">
+            {% for proveedor in proveedores %}
+            <option value="{{ proveedor.id }}" {% if producto and producto.proveedor.id == proveedor.id %}selected{% endif %}>
+                {{ proveedor.nombre }}
+            </option>
+            {% endfor %}
+        </select><br>
+
+        <label>Stock</label>
+        <input type="number" name="stock" required value="{{ producto.stock|default:'' }}">
+
+        <label>Valor</label>
+        <input type="number" name="valor" required value="{{ producto.valor|default:'' }}">
+        
+        <label>Precio con IVA</label>
+        <input type="number" name="precio" required value="{{ producto.precio|default:'' }}">
+
+        <label>Precio Final</label>
+        <input type="number" name="precioFinal" required value="{{ producto.precioFinal|default:'' }}">
+
+        <button type="submit" class="btn btn-success">Guardar</button>
+
+    </form>
+
+    <a href="javascript:history.back()" class="btn-back">← Volver</a>
+
+</body>
+</html>

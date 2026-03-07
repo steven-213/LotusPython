@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Users, Producto, Servicio, Cita, Venta
+from .models import Users, Producto, Servicio, Cita, Venta, Proveedor
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -221,41 +221,70 @@ def resultado(request):
 
 # ========================= PRODUCTOS =========================
 
-def productos(request):
-    lista_productos = Producto.objects.all()
-    return render(request, "productosAdm/lista.html", {"productos": lista_productos})
+def lista_productos(request):
+    productos = Producto.objects.all()
+    return render(request, 'productosAdm/listaProductos.html', {'productos': productos})
 
+def crear_productos(request):
+    proveedores = Proveedor.objects.all()
 
-def nuevo_producto(request):
-    if request.method == "POST":
-        nombre = request.POST.get("nombre")
-        descripcion = request.POST.get("descripcion")
-        precio = request.POST.get("precio")
+    if request.method == 'POST':
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion')
+        proveedor_id = request.POST.get('proveedor')
+        stock = request.POST.get('stock')
+        valor = request.POST.get('valor')
+        precio = request.POST.get('precio')
+        precioFinal = request.POST.get('precioFinal')
 
+        proveedor = Proveedor.objects.get(id=proveedor_id)
+        
         Producto.objects.create(
             nombre=nombre,
             descripcion=descripcion,
-            precio=precio
+            proveedor=proveedor,
+            stock=stock,
+            valor=valor,
+            precio=precio,
+            precioFinal=precioFinal
         )
 
-        return redirect("productosAdm/lista")
+        return redirect('lista_productos')
 
-    return render(request, "productosAdm/nuevo.html")
+    return render(request, 'productosAdm/formProductos.html', {'proveedores': proveedores})
+def editar_producto(request, id):
+    producto = get_object_or_404(Producto, id=id)
+    proveedores = Proveedor.objects.all()
 
+    if request.method == 'POST':
+        producto.nombre = request.POST.get('nombre')
+        producto.descripcion = request.POST.get('descripcion')
+        producto.proveedor = Proveedor.objects.get(id=request.POST.get('proveedor'))
+        producto.stock = request.POST.get('stock')
+        producto.valor = request.POST.get('valor')
+        producto.precio = request.POST.get('precio')
+        producto.precioFinal = request.POST.get('precioFinal')
+        producto.save()
+        return redirect('lista_productos')
 
-def actualizar_producto(request, id):
+    return render(
+        request,
+        'productosAdm/formProductos.html',
+        {
+            'producto': producto,
+            'proveedores': proveedores
+        }
+    )
+    
+
+def eliminar_producto(request, id):
     producto = get_object_or_404(Producto, id=id)
 
-    if request.method == "POST":
-        producto.nombre = request.POST.get("nombre")
-        producto.descripcion = request.POST.get("descripcion")
-        producto.precio = request.POST.get("precio")
-        producto.save()
+    if request.method == 'POST':
+        producto.delete()
+        return redirect('lista_productos')
 
-        return redirect("productosAdm/lista")
-
-    return render(request, "productosAdm/actualizar.html", {"producto": producto})
-
+    return render(request, 'productosAdm/eliminarProducto.html', {'producto': producto})
 
 def buscar_producto(request):
     query = request.GET.get('q', '')
@@ -265,7 +294,7 @@ def buscar_producto(request):
     else:
         productos = Producto.objects.all()
 
-    return render(request, 'productosAdm/lista.html', {
+    return render(request, 'productosAdm/listaProductos.html', {
         'productos': productos,
         'query': query
     })

@@ -1,0 +1,26 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Editar Producto</title>
+
+<link rel="stylesheet" href="{% static 'css/dashboard/productos/actualizar.css' %}">
+
+</head>
+
+<body>
+    <h1>Eliminar Producto</h1>
+    <p>¿Estás seguro que quieres eliminar el producto "{{ producto.nombre }}"?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-delete">Sí, eliminar</button>
+        <a href="{% url 'lista_productos' %}" class="btn">Cancelar</a>
+    </form>
+</body>
+
+</html>
