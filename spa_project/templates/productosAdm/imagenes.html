@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Imágenes</title>
-    <link rel="stylesheet" href="/css/global_style.css">
-    <link rel="stylesheet" href="/css/dashboard/productos/imagenes.css">
+
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard/productos/imagenes.css' %}">
 </head>
 <body>
 
@@ -14,8 +17,10 @@
 </section>
 
 <div class="card">
+
     <div class="upload-box">
-        <form th:action="@{/imagenes/guardar}" method="post" enctype="multipart/form-data">
+        <form action="{% url 'guardar_imagen' %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
             <input type="file" name="imagen" required>
             <button type="submit">Subir</button>
         </form>
@@ -30,21 +35,35 @@
                 <th>Acciones</th>
             </tr>
         </thead>
+
         <tbody>
-            <tr th:each="img : ${imagenes}">
-                <td th:text="${img.id}"></td>
-                <td th:text="${img.nombre}"></td>
+
+            {% for img in imagenes %}
+
+            <tr>
+                <td>{{ img.id }}</td>
+
+                <td>{{ img.nombre }}</td>
+
                 <td>
-                    <img th:src="@{'/img/' + ${img.nombre}}">
+                    <img src="/img/{{ img.nombre }}">
                 </td>
+
                 <td>
-                    <a class="eliminar" th:href="@{'/imagenes/eliminar/' + ${img.id}}">Eliminar</a>
+                    <a class="eliminar" href="/imagenes/eliminar/{{ img.id }}">Eliminar</a>
                 </td>
+
             </tr>
+
+            {% endfor %}
+
         </tbody>
+
     </table>
+
 </div>
 
 <a href="javascript:history.back()" class="btn-back">← Volver</a>
+
 </body>
 </html>

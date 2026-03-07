@@ -1,11 +1,14 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Nuevo Producto</title>
-    <link rel="stylesheet" href="/css/global_style.css">
-    <link rel="stylesheet" href="/css/dashboard/productos/nuevo.css">
+
+    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard/productos/nuevo.css' %}">
 </head>
+
 <body>
 
 <section class="hero">
@@ -14,33 +17,48 @@
 </section>
 
 
+<form action="{% url 'guardar_producto' %}" method="post">
 
-<form th:action="@{/productos/guardar}" th:object="${producto}" method="post">
+{% csrf_token %}
 
-    <label>Nombre</label>
-    <input type="text" th:field="*{nombre}" required>
+<label>Nombre</label>
+<input type="text" name="nombre" required>
 
-    <label>Precio</label>
-    <input type="number" th:field="*{precio}" step="0.01" required>
+<label>Precio</label>
+<input type="number" name="precio" step="0.01" required>
 
-    <label>Descripción</label>
-    <input type="text" th:field="*{descripcion}" required>
+<label>Descripción</label>
+<input type="text" name="descripcion" required>
 
-    <label>Stock</label>
-    <input type="number" th:field="*{stock}" required>
+<label>Stock</label>
+<input type="number" name="stock" required>
 
-    <label>Imagen</label>
-    <select th:field="*{imagen.id}">
-        <option value="">Seleccione una imagen</option>
-        <option th:each="img : ${imagenes}"
-                th:value="${img.id}"
-                th:text="${img.nombre}">
-        </option>
-    </select>
+<label>Imagen</label>
+<select name="imagen">
 
-    <button type="submit">Guardar Producto</button>
+<option value="">
+Seleccione una imagen
+</option>
+
+{% for img in imagenes %}
+
+<option value="{{ img.id }}">
+{{ img.nombre }}
+</option>
+
+{% endfor %}
+
+</select>
+
+<button type="submit">
+Guardar Producto
+</button>
 
 </form>
-<a href="javascript:history.back()" class="btn-back">← Volver</a>
+
+<a href="javascript:history.back()" class="btn-back">
+← Volver
+</a>
+
 </body>
 </html>
