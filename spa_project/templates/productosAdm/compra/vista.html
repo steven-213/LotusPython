@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    {% load static %}
+
+    <link rel="stylesheet" href="{% static 'css/mi_compra.css' %}">
+    
+</head>
+<body>
+
+{% block content %}
+
+
+<a href="{% url 'nueva_compra' %}">
+    Nueva Compra
+</a>
+
+<table class="table table-striped table-bordered">
+    <thead class="table-dark">
+        <tr>
+            <th>Lote</th>
+            <th>fechaVencimiento</th>
+            <th>cantidad</th>
+            <th>valor</th>
+            <th>fechaCompra</th>
+            <th>proveedor</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+    {% for compra in compras %}
+
+<tr>
+    <td colspan="7">
+        <h2>Detalle Compra - Compra #{{ compra.id }}</h2>
+    </td>
+</tr>
+
+{% for detalle in compra.detallecompra_set.all %}
+
+<tr>
+    <td>{{ detalle.lote }}</td>
+    <td>{{ detalle.fechaVencimiento }}</td>
+    <td>{{ detalle.cantidad }}</td>
+    <td>{{ detalle.valor }}</td>
+    <td>{{ compra.fechaCompra }}</td>
+    <td>{{ detalle.proveedor.nombre }}</td>
+    
+    <td>
+        <a href="{% url 'editar_compra' detalle.id %}">Editar</a>
+        <a href="{% url 'eliminar' detalle.id %}">Eliminar</a>
+    </td>
+</tr>
+
+{% endfor %}
+
+<tr>
+    <td colspan="5"><b>Total Compra</b></td>
+    <td colspan="2"><b>{{ compra.total }}</b></td>
+</tr>
+
+{% endfor %}
+
+    </tbody>
+</table>
+
+{% endblock %}
+</body>
+</html>

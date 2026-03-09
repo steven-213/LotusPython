@@ -1,0 +1,60 @@
+body{
+    font-family: Arial, sans-serif;
+}
+
+section{
+    text-align:center;
+}
+
+a{
+    display:inline-block;
+    padding:8px 15px;
+    background:#ffd1dc;
+    border-radius:6px;
+    text-decoration:none;
+    color:#333;
+    margin:15px;
+}
+
+.tabla-container{
+    width:90%;
+    margin:40px auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background-color:#fce4ec;
+    color:rgb(231,104,125);
+    padding:10px;
+}
+
+td{
+    padding:10px;
+    text-align:center;
+    border-bottom:1px solid #ddd;
+}
+
+button{
+    padding:5px 10px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.btn-edit{
+    background-color:#ffd1dc;
+}
+
+.btn-delete{
+    background-color:#ffb6c1;
+}
+
+/* fila especial de compra */
+.compra-header{
+    background:#fff0f5;
+    font-weight:bold;
+}

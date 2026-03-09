@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Users, Producto, Servicio, Cita, Venta
+from .models import Users, Producto, Servicio, Cita, Venta, DetalleCompra, Compra, Proveedor, ProductoInventario
 from django.contrib.auth import logout
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -309,3 +309,134 @@ def servicio_actualizar(request, id):
         return redirect('servicios_lista')
 
     return render(request, "servicios/actualizar.html", {"servicio": servicio})
+
+# =========================
+# COMPRAS
+# =========================
+
+def vista(request):
+    compras = Compra.objects.all().prefetch_related('detallecompra_set')
+    return render(request, 'productosAdm/compra/vista.html', {'compras': compras})
+
+
+def crear_compra(request, compra_id):
+
+    compra = get_object_or_404(Compra, id=compra_id)
+
+    productos = ProductoInventario.objects.all()
+    proveedores = Proveedor.objects.all()
+
+    if request.method == 'POST':
+
+        lote = request.POST.get('lote', '').strip()
+        fechaVencimiento = request.POST.get('fechaVencimiento', '').strip()
+        cantidad = request.POST.get('cantidad')
+        valor = request.POST.get('valor')
+        proveedor_id = request.POST.get('proveedor_id')
+        unProducto_id = request.POST.get('unProducto_id')
+
+        if not all([lote, fechaVencimiento, cantidad, valor, proveedor_id, unProducto_id]):
+            messages.error(request, "Todos los campos son obligatorios.")
+            return redirect('crear_compra', compra.id)
+
+        detalle = DetalleCompra(
+            lote=lote,
+            fechaVencimiento=fechaVencimiento,
+            cantidad=cantidad,
+            valor=valor,
+            proveedor_id=proveedor_id,
+            unProducto_id=unProducto_id,
+            unCompra=compra
+        )
+
+        detalle.save()
+        compra.actualizar_total()
+
+        messages.success(request, "Detalle guardado correctamente")
+
+        # 👇 vuelve al mismo formulario para agregar más productos
+        return redirect('crear_compra', compra.id)
+
+    return render(request, 'productosAdm/compra/form.html', {
+        'productos': productos,
+        'proveedores': proveedores,
+        'compra': compra
+    })
+
+def editar_compra(request, id):
+
+    detallecompra = get_object_or_404(DetalleCompra, id=id)
+    compras = Compra.objects.all()
+    productos = ProductoInventario.objects.all()
+    proveedores = Proveedor.objects.all()
+
+    if request.method == 'POST':
+
+        lote = request.POST.get('lote')
+        fechaVencimiento = request.POST.get('fechaVencimiento')
+        cantidad = request.POST.get('cantidad')
+        valor = request.POST.get('valor')
+        proveedor_id = request.POST.get('proveedor_id')
+        unProducto_id = request.POST.get('unProducto_id')
+
+        if lote:
+            detallecompra.lote = lote
+
+        if fechaVencimiento:
+            detallecompra.fechaVencimiento = fechaVencimiento
+
+        if cantidad:
+            detallecompra.cantidad = int(cantidad)
+
+        if valor:
+            detallecompra.valor = float(valor)
+
+        if proveedor_id:
+            detallecompra.proveedor_id = int(proveedor_id)
+
+        if unProducto_id:
+            detallecompra.unProducto_id = int(unProducto_id)
+
+        detallecompra.save()
+        detallecompra.unCompra.actualizar_total()
+
+        messages.success(request, "Detalle de compra actualizado correctamente.")
+        return redirect('vista')
+
+    return render(request, 'productosAdm/compra/form.html', {
+        'detallecompra': detallecompra,
+        'compras': compras,
+        'productos': productos,
+        'proveedores': proveedores
+})
+
+def eliminar(request, id):
+    detallecompra = get_object_or_404(DetalleCompra, id=id)
+
+    if request.method == 'POST':
+        compra = detallecompra.unCompra
+        detallecompra.delete()
+        compra.actualizar_total()
+        return redirect('vista')
+
+    return render(request, 'productosAdm/compra/eliminar.html', {'detallecompra': detallecompra})
+
+
+def nueva_compra(request):
+    compra = Compra.objects.create()
+    return redirect('crear_compra', compra.id)
+
+from django.contrib import messages
+from django.shortcuts import redirect, get_object_or_404
+
+def finalizar_compra(request, compra_id):
+
+    compra = get_object_or_404(Compra, id=compra_id)
+
+    # verificar si tiene detalles
+    if not compra.detallecompra_set.exists():
+        messages.error(request, "No puedes finalizar la compra sin agregar productos.")
+        return redirect('crear_compra', compra.id)
+
+    messages.success(request, "Compra finalizada correctamente")
+    return redirect('vista')
