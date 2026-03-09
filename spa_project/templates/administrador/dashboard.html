@@ -1,66 +1,39 @@
+﻿{% extends "base_public.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel Administrador - SPA Manicura</title>
+{% block title %}Panel | Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/admin_dashboard.css' %}">
+{% endblock %}
 
-    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard/dashboard.css' %}">
-
-</head>
-<body>
-
-<nav class="navbar">
-    <h3>SPA Manicura</h3>
-    <ul>
-        <li><a href="{% url 'logout' %}" class="btn cerrar">Cerrar</a></li>
-    </ul>
-</nav>
-
-<section class="hero">
-    <h1>Panel del Administrador</h1>
-    <p>Bienvenido, aquí puedes administrar tu sistema de forma sencilla.</p>
+{% block content %}
+<section class="dashboard-hero">
+  <h1>Panel administrador</h1>
+  <p>Acceso rapido a inventario, agenda de citas y control de ventas.</p>
 </section>
 
-<article class="dashboard">
+<section class="dashboard-grid">
+  <article class="dashboard-card">
+    <h2>Inventario</h2>
+    <p>Gestion de productos, proveedores y compras.</p>
+    <a class="btn btn-primary" href="{% url 'inventario:producto_lista' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Citas</h2>
+    <p>Agenda semanal y creacion de eventos.</p>
+    <a class="btn btn-primary" href="{% url 'citas:calendario' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Ventas</h2>
+    <p>Registro de ventas y validaciones.</p>
+    <a class="btn btn-primary" href="{% url 'ventas:venta_lista' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Servicios</h2>
+    <p>Administracion del catalogo de servicios.</p>
+    <a class="btn btn-primary" href="{% url 'citas:servicio_lista' %}">Abrir</a>
+  </article>
+</section>
+{% endblock %}
 
-    <div class="cards">
 
-        <section class="card">
-            <h3>Productos</h3>
-            <img src="{% static 'img/productos.png' %}">
-            <a href="{% url 'lista' %}" class="btn">Administrar</a>
-        </section>
-
-        <section class="card">
-            <h3>Servicios</h3>
-            <img src="{% static 'img/Servicios.png' %}">
-            <a href="{% url 'servicios_lista' %}" class="btn">Administrar</a>
-        </section>
-
-        <section class="card">
-            <h3>Citas</h3>
-            <img src="{% static 'img/citas.png' %}">
-            <a href="{% url 'calendario' %}" class="btn">Ver Citas</a>
-        </section>
-
-        <section class="card">
-            <h3>Ventas</h3>
-            <img src="{% static 'img/usuarios.png' %}">
-            <a href="{% url 'ventas' %}" class="btn">Ver Ventas</a>
-        </section>
-
-        <section class="card">
-            <h3>Empleados</h3>
-            <img src="{% static 'img/usuarios.png' %}">
-            <a href="#" class="btn">Ver Empleados</a>
-        </section>
-
-    </div>
-
-</article>
-
-</body>
-</html>

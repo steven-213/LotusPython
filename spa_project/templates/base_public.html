@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Lotus Dream Spa{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/logo.png' %}">
+  <link rel="stylesheet" href="{% static 'css/site/base.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <nav class="site-nav">
+      <a class="brand" href="{% url 'sesiones:home' %}">
+        <img src="{% static 'img/logo.png' %}" alt="Lotus Dream Spa" width="56" height="56">
+        <span>Lotus Dream Spa</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="{% url 'sesiones:conocenos' %}">Conocenos</a></li>
+        <li><a href="{% url 'citas:servicios_publicos' %}">Servicios</a></li>
+        <li><a href="{% url 'inventario:productos_publicos' %}">Productos</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        {% if request.session.usuario_id %}
+          {% if request.session.usuario_rol == 'admin' %}
+            <a class="btn btn-soft" href="{% url 'sesiones:admin_dashboard' %}">Panel</a>
+          {% else %}
+            <a class="btn btn-soft" href="{% url 'sesiones:perfil' %}">Mi perfil</a>
+          {% endif %}
+          <a class="btn btn-primary" href="{% url 'sesiones:logout' %}">Cerrar sesion</a>
+        {% else %}
+          <a class="btn btn-soft" href="{% url 'sesiones:registro' %}">Registrate</a>
+          <a class="btn btn-primary" href="{% url 'sesiones:login' %}">Iniciar sesion</a>
+        {% endif %}
+      </div>
+    </nav>
+  </header>
+
+  <main class="site-main">
+    {% if messages %}
+      <section class="flash-wrap" aria-label="Mensajes del sistema">
+        {% for message in messages %}
+          <div class="flash flash-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Lotus Dream Spa</p>
+    <div class="social-list">
+      <img src="{% static 'img/icon/facebook.png' %}" alt="Facebook">
+      <img src="{% static 'img/icon/instagram.png' %}" alt="Instagram">
+      <img src="{% static 'img/icon/x.png' %}" alt="X">
+    </div>
+  </footer>
+</body>
+</html>

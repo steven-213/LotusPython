@@ -1,0 +1,13 @@
+<h1>{% if servicio %}Editar{% else %}Nuevo{% endif %} servicio</h1>
+<form method="post">{% csrf_token %}
+  <input name="nombre" value="{{ servicio.nombre|default:'' }}" placeholder="Nombre" required>
+  <textarea name="descripcion" placeholder="Descripcion">{{ servicio.descripcion|default:'' }}</textarea>
+  <input name="precio" type="number" step="0.01" value="{{ servicio.precio|default:0 }}" required>
+  <input
+    name="persona_servicio"
+    value="{{ servicio.persona_servicio|default:'' }}"
+    placeholder="Profesional"
+  >
+  <button type="submit">Guardar</button>
+</form>
+<p><a href="{% url 'citas:servicio_lista' %}">Volver al listado</a></p>

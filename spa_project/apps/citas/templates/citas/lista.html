@@ -1,0 +1,9 @@
+<h1>Agenda</h1>
+<a href="{% url 'citas:cita_nueva' %}">Nueva cita</a>
+<ul>
+{% for c in citas %}
+  <li>{{ c.cliente.nombre }} - {{ c.servicio.nombre }} - {{ c.fecha_inicio }}</li>
+{% empty %}
+  <li>Sin citas</li>
+{% endfor %}
+</ul>

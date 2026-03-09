@@ -1,386 +1,54 @@
-<!doctype html>
-<html lang="es">
+﻿{% extends "base_public.html" %}
+{% load static %}
 
-<head>
+{% block title %}Tienda | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}">
+{% endblock %}
 
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-
-    <title>Tienda - SPA Manicura</title>
-
-    {% load static %}
-
-    <link rel="stylesheet" href="{% static 'css/compra.css' %}">
-    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
-
-</head>
-
-<body>
-
-<div class="container">
-
-<header id="header">
-
-<nav class="nav-container">
-
-<a class="logo" href="/">
-    <img src="{% static 'img/logo.png' %}" width="100">
-</a>
-
-<ul class="items_ul">
-
-<li><a href="/conocenos">Conócenos</a></li>
-<li><a href="/servicios">Servicios</a></li>
-
-<!-- Solo mostrar si está logueado -->
-{% if user.is_authenticated %}
-
-<li>
-<form action="{% url 'logout' %}" method="post">
-{% csrf_token %}
-<button type="submit">Cerrar sesión</button>
-</form>
-</li>
-
-{% endif %}
-
-</ul>
-
-</nav>
-
-</header>
-
-
-<main>
-
-<section>
-
-<h2 style="margin:0 0 12px 0">Productos disponibles</h2>
-
-<div id="products" class="products"></div>
-
+{% block content %}
+<section class="page-header">
+  <h1>Tienda</h1>
+  <p>Catalogo publico de productos disponibles en Lotus Dream Spa.</p>
 </section>
 
-</main>
-
-
-<aside class="sidebar">
-
-<h4>Datos del cliente</h4>
-
-<input type="text" id="clienteNombre" value="{{ user.first_name }}" placeholder="Nombre">
-<input type="email" id="clienteCorreo" value="{{ user.email }}" placeholder="Correo">
-<input type="number" id="clienteTelefono" placeholder="Teléfono">
-<input type="text" id="clienteDireccion" placeholder="Dirección">
-
-
-<div class="cart-title">
-
-<h3>Carrito</h3>
-<small id="cart-count">0 items</small>
-
-</div>
-
-
-<div class="cart-list" id="cart-list">
-
-<div class="muted">El carrito está vacío</div>
-
-</div>
-
-
-<div class="total-row">
-
-<div>Total</div>
-<div id="cart-total">$0.00</div>
-
-</div>
-
-
-<div class="checkout">
-
-<button class="btn" id="checkoutBtn">Pagar</button>
-<button class="btn ghost" id="clearBtn">Vaciar</button>
-
-</div>
-
-<div style="margin-top:10px" id="messageArea"></div>
-
-</aside>
-
-</div>
-
-
-<script>
-
-const API_BASE = '/';
-let cart = JSON.parse(localStorage.getItem('cart_spa')) || {};
-
-
-async function loadProducts(){
-
-try{
-
-const res = await fetch('/api/productos/');
-const products = await res.json();
-
-renderProducts(products);
-
-}catch{
-
-document.getElementById('products').innerHTML =
-'<div class="muted">Error cargando productos.</div>';
-
-}
-
-}
-
-
-function renderProducts(products){
-
-const container = document.getElementById('products');
-container.innerHTML = '';
-
-products.forEach(p=>{
-
-const img = p.imagen ? p.imagen : '/static/img/error.png';
-
-const card = document.createElement('div');
-
-card.className='card';
-
-card.innerHTML = `
-
-<img src="${img}">
-
-<div class="meta">
-
-<h3>${p.nombre}</h3>
-
-<p>${p.descripcion || ''}</p>
-
-<div class="price">$${p.precio}</div>
-
-<div>Stock: ${p.stock ?? 0}</div>
-
-<input type="number" min="1" value="1" id="qty-${p.id}">
-
-<button class="btn" data-add="${p.id}">Añadir</button>
-
-</div>
-`;
-
-container.appendChild(card);
-
-});
-
-
-document.querySelectorAll('[data-add]').forEach(btn=>{
-
-btn.addEventListener('click',()=>{
-
-const id = btn.dataset.add;
-const qty = parseInt(document.getElementById('qty-'+id).value) || 1;
-
-addToCart(Number(id),qty);
-
-});
-
-});
-
-}
-
-
-function addToCart(id,qty){
-
-cart[id] = (cart[id] || 0) + qty;
-
-saveCart();
-updateCartUI();
-
-}
-
-
-function saveCart(){
-
-localStorage.setItem('cart_spa',JSON.stringify(cart));
-
-}
-
-
-function clearCart(){
-
-cart={};
-
-saveCart();
-updateCartUI();
-
-}
-
-
-function removeFromCart(id){
-
-delete cart[id];
-
-saveCart();
-updateCartUI();
-
-}
-
-
-async function updateCartUI(){
-
-const list = document.getElementById('cart-list');
-
-list.innerHTML='';
-
-const ids = Object.keys(cart);
-
-document.getElementById('cart-count').innerText =
-ids.length + ' items';
-
-if(!ids.length){
-
-list.innerHTML =
-'<div class="muted">Carrito vacío</div>';
-
-document.getElementById('cart-total').innerText='$0.00';
-
-return;
-
-}
-
-
-const res = await fetch('/api/productos/');
-const products = await res.json();
-
-let total=0;
-
-ids.forEach(id=>{
-
-const p = products.find(x=>x.id==id);
-
-if(!p) return;
-
-const line = document.createElement('div');
-
-line.className='cart-item';
-
-line.innerHTML=`
-
-<b>${p.nombre}</b>
-
-<div>Cantidad: ${cart[id]}</div>
-
-<div>Precio: $${p.precio}</div>
-
-<button data-remove="${id}" class="btn ghost">Eliminar</button>
-
-`;
-
-list.appendChild(line);
-
-total += p.precio * cart[id];
-
-});
-
-
-document.getElementById('cart-total').innerText =
-'$' + total.toFixed(2);
-
-
-document.querySelectorAll('[data-remove]').forEach(btn=>{
-
-btn.addEventListener('click',()=>removeFromCart(btn.dataset.remove));
-
-});
-
-}
-
-
-async function checkout(){
-
-const nombre = document.getElementById('clienteNombre').value.trim();
-const telefono = document.getElementById('clienteTelefono').value.trim();
-const direccion = document.getElementById('clienteDireccion').value.trim();
-const correo = document.getElementById('clienteCorreo').value.trim();
-
-
-if(!nombre || !telefono || !direccion || !correo){
-
-alert('Completa todos los datos');
-
-return;
-
-}
-
-
-if(!Object.keys(cart).length){
-
-alert('Carrito vacío');
-
-return;
-
-}
-
-
-const data = {
-
-clienteNombre:nombre,
-clienteTelefono:telefono,
-clienteDireccion:direccion,
-clienteCorreo:correo,
-productos:cart
-
-};
-
-
-try{
-
-const res = await fetch('/api/compras/',{
-
-method:'POST',
-
-headers:{
-'Content-Type':'application/json'
-},
-
-body:JSON.stringify(data)
-
-});
-
-
-if(!res.ok) throw new Error();
-
-const r = await res.json();
-
-alert('Compra exitosa. ID: '+r.id);
-
-clearCart();
-
-loadProducts();
-
-}catch{
-
-alert('Error en la compra');
-
-}
-
-}
-
-
-document.getElementById('checkoutBtn')
-.addEventListener('click',checkout);
-
-document.getElementById('clearBtn')
-.addEventListener('click',clearCart);
-
-
-loadProducts();
-updateCartUI();
-
-</script>
-
-
-</body>
-</html>
+<section class="shop-actions" style="margin-bottom:1rem;">
+  <form method="get">
+    <input type="text" name="q" value="{{ query|default:'' }}" placeholder="Buscar producto por nombre">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+  </form>
+</section>
+
+<section class="shop-note">
+  <h2>Productos</h2>
+  {% if productos %}
+  <ul>
+    {% for p in productos %}
+    <li>
+      <strong>{{ p.nombre }}</strong> - ${{ p.precio_venta }} (stock: {{ p.stock }})
+      {% if request.session.usuario_id %}
+      <form method="post" action="{% url 'inventario:producto_comprar' p.id %}" style="display:inline-block; margin-left: .5rem;">
+        {% csrf_token %}
+        <input
+          type="number"
+          name="cantidad"
+          min="1"
+          max="{{ p.stock }}"
+          value="1"
+          style="width:70px;"
+        >
+        <button class="btn btn-primary" type="submit">Comprar</button>
+      </form>
+      {% else %}
+      <a class="btn btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
+        Inicia sesion para comprar
+      </a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No hay productos disponibles.</p>
+  {% endif %}
+</section>
+{% endblock %}

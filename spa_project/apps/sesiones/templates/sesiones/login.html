@@ -1,0 +1,6 @@
+<h1>Login</h1>
+<form method="post">{% csrf_token %}
+  <input name="documento" placeholder="Documento">
+  <input name="clave" placeholder="Clave" type="password">
+  <button type="submit">Ingresar</button>
+</form>

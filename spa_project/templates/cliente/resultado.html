@@ -1,27 +1,30 @@
-<!DOCTYPE html>
-<html lang="es">
+﻿{% extends "base_public.html" %}
+{% load static %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>Resultado de la Compra</title>
-</head>
+{% block title %}Resultado de compra | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}">
+{% endblock %}
 
-<body>
-
-<h2>Resultado de la Compra</h2>
-
-{% if mensaje %}
-    <p>{{ mensaje }}</p>
-{% endif %}
+{% block content %}
+<section class="page-header">
+  <h1>Resultado de la compra</h1>
+  {% if mensaje %}
+  <p>{{ mensaje }}</p>
+  {% else %}
+  <p>No hay informacion de compra para mostrar.</p>
+  {% endif %}
+</section>
 
 {% if producto %}
-    <h3>Producto: <span>{{ producto.nombre }}</span></h3>
-    <p>Precio: <span>{{ producto.precio }}</span></p>
-    <p>Cantidad comprada: <span>{{ cantidad }}</span></p>
-    <p>Total: <span>{{ producto.precio|floatformat:2|add:"0" }}</span></p>
+<section class="result-card">
+  <p><strong>Producto:</strong> {{ producto.nombre }}</p>
+  <p><strong>Precio:</strong> {{ producto.precio_venta }}</p>
+  <p><strong>Cantidad:</strong> {{ cantidad }}</p>
+</section>
 {% endif %}
 
-<a href="{% url 'compra' %}">Realizar otra compra</a>
-
-</body>
-</html>
+<section class="shop-actions">
+  <a class="btn btn-primary" href="{% url 'inventario:productos_publicos' %}">Volver a tienda</a>
+</section>
+{% endblock %}

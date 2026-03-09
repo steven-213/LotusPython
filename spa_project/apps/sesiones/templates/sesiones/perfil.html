@@ -1,0 +1,65 @@
+{% extends "base_public.html" %}
+
+{% block title %}Perfil | Lotus Dream Spa{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Perfil</h1>
+  {% if usuario %}
+  <p>{{ usuario.nombre }} {{ usuario.apellido }} - {{ usuario.rol }}</p>
+  {% else %}
+  <p>Sin sesion activa.</p>
+  {% endif %}
+</section>
+
+<section class="shop-note">
+  <h2>Compras pendientes</h2>
+  {% if compras_pendientes %}
+  <ul>
+    {% for c in compras_pendientes %}
+    <li>
+      Venta #{{ c.venta.id }} - ${{ c.monto }}
+      <ul>
+        {% for d in c.venta.detalles.all %}
+        <li>{{ d.producto.nombre }} x{{ d.cantidad }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No tienes compras pendientes.</p>
+  {% endif %}
+</section>
+
+<section class="shop-note">
+  <h2>Compras confirmadas</h2>
+  {% if compras_compradas %}
+  <ul>
+    {% for c in compras_compradas %}
+    <li>
+      Venta #{{ c.venta.id }} - ${{ c.monto }}
+      <ul>
+        {% for d in c.venta.detalles.all %}
+        <li>{{ d.producto.nombre }} x{{ d.cantidad }}</li>
+        {% endfor %}
+      </ul>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>No tienes compras confirmadas.</p>
+  {% endif %}
+</section>
+
+{% if compras_rechazadas %}
+<section class="shop-note">
+  <h2>Compras rechazadas</h2>
+  <ul>
+    {% for c in compras_rechazadas %}
+    <li>Venta #{{ c.venta.id }} - ${{ c.monto }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

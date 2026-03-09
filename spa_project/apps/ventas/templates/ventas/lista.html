@@ -1,0 +1,9 @@
+<h1>Ventas</h1>
+<a href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
+<ul>
+{% for v in ventas %}
+  <li><a href="{% url 'ventas:venta_detalle' v.id %}">Venta {{ v.id }}</a> - {{ v.total }}</li>
+{% empty %}
+  <li>Sin ventas</li>
+{% endfor %}
+</ul>
