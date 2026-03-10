@@ -1,0 +1,9 @@
+<h1>Proveedores</h1>
+<a href="{% url 'inventario:proveedor_nuevo' %}">Nuevo proveedor</a>
+<ul>
+{% for p in proveedores %}
+  <li>{{ p.nombre }}</li>
+{% empty %}
+  <li>Sin proveedores</li>
+{% endfor %}
+</ul>

@@ -1,0 +1,119 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Servicios | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Nuestros servicios</h1>
+  <p>Elige un servicio y agenda tu cita directamente.</p>
+</section>
+
+<section class="service-grid">
+  {% for s in servicios %}
+  <article class="service-card" data-service-id="{{ s.id }}">
+    <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}">
+    <h3 class="service-name">{{ s.nombre }}</h3>
+    <p>{{ s.descripcion }}</p>
+    <p><strong>Precio:</strong> ${{ s.precio }}</p>
+    {% if request.session.usuario_id %}
+    <button class="btn btn-primary" onclick="agendarServicio(this)">Agendar</button>
+    {% else %}
+    <a class="btn btn-soft" href="{% url 'sesiones:login' %}?next={% url 'citas:servicios_publicos' %}&reason=agendar">
+      Inicia sesion para agendar
+    </a>
+    {% endif %}
+  </article>
+  {% empty %}
+  <p class="empty-message">No hay servicios disponibles en este momento.</p>
+  {% endfor %}
+</section>
+
+{% if request.session.usuario_id %}
+<section class="calendar-shell">
+  <h2>Calendario de citas</h2>
+  <div id="calendar" data-store-url="{% url 'citas:api_eventos' %}"></div>
+</section>
+{% endif %}
+
+{% if request.session.usuario_id %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script>
+function formatForAPI(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  return d.toISOString();
+}
+
+async function fetchJson(url, method, payload) {
+  const response = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: payload ? JSON.stringify(payload) : null,
+  });
+  if (!response.ok) throw new Error("request error");
+  return await response.json();
+}
+
+async function agendarServicio(btn) {
+  const nombreServicio = btn.closest(".service-card").querySelector(".service-name").textContent;
+  const servicioId = btn.closest(".service-card").dataset.serviceId;
+  const result = await Swal.fire({
+    title: "Selecciona fecha y hora",
+    html: '<input id="fecha" type="date" class="swal2-input"><input id="hora" type="time" class="swal2-input">',
+    showCancelButton: true,
+    preConfirm: () => {
+      const fecha = document.getElementById("fecha").value;
+      const hora = document.getElementById("hora").value;
+      if (!fecha || !hora) {
+        Swal.showValidationMessage("Debes seleccionar fecha y hora");
+        return false;
+      }
+      return { fecha, hora };
+    }
+  });
+
+  if (!result.value) return;
+
+  const start = new Date(result.value.fecha + "T" + result.value.hora);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  try {
+    await fetchJson("{% url 'citas:api_eventos' %}", "POST", {
+      title: nombreServicio,
+      cliente_id: {{ request.session.usuario_id|default:"null" }},
+      servicio_id: servicioId || null,
+      startDate: formatForAPI(start),
+      endDate: formatForAPI(end),
+    });
+    await Swal.fire("Listo", "La cita fue creada", "success");
+    location.reload();
+  } catch {
+    Swal.fire("Error", "No fue posible crear la cita", "error");
+  }
+}
+
+document.addEventListener("DOMContentLoaded", async function () {
+  const calendarEl = document.getElementById("calendar");
+  if (!calendarEl) return;
+  const url = calendarEl.dataset.storeUrl;
+  let events = [];
+  try {
+    events = await fetchJson(url, "GET");
+  } catch (_) {}
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: "timeGridWeek",
+    locale: "es",
+    height: 700,
+    events: events.map(e => ({ id: e.id, title: e.title, start: e.startDate, end: e.endDate }))
+  });
+  calendar.render();
+});
+</script>
+{% endif %}
+{% endblock %}

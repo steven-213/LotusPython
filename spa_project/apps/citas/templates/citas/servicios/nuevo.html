@@ -1,0 +1,8 @@
+<h1>Nuevo servicio</h1>
+<form method="post">{% csrf_token %}
+  <input name="nombre" placeholder="Nombre">
+  <textarea name="descripcion"></textarea>
+  <input name="precio" type="number" step="0.01">
+  <input name="persona_servicio" placeholder="Profesional">
+  <button type="submit">Guardar</button>
+</form>

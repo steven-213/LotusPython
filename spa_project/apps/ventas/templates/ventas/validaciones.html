@@ -1,0 +1,19 @@
+<h1>Validaciones venta {{ venta.id }}</h1>
+<form method="post">{% csrf_token %}
+  <input name="metodo_pago" placeholder="Metodo de pago">
+  <input name="referencia_pago" placeholder="Referencia">
+  <input name="monto" type="number" step="0.01">
+  <select name="estado">
+    <option value="pendiente" selected>Pendiente</option>
+    <option value="validada">Validada</option>
+  </select>
+  <button type="submit">Validar</button>
+</form>
+<p>Cuando el estado sea pendiente, se enviara notificacion a Telegram.</p>
+<ul>
+{% for v in validaciones %}
+  <li>{{ v.estado }} - {{ v.monto }}</li>
+{% empty %}
+  <li>Sin validaciones</li>
+{% endfor %}
+</ul>

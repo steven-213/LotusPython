@@ -1,0 +1,9 @@
+<h1>Compras</h1>
+<a href="{% url 'inventario:compra_nueva' %}">Nueva compra</a>
+<ul>
+{% for c in compras %}
+  <li><a href="{% url 'inventario:compra_detalle' c.id %}">Compra {{ c.id }}</a> - {{ c.total }}</li>
+{% empty %}
+  <li>Sin compras</li>
+{% endfor %}
+</ul>

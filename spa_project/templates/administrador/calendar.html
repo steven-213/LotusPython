@@ -1,0 +1,55 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Calendario | Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/admin_calendar.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<section class="calendar-header">
+  <h1>Calendario de citas</h1>
+  <p>Gestiona citas directamente desde el calendario semanal.</p>
+</section>
+
+<section class="calendar-card">
+  <div id="calendar" data-store-url="{% url 'citas:api_eventos' %}"></div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+<script>
+async function fetchJson(url, method, payload) {
+  const response = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: payload ? JSON.stringify(payload) : null,
+  });
+  if (!response.ok) throw new Error("request error");
+  return await response.json();
+}
+
+document.addEventListener("DOMContentLoaded", async function () {
+  const calendarEl = document.getElementById("calendar");
+  const storeUrl = calendarEl.dataset.storeUrl;
+
+  let events = [];
+  try {
+    events = await fetchJson(storeUrl, "GET");
+  } catch (_) {}
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: "timeGridWeek",
+    editable: false,
+    selectable: false,
+    locale: "es",
+    height: 700,
+    events: events.map(e => ({ id: e.id, title: e.title, start: e.startDate, end: e.endDate })),
+  });
+
+  calendar.render();
+});
+</script>
+{% endblock %}
+
+

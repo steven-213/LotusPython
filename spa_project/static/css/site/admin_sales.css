@@ -1,0 +1,53 @@
+﻿.sales-header,
+.sales-summary,
+.sales-table-wrap {
+  background: #fff;
+  border: 1px solid var(--rose-100);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.sales-summary,
+.sales-table-wrap {
+  margin-top: 1rem;
+}
+
+.sales-summary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary-card {
+  border: 1px solid var(--rose-100);
+  border-radius: 12px;
+  padding: 0.7rem;
+}
+
+.summary-card p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.sales-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sales-table th,
+.sales-table td {
+  border: 1px solid var(--rose-100);
+  padding: 0.7rem;
+  text-align: left;
+}
+
+.sales-toolbar {
+  margin-bottom: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .sales-summary {
+    grid-template-columns: 1fr;
+  }
+}

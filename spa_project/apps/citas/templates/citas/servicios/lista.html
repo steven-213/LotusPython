@@ -1,0 +1,16 @@
+<h1>Servicios</h1>
+<a href="{% url 'citas:servicio_nuevo' %}">Nuevo servicio</a>
+<ul>
+{% for s in servicios %}
+  <li>
+    {{ s.nombre }} - {{ s.precio }}
+    <a href="{% url 'citas:servicio_editar' s.id %}">Editar</a>
+    <form method="post" action="{% url 'citas:servicio_eliminar' s.id %}" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit">Eliminar</button>
+    </form>
+  </li>
+{% empty %}
+  <li>Sin servicios</li>
+{% endfor %}
+</ul>

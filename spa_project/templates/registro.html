@@ -1,0 +1,50 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Registro | Lotus Dream Spa{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <article class="auth-card auth-card-wide">
+    <h1>Crear cuenta</h1>
+    <p>Completa los datos para registrarte en Lotus Dream Spa.</p>
+
+    <form method="post" class="auth-form auth-grid">
+      {% csrf_token %}
+
+      <div>
+        <label for="documento">Documento</label>
+        <input id="documento" type="number" name="documento" required>
+      </div>
+      <div>
+        <label for="nombre">Nombre</label>
+        <input id="nombre" type="text" name="nombre" required>
+      </div>
+      <div>
+        <label for="apellido">Apellido</label>
+        <input id="apellido" type="text" name="apellido" required>
+      </div>
+      <div>
+        <label for="correo">Correo</label>
+        <input id="correo" type="email" name="correo" required>
+      </div>
+      <div>
+        <label for="fechaNacimiento">Fecha de nacimiento</label>
+        <input id="fechaNacimiento" type="date" name="fechaNacimiento" required>
+      </div>
+      <div>
+        <label for="clave">Contrasena</label>
+        <input id="clave" type="password" name="clave" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Registrarme</button>
+    </form>
+
+    <a class="auth-link" href="{% url 'sesiones:login' %}">Ya tengo cuenta</a>
+  </article>
+</section>
+{% endblock %}

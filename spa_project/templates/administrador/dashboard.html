@@ -1,0 +1,39 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Panel | Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/admin_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+  <h1>Panel administrador</h1>
+  <p>Acceso rapido a inventario, agenda de citas y control de ventas.</p>
+</section>
+
+<section class="dashboard-grid">
+  <article class="dashboard-card">
+    <h2>Inventario</h2>
+    <p>Gestion de productos, proveedores y compras.</p>
+    <a class="btn btn-primary" href="{% url 'inventario:producto_lista' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Citas</h2>
+    <p>Agenda semanal y creacion de eventos.</p>
+    <a class="btn btn-primary" href="{% url 'citas:calendario' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Ventas</h2>
+    <p>Registro de ventas y validaciones.</p>
+    <a class="btn btn-primary" href="{% url 'ventas:venta_lista' %}">Abrir</a>
+  </article>
+  <article class="dashboard-card">
+    <h2>Servicios</h2>
+    <p>Administracion del catalogo de servicios.</p>
+    <a class="btn btn-primary" href="{% url 'citas:servicio_lista' %}">Abrir</a>
+  </article>
+</section>
+{% endblock %}
+
+

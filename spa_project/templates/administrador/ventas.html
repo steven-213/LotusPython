@@ -1,0 +1,83 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Ventas | Dashboard{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/admin_sales.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="sales-header">
+  <h1>Ventas</h1>
+  <p>Resumen del modulo de ventas y registro reciente.</p>
+</section>
+
+<section class="sales-summary" id="sales-summary">
+  <article class="summary-card">
+    <h2>Total ventas</h2>
+    <p id="total-ventas">-</p>
+  </article>
+  <article class="summary-card">
+    <h2>Monto total</h2>
+    <p id="monto-total">-</p>
+  </article>
+</section>
+
+<section class="sales-table-wrap">
+  <div class="sales-toolbar">
+    <a class="btn btn-primary" href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
+  </div>
+  <table class="sales-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Cliente</th>
+        <th>Total</th>
+        <th>Fecha</th>
+      </tr>
+    </thead>
+    <tbody id="sales-body">
+      <tr><td colspan="4">Cargando...</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<script>
+async function loadSales() {
+  const [resumenRes, ventasRes] = await Promise.all([
+    fetch("{% url 'ventas:api_resumen' %}"),
+    fetch("{% url 'ventas:api_ventas' %}")
+  ]);
+
+  if (!resumenRes.ok || !ventasRes.ok) {
+    throw new Error("No se pudieron cargar las ventas");
+  }
+
+  const resumen = await resumenRes.json();
+  const ventas = await ventasRes.json();
+
+  document.getElementById("total-ventas").innerText = resumen.total_ventas;
+  document.getElementById("monto-total").innerText = "$" + Number(resumen.monto_total).toFixed(2);
+
+  const body = document.getElementById("sales-body");
+  body.innerHTML = "";
+
+  if (!ventas.length) {
+    body.innerHTML = "<tr><td colspan='4'>No hay ventas registradas.</td></tr>";
+    return;
+  }
+
+  ventas.forEach(v => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + v.id + "</td><td>" + v.cliente + "</td><td>$" + Number(v.total).toFixed(2) + "</td><td>" + v.fecha + "</td>";
+    body.appendChild(tr);
+  });
+}
+
+loadSales().catch(() => {
+  document.getElementById("sales-body").innerHTML = "<tr><td colspan='4'>Error cargando datos.</td></tr>";
+});
+</script>
+{% endblock %}
+
+

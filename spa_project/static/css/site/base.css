@@ -1,0 +1,154 @@
+﻿:root {
+  --rose-50: #fff6f8;
+  --rose-100: #fee7ed;
+  --rose-200: #fbcdd9;
+  --rose-500: #ca6b86;
+  --rose-700: #8b3d56;
+  --ink-700: #3b2b32;
+  --ink-500: #5a4950;
+  --surface: #ffffff;
+  --shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--ink-700);
+  background: linear-gradient(180deg, var(--rose-50) 0%, #fff 30%);
+}
+
+a {
+  color: inherit;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rose-100);
+}
+
+.site-nav {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.brand img {
+  border-radius: 12px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink-500);
+}
+
+.nav-links a {
+  text-decoration: none;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.55rem 1rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--rose-500), var(--rose-700));
+  color: #fff;
+}
+
+.btn-soft {
+  background: #fff;
+  border-color: var(--rose-200);
+  color: var(--rose-700);
+}
+
+.site-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.flash-wrap {
+  margin-bottom: 1rem;
+}
+
+.flash {
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.flash-error {
+  background: #ffe6ea;
+  color: #7c1f35;
+}
+
+.flash-success {
+  background: #e7f7ee;
+  color: #1f7044;
+}
+
+.site-footer {
+  border-top: 1px solid var(--rose-100);
+  padding: 1.2rem 1rem 2rem;
+  text-align: center;
+  color: var(--ink-500);
+}
+
+.social-list {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+.social-list img {
+  width: 30px;
+  height: 30px;
+}
+
+@media (max-width: 900px) {
+  .site-nav {
+    flex-wrap: wrap;
+  }
+
+  .nav-links {
+    width: 100%;
+    order: 3;
+  }
+}

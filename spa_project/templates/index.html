@@ -1,0 +1,69 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Inicio | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/home.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Bienestar y belleza</p>
+    <h1>Bienvenido a Lotus Dream Spa</h1>
+    <p>Descubre una experiencia unica de relajacion y cuidado personal.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
+      <a class="btn btn-soft" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
+    </div>
+  </div>
+  <img src="{% static 'img/index/local.webp' %}" alt="Sede Lotus Dream Spa">
+</section>
+
+<section class="highlight-grid">
+  <article class="highlight-card">
+    <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales">
+    <h2>Masajes corporales</h2>
+    <p>Sesiones enfocadas en liberar tension y mejorar tu descanso.</p>
+  </article>
+
+  <article class="highlight-card">
+    <img src="{% static 'img/index/faciales.png' %}" alt="Faciales">
+    <h2>Faciales</h2>
+    <p>Rituales para hidratar, revitalizar y cuidar la piel.</p>
+  </article>
+
+  <article class="highlight-card">
+    <img src="{% static 'img/index/pestañas.jpg' %}" alt="Pestanas">
+    <h2>Pestanas</h2>
+    <p>Disenos personalizados para una mirada definida y natural.</p>
+  </article>
+</section>
+
+<section class="schedule-card">
+  <h2>Horarios de atencion</h2>
+  <table class="schedule-table">
+    <thead>
+      <tr>
+        <th>Dia</th>
+        <th>Horario</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Lunes a viernes</td>
+        <td>10:00 AM - 6:00 PM</td>
+      </tr>
+      <tr>
+        <td>Sabados</td>
+        <td>10:00 AM - 8:00 PM</td>
+      </tr>
+      <tr>
+        <td>Domingos y festivos</td>
+        <td>Cerrado</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+{% endblock %}

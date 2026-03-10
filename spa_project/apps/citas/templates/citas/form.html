@@ -1,0 +1,14 @@
+<h1>{% if cita %}Editar{% else %}Nueva{% endif %} cita</h1>
+<form method="post">{% csrf_token %}
+  {% if not cita %}
+  <input name="cliente_id" placeholder="ID cliente (opcional)">
+  {% endif %}
+  <select name="servicio_id">
+    {% for s in servicios %}
+    <option value="{{ s.id }}" {% if cita.servicio_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>
+    {% endfor %}
+  </select>
+  <input name="fecha_inicio" type="datetime-local" value="{{ cita.fecha_inicio|date:'Y-m-d\\TH:i' }}">
+  <input name="fecha_fin" type="datetime-local" value="{{ cita.fecha_fin|date:'Y-m-d\\TH:i' }}">
+  <button type="submit">Guardar</button>
+</form>

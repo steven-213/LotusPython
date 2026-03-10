@@ -1,0 +1,30 @@
+﻿.dashboard-hero {
+  background: #fff;
+  border: 1px solid var(--rose-100);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.dashboard-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboard-card {
+  background: #fff;
+  border: 1px solid var(--rose-100);
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.dashboard-card h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

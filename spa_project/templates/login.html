@@ -1,0 +1,33 @@
+﻿{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Iniciar sesion | Lotus Dream Spa{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="auth-shell">
+  <article class="auth-card">
+    <h1>Iniciar sesion</h1>
+    <p>Accede para gestionar tus citas y compras.</p>
+
+    <form method="post" class="auth-form">
+      {% csrf_token %}
+      {% if next %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+      <label for="documento">Documento</label>
+      <input id="documento" type="number" name="documento" required>
+
+      <label for="clave">Contrasena</label>
+      <input id="clave" type="password" name="clave" required>
+
+      <button type="submit" class="btn btn-primary">Entrar</button>
+    </form>
+
+    <a class="auth-link" href="{% url 'sesiones:registro' %}">Crear cuenta nueva</a>
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+<h1>Registro</h1>
+<form method="post">{% csrf_token %}
+  <input name="documento" placeholder="Documento">
+  <input name="nombre" placeholder="Nombre">
+  <input name="apellido" placeholder="Apellido">
+  <input name="correo" placeholder="Correo">
+  <input name="fecha_nacimiento" type="date">
+  <input name="clave" placeholder="Clave" type="password">
+  <select name="rol">
+    <option value="cliente">Cliente</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button type="submit">Registrar</button>
+</form>
