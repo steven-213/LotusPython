@@ -5,7 +5,7 @@ from apps.inventario.models import Producto, Proveedor
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import DetalleVenta, ValidacionVenta, Venta
-from apps.ventas.telegram_notifier import notify_pending_purchase
+from apps.ventas.telegram_notifier import notificar_compra_pendiente
 
 
 def productos_publicos(request):
@@ -18,6 +18,7 @@ def productos_publicos(request):
 
 @login_required_session
 def producto_comprar(request, producto_id):
+    # Crea venta y validacion pendiente desde el catalogo publico.
     if request.method != "POST":
         return redirect("inventario:productos_publicos")
 
@@ -51,7 +52,7 @@ def producto_comprar(request, producto_id):
         estado="pendiente",
         observaciones="Compra creada desde catalogo web, pendiente confirmacion por Telegram.",
     )
-    sent = notify_pending_purchase(venta=venta, validacion=validacion)
+    sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
     if sent:
         messages.success(request, "Compra registrada. Quedo pendiente de confirmacion por Telegram.")
     else:
