@@ -1,53 +1,53 @@
-﻿.sales-header,
-.sales-summary,
-.sales-table-wrap {
+.encabezado-ventas,
+.resumen-ventas,
+.tabla-ventas-contenedor {
   background: #fff;
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 18px;
   padding: 1rem;
 }
 
-.sales-summary,
-.sales-table-wrap {
+.resumen-ventas,
+.tabla-ventas-contenedor {
   margin-top: 1rem;
 }
 
-.sales-summary {
+.resumen-ventas {
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.summary-card {
-  border: 1px solid var(--rose-100);
+.tarjeta-resumen {
+  border: 1px solid #fee7ed;
   border-radius: 12px;
   padding: 0.7rem;
 }
 
-.summary-card p {
+.tarjeta-resumen p {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
 }
 
-.sales-table {
+.tabla-ventas {
   width: 100%;
   border-collapse: collapse;
 }
 
-.sales-table th,
-.sales-table td {
-  border: 1px solid var(--rose-100);
+.tabla-ventas th,
+.tabla-ventas td {
+  border: 1px solid #fee7ed;
   padding: 0.7rem;
   text-align: left;
 }
 
-.sales-toolbar {
+.barra-ventas {
   margin-bottom: 0.7rem;
 }
 
 @media (max-width: 900px) {
-  .sales-summary {
+  .resumen-ventas {
     grid-template-columns: 1fr;
   }
 }

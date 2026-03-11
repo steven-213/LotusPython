@@ -1,16 +1,16 @@
-﻿.about-hero {
+.portada-conocenos {
   background: linear-gradient(135deg, #fbd9e2, #fff);
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 20px;
   padding: 1.4rem;
 }
 
-.about-hero h1 {
+.portada-conocenos h1 {
   margin: 0;
   font-size: 2rem;
 }
 
-.about-grid {
+.grilla-conocenos {
   margin-top: 1rem;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
@@ -18,46 +18,46 @@
   align-items: center;
 }
 
-.about-copy,
-.about-media {
+.texto-conocenos,
+.media-conocenos {
   background: #fff;
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 18px;
   padding: 1rem;
 }
 
-.about-media img {
+.media-conocenos img {
   width: 100%;
   border-radius: 12px;
 }
 
-.values-grid {
+.grilla-valores {
   margin-top: 1rem;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.value-card {
+.tarjeta-valor {
   background: #fff;
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 16px;
   padding: 1rem;
   text-align: center;
 }
 
-.value-card img {
+.tarjeta-valor img {
   width: 56px;
   height: 56px;
 }
 
-.value-card p {
-  color: var(--ink-500);
+.tarjeta-valor p {
+  color: #5a4950;
 }
 
 @media (max-width: 900px) {
-  .about-grid,
-  .values-grid {
+  .grilla-conocenos,
+  .grilla-valores {
     grid-template-columns: 1fr;
   }
 }

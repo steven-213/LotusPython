@@ -91,7 +91,7 @@ def confirmar_compra_telegram(request, validacion_id):
             producto.save(update_fields=["stock"])
 
     validacion.estado = "comprado"
-    validacion.observaciones = "Confirmado desde Telegram."
+    validacion.observaciones = "Confirmado "
     validacion.save(update_fields=["estado", "observaciones"])
     return HttpResponse("Compra confirmada correctamente.")
 
@@ -104,6 +104,6 @@ def rechazar_compra_telegram(request, validacion_id):
 
     validacion = get_object_or_404(ValidacionVenta, id=validacion_id)
     validacion.estado = "rechazado"
-    validacion.observaciones = "Rechazado desde Telegram."
+    validacion.observaciones = "Rechazado "
     validacion.save(update_fields=["estado", "observaciones"])
     return HttpResponse("Compra rechazada correctamente.")

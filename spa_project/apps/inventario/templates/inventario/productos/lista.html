@@ -3,6 +3,9 @@
 <ul>
 {% for p in productos %}
   <li>
+    {% if p.imagen %}
+      <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" style="width:60px; height:60px; object-fit:cover; vertical-align:middle;">
+    {% endif %}
     {{ p.nombre }} - {{ p.stock }}
     <a href="{% url 'inventario:producto_detalle' p.id %}">Detalle</a>
     <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>

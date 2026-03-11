@@ -17,7 +17,6 @@ def _limpiar_token(token):
 
 
 def notificar_compra_pendiente(venta, validacion):
-    # Envia un aviso a Telegram con enlaces de confirmacion/rechazo.
     token = _limpiar_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
     chat_id = getattr(settings, "TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:

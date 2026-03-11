@@ -130,14 +130,7 @@ else:
     # the real configured database so schema is created where the app runs.
     commands_using_sqlite = {"test", "makemigrations"}
 
-    use_sqlite = any(cmd in sys.argv for cmd in commands_using_sqlite)
-    if not use_sqlite:
-        try:
-            import MySQLdb  # noqa: F401
-        except Exception:
-            use_sqlite = True
-
-    if use_sqlite:
+    if any(cmd in sys.argv for cmd in commands_using_sqlite):
         DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.sqlite3",
@@ -145,17 +138,7 @@ else:
             }
         }
     else:
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.mysql",
-                "NAME": os.getenv("MYSQL_DB_NAME", "spa_manicura"),
-                "USER": os.getenv("MYSQL_DB_USER", "root"),
-                "PASSWORD": os.getenv("MYSQL_DB_PASSWORD", ""),
-                "HOST": os.getenv("MYSQL_DB_HOST", "localhost"),
-                "PORT": os.getenv("MYSQL_DB_PORT", "3306"),
-                "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
-            }
-        }
+        raise RuntimeError("Database configuration missing. Set DB_* or DATABASE_URL.")
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -183,3 +166,7 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_CONFIRM_TOKEN = os.getenv("TELEGRAM_CONFIRM_TOKEN", "")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "")
 TELEGRAM_VERIFY_SSL = _env_bool("TELEGRAM_VERIFY_SSL", True)
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "")

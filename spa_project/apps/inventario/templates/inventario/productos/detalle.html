@@ -1,4 +1,9 @@
 <h1>Detalle producto</h1>
+{% if producto.imagen %}
+  <p>
+    <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" style="max-width: 320px; height: auto;">
+  </p>
+{% endif %}
 <p>{{ producto.nombre }}</p>
 <p>{{ producto.descripcion }}</p>
 <p>Stock: {{ producto.stock }}</p>

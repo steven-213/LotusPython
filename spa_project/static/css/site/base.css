@@ -17,24 +17,24 @@
 body {
   margin: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: var(--ink-700);
-  background: linear-gradient(180deg, var(--rose-50) 0%, #fff 30%);
+  color: #3b2b32;
+  background: linear-gradient(180deg, #fff6f8 0%, #fff 30%);
 }
 
 a {
   color: inherit;
 }
 
-.site-header {
+.encabezado-sitio {
   position: sticky;
   top: 0;
   z-index: 10;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--rose-100);
+  border-bottom: 1px solid #fee7ed;
 }
 
-.site-nav {
+.navegacion-sitio {
   max-width: 1120px;
   margin: 0 auto;
   padding: 0.85rem 1rem;
@@ -44,7 +44,7 @@ a {
   gap: 1rem;
 }
 
-.brand {
+.marca-sitio {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
@@ -52,30 +52,30 @@ a {
   font-weight: 700;
 }
 
-.brand img {
+.marca-sitio img {
   border-radius: 12px;
 }
 
-.nav-links {
+.enlaces-nav {
   display: flex;
   gap: 1rem;
   list-style: none;
   padding: 0;
   margin: 0;
   font-weight: 600;
-  color: var(--ink-500);
+  color: #5a4950;
 }
 
-.nav-links a {
+.enlaces-nav a {
   text-decoration: none;
 }
 
-.nav-actions {
+.acciones-nav {
   display: flex;
   gap: 0.6rem;
 }
 
-.btn {
+.boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -86,68 +86,69 @@ a {
   padding: 0.55rem 1rem;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--rose-500), var(--rose-700));
+.boton-primario {
+  background: linear-gradient(135deg, #ca6b86, #8b3d56);
   color: #fff;
 }
 
-.btn-soft {
+.boton-suave {
   background: #fff;
-  border-color: var(--rose-200);
-  color: var(--rose-700);
+  border-color: #fbcdd9;
+  color: #8b3d56;
 }
 
-.site-main {
+.contenido-sitio {
   max-width: 1120px;
   margin: 0 auto;
   padding: 1.5rem 1rem 2.5rem;
 }
 
-.flash-wrap {
+.mensajes-sistema {
   margin-bottom: 1rem;
 }
 
-.flash {
+.alerta {
   border-radius: 10px;
   padding: 0.75rem 1rem;
   font-weight: 600;
 }
 
-.flash-error {
+.alerta-error {
   background: #ffe6ea;
   color: #7c1f35;
 }
 
-.flash-success {
+.alerta-success,
+.alerta-exito {
   background: #e7f7ee;
   color: #1f7044;
 }
 
-.site-footer {
-  border-top: 1px solid var(--rose-100);
+.pie-sitio {
+  border-top: 1px solid #fee7ed;
   padding: 1.2rem 1rem 2rem;
   text-align: center;
-  color: var(--ink-500);
+  color: #5a4950;
 }
 
-.social-list {
+.lista-social {
   margin-top: 0.5rem;
   display: flex;
   justify-content: center;
   gap: 0.7rem;
 }
 
-.social-list img {
+.lista-social img {
   width: 30px;
   height: 30px;
 }
 
 @media (max-width: 900px) {
-  .site-nav {
+  .navegacion-sitio {
     flex-wrap: wrap;
   }
 
-  .nav-links {
+  .enlaces-nav {
     width: 100%;
     order: 3;
   }

@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.inventario.models import Producto, Proveedor
+from apps.inventario.storage import subir_imagen_producto
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import DetalleVenta, ValidacionVenta, Venta
@@ -50,11 +51,11 @@ def producto_comprar(request, producto_id):
         referencia_pago=f"WEB-{venta.id}",
         monto=total,
         estado="pendiente",
-        observaciones="Compra creada desde catalogo web, pendiente confirmacion por Telegram.",
+        observaciones="Compra creada desde catalogo web, pendiente confirmacion.",
     )
     sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
     if sent:
-        messages.success(request, "Compra registrada. Quedo pendiente de confirmacion por Telegram.")
+        messages.success(request, "Compra registrada. Quedo pendiente de confirmacion.")
     else:
         messages.warning(
             request,
@@ -78,9 +79,11 @@ def producto_nuevo(request):
     if request.method == "POST":
         proveedor_id = request.POST.get("proveedor_id")
         proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
+        imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
         Producto.objects.create(
             nombre=request.POST.get("nombre"),
             descripcion=request.POST.get("descripcion", ""),
+            imagen=imagen_url,
             stock=request.POST.get("stock") or 0,
             proveedor=proveedor,
             precio_compra=request.POST.get("precio_compra") or 0,
@@ -103,6 +106,9 @@ def producto_editar(request, producto_id):
         producto.precio_compra = request.POST.get("precio_compra") or 0
         producto.precio_venta = request.POST.get("precio_venta") or 0
         producto.iva = request.POST.get("iva") or 0
+        imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
+        if imagen_url:
+            producto.imagen = imagen_url
         producto.proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
         producto.save()
         return redirect("inventario:producto_lista")

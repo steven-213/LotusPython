@@ -17,6 +17,7 @@ class Proveedor(models.Model):
 class Producto(models.Model):
     nombre = models.CharField(max_length=255)
     descripcion = models.TextField(blank=True)
+    imagen = models.URLField(blank=True, null=True)
     stock = models.IntegerField(default=0)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True, blank=True)
     precio_compra = models.DecimalField(max_digits=10, decimal_places=2, default=0)

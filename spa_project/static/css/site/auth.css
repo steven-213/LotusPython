@@ -1,76 +1,76 @@
-﻿.auth-page {
+.pagina-acceso {
   background: linear-gradient(180deg, #fff8fa 0%, #fff 50%);
 }
 
-.auth-shell {
+.contenedor-acceso {
   min-height: 70vh;
   display: grid;
   place-items: center;
 }
 
-.auth-card {
+.tarjeta-acceso {
   width: 100%;
   max-width: 420px;
   background: #fff;
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 18px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
   padding: 1.2rem;
 }
 
-.auth-card-wide {
+.tarjeta-acceso-amplia {
   max-width: 680px;
 }
 
-.auth-card h1 {
+.tarjeta-acceso h1 {
   margin: 0;
 }
 
-.auth-card p {
+.tarjeta-acceso p {
   margin-top: 0.4rem;
-  color: var(--ink-500);
+  color: #5a4950;
 }
 
-.auth-form {
+.formulario-acceso {
   margin-top: 0.8rem;
   display: grid;
   gap: 0.65rem;
 }
 
-.auth-form label {
+.formulario-acceso label {
   font-weight: 600;
-  color: var(--ink-500);
+  color: #5a4950;
 }
 
-.auth-form input {
+.formulario-acceso input {
   width: 100%;
   padding: 0.62rem 0.7rem;
-  border: 1px solid var(--rose-200);
+  border: 1px solid #fbcdd9;
   border-radius: 10px;
 }
 
-.auth-form .btn {
+.formulario-acceso .boton {
   margin-top: 0.4rem;
 }
 
-.auth-link {
+.enlace-acceso {
   display: inline-block;
   margin-top: 0.8rem;
-  color: var(--rose-700);
+  color: #8b3d56;
   font-weight: 700;
   text-decoration: none;
 }
 
-.auth-grid {
+.grid-acceso {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.auth-grid > button {
+.grid-acceso > button {
   grid-column: 1 / -1;
 }
 
 @media (max-width: 640px) {
-  .auth-grid {
+  .grid-acceso {
     grid-template-columns: 1fr;
   }
 }
