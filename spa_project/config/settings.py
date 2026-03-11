@@ -5,6 +5,7 @@ Django settings for the reorganized spa project.
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
@@ -23,9 +24,25 @@ except Exception:
             value = value.strip().strip('"').strip("'")
             os.environ.setdefault(key, value)
 
-SECRET_KEY = "django-insecure-*@g+_brl7poc4z&ene74n51w_@iubeymn*_4e9unffnow0$xfa"
-DEBUG = True
-ALLOWED_HOSTS = []
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _env_list(name: str) -> list[str]:
+    raw = os.getenv(name, "")
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError("DJANGO_SECRET_KEY is required")
+
+DEBUG = _env_bool("DJANGO_DEBUG", False)
+ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS")
+CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -34,10 +51,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.sesiones",
+    "apps.sesiones.apps.SesionesConfig",
     "apps.inventario",
     "apps.ventas",
     "apps.citas",
+    
 ]
 
 MIDDLEWARE = [
@@ -70,36 +88,74 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# Keep tests/makemigrations lightweight in sqlite, but let migrate target
-# the real configured database so schema is created where the app runs.
-commands_using_sqlite = {"test", "makemigrations"}
-
-use_sqlite = any(cmd in sys.argv for cmd in commands_using_sqlite)
-if not use_sqlite:
-    try:
-        import MySQLdb  # noqa: F401
-    except Exception:
-        use_sqlite = True
-
-if use_sqlite:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "test_db.sqlite3",
-        }
+def _database_from_url(url: str):
+    parsed = urlparse(url)
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        raise ValueError(f"Unsupported database scheme: {parsed.scheme}")
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": (parsed.path or "").lstrip("/") or "postgres",
+        "USER": parsed.username or "",
+        "PASSWORD": parsed.password or "",
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or 5432),
+        "OPTIONS": {"sslmode": "require"},
     }
+
+
+def _database_from_parts():
+    host = os.getenv("DB_HOST", "").strip()
+    name = os.getenv("DB_NAME", "").strip()
+    if not host or not name:
+        return None
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": name,
+        "USER": os.getenv("DB_USER", "").strip(),
+        "PASSWORD": os.getenv("DB_PASSWORD", "").strip(),
+        "HOST": host,
+        "PORT": os.getenv("DB_PORT", "").strip() or "5432",
+        "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require").strip() or "require"},
+    }
+
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+database_from_parts = _database_from_parts()
+if database_from_parts:
+    DATABASES = {"default": database_from_parts}
+elif DATABASE_URL:
+    DATABASES = {"default": _database_from_url(DATABASE_URL)}
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": "spa_manicura",
-            "USER": "root",
-            "PASSWORD": "",
-            "HOST": "localhost",
-            "PORT": "3306",
-            "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
+    # Keep tests/makemigrations lightweight in sqlite, but let migrate target
+    # the real configured database so schema is created where the app runs.
+    commands_using_sqlite = {"test", "makemigrations"}
+
+    use_sqlite = any(cmd in sys.argv for cmd in commands_using_sqlite)
+    if not use_sqlite:
+        try:
+            import MySQLdb  # noqa: F401
+        except Exception:
+            use_sqlite = True
+
+    if use_sqlite:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "test_db.sqlite3",
+            }
         }
-    }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.mysql",
+                "NAME": os.getenv("MYSQL_DB_NAME", "spa_manicura"),
+                "USER": os.getenv("MYSQL_DB_USER", "root"),
+                "PASSWORD": os.getenv("MYSQL_DB_PASSWORD", ""),
+                "HOST": os.getenv("MYSQL_DB_HOST", "localhost"),
+                "PORT": os.getenv("MYSQL_DB_PORT", "3306"),
+                "OPTIONS": {"init_command": "SET sql_mode='STRICT_TRANS_TABLES'"},
+            }
+        }
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -125,5 +181,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 TELEGRAM_CONFIRM_TOKEN = os.getenv("TELEGRAM_CONFIRM_TOKEN", "")
-APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:8000")
-TELEGRAM_VERIFY_SSL = os.getenv("TELEGRAM_VERIFY_SSL", "true").strip().lower() not in {"0", "false", "no"}
+APP_BASE_URL = os.getenv("APP_BASE_URL", "")
+TELEGRAM_VERIFY_SSL = _env_bool("TELEGRAM_VERIFY_SSL", True)
