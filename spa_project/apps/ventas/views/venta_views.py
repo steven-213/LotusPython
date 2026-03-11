@@ -8,7 +8,7 @@ from django.db import transaction
 
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
-from apps.ventas.telegram_notifier import notify_pending_purchase
+from apps.ventas.telegram_notifier import notificar_compra_pendiente
 from apps.ventas.models import ValidacionVenta, Venta
 
 
@@ -39,6 +39,7 @@ def venta_detalle(request, venta_id):
 def venta_validaciones(request, venta_id):
     venta = get_object_or_404(Venta, id=venta_id)
     if request.method == "POST":
+        # Registra la validacion de pago y dispara aviso por Telegram si queda pendiente.
         validacion = ValidacionVenta.objects.create(
             venta=venta,
             cliente=venta.cliente,
@@ -50,7 +51,7 @@ def venta_validaciones(request, venta_id):
             observaciones=request.POST.get("observaciones", ""),
         )
         if validacion.estado == "pendiente":
-            sent = notify_pending_purchase(venta=venta, validacion=validacion)
+            sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
             if not sent:
                 messages.warning(
                     request,
@@ -65,14 +66,15 @@ def venta_validaciones(request, venta_id):
     )
 
 
-def telegram_confirm_purchase(request, validacion_id):
+def confirmar_compra_telegram(request, validacion_id):
+    # Endpoint invocado desde Telegram para confirmar la compra.
     token = request.GET.get("token", "")
     if token != getattr(settings, "TELEGRAM_CONFIRM_TOKEN", ""):
         return HttpResponseForbidden("Token invalido.")
 
     validacion = get_object_or_404(ValidacionVenta, id=validacion_id)
     if validacion.estado == "comprado":
-        return HttpResponse("La compra ya estaba confirmada.")
+        return HttpResponse("La compra ya esta confirmada.")
 
     detalles = validacion.venta.detalles.select_related("producto").all()
     for detalle in detalles:
@@ -82,6 +84,7 @@ def telegram_confirm_purchase(request, validacion_id):
             )
 
     with transaction.atomic():
+        # Descuenta stock de forma atomica para evitar inconsistencias.
         for detalle in detalles:
             producto = detalle.producto
             producto.stock -= detalle.cantidad
@@ -93,7 +96,8 @@ def telegram_confirm_purchase(request, validacion_id):
     return HttpResponse("Compra confirmada correctamente.")
 
 
-def telegram_reject_purchase(request, validacion_id):
+def rechazar_compra_telegram(request, validacion_id):
+    # Endpoint invocado desde Telegram para rechazar la compra.
     token = request.GET.get("token", "")
     if token != getattr(settings, "TELEGRAM_CONFIRM_TOKEN", ""):
         return HttpResponseForbidden("Token invalido.")

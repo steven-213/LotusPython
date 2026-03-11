@@ -8,15 +8,17 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _normalize_token(token):
+def _limpiar_token(token):
+    # Quita espacios y el prefijo "bot" si llega incluido.
     token = (token or "").strip()
     if token.startswith("bot"):
         return token[3:]
     return token
 
 
-def notify_pending_purchase(venta, validacion):
-    token = _normalize_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
+def notificar_compra_pendiente(venta, validacion):
+    # Envia un aviso a Telegram con enlaces de confirmacion/rechazo.
+    token = _limpiar_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
     chat_id = getattr(settings, "TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:
         logger.warning("Telegram notifier disabled: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID.")

@@ -8,7 +8,8 @@ from apps.sesiones.models import Usuario
 from apps.ventas.models import Venta
 
 
-def _require_admin(request):
+def _validar_admin(request):
+    # Valida sesion y rol admin para endpoints del API.
     if "usuario_id" not in request.session:
         return JsonResponse({"error": "autenticacion requerida"}, status=401)
     if request.session.get("usuario_rol") != "admin":
@@ -18,7 +19,8 @@ def _require_admin(request):
 
 @csrf_exempt
 def api_ventas(request):
-    denied = _require_admin(request)
+    # Lista o crea ventas segun el metodo HTTP.
+    denied = _validar_admin(request)
     if denied:
         return denied
     if request.method == "GET":
@@ -56,7 +58,8 @@ def api_ventas(request):
 
 
 def api_resumen(request):
-    denied = _require_admin(request)
+    # Devuelve un resumen basico de ventas.
+    denied = _validar_admin(request)
     if denied:
         return denied
     if request.method != "GET":
