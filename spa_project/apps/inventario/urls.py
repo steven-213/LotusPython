@@ -1,6 +1,10 @@
 from django.urls import path
 
-from apps.inventario.views.compra_views import compra_detalle, compra_lista, compra_nueva
+from apps.inventario.views.compra_views import (
+    compra_lista,
+    compra_nueva,
+    finalizar_compra
+)
 from apps.inventario.views.producto_views import (
     producto_comprar,
     producto_detalle,
@@ -24,7 +28,7 @@ urlpatterns = [
     path("productos/<int:producto_id>/", producto_detalle, name="producto_detalle"),
     path("compras/", compra_lista, name="compra_lista"),
     path("compras/nueva/", compra_nueva, name="compra_nueva"),
-    path("compras/<int:compra_id>/", compra_detalle, name="compra_detalle"),
+    path("compras/finalizar/", finalizar_compra, name="finalizar_compra"),
     path("proveedores/", proveedor_lista, name="proveedor_lista"),
     path("proveedores/nuevo/", proveedor_nuevo, name="proveedor_nuevo"),
 ]

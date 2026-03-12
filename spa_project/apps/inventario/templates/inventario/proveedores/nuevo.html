@@ -1,6 +1,74 @@
-<h1>Nuevo proveedor</h1>
-<form method="post">{% csrf_token %}
-  <input name="nombre" placeholder="Nombre">
-  <input name="empresa" placeholder="Empresa">
-  <button type="submit">Guardar</button>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuevo Proveedor</title>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+<h2>Registrar Proveedor</h2>
+
+<form method="post">
+
+{% csrf_token %}
+
+<div class="row">
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Nombre del proveedor</label>
+<input type="text" name="nombre" class="form-control" placeholder="Nombre" required>
+</div>
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Empresa</label>
+<input type="text" name="empresa" class="form-control" placeholder="Empresa">
+</div>
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Teléfono</label>
+<input type="text" name="telefono" class="form-control" placeholder="Teléfono">
+</div>
+
+<div class="col-md-6 mb-3">
+<label class="form-label">Correo electrónico</label>
+<input type="email" name="email" class="form-control" placeholder="correo@email.com">
+</div>
+
+<div class="col-md-12 mb-3">
+<label class="form-label">Dirección</label>
+<input type="text" name="direccion" class="form-control" placeholder="Dirección">
+</div>
+
+<div class="col-md-12 mb-3">
+<label class="form-label">NIT / Identificación</label>
+<input type="text" name="nit" class="form-control" placeholder="NIT o documento">
+</div>
+
+<div class="col-md-12 mb-3">
+<label class="form-label">Observaciones</label>
+<textarea name="observaciones" class="form-control" rows="3"></textarea>
+</div>
+
+</div>
+
+<button type="submit" class="btn btn-success">
+Guardar proveedor
+</button>
+
+<a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-secondary">
+Volver
+</a>
+
 </form>
+
+</div>
+
+</body>
+</html>

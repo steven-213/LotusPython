@@ -1,9 +1,139 @@
-<h1>Compras</h1>
-<a href="{% url 'inventario:compra_nueva' %}">Nueva compra</a>
-<ul>
-{% for c in compras %}
-  <li><a href="{% url 'inventario:compra_detalle' c.id %}">Compra {{ c.id }}</a> - {{ c.total }}</li>
-{% empty %}
-  <li>Sin compras</li>
-{% endfor %}
-</ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras</title>
+    {% load static %}
+    <style>
+       body{
+       font-family: Arial, sans-serif;
+       }
+
+       section{
+       text-align:center;
+       }
+
+       a{
+       display:inline-block;
+       padding:8px 15px;
+       background:#ffd1dc;
+       border-radius:6px;
+       text-decoration:none;
+       color:#333;
+       margin:15px;
+       }
+
+       .tabla-container{
+       width:90%;
+       margin:40px auto;
+       }
+
+       table{
+       width:100%;
+       border-collapse:collapse;
+       }
+
+       th{
+       background-color:#fce4ec;
+       color:rgb(231,104,125);
+       padding:10px;
+       }
+
+       td{
+       padding:10px;
+       text-align:center;
+       border-bottom:1px solid #ddd;
+       }
+
+       button{
+       padding:5px 10px;
+       border:none;
+       border-radius:5px;
+       cursor:pointer;
+       }
+
+       .btn-edit{
+       background-color:#ffd1dc;
+       }
+
+       .btn-delete{
+       background-color:#ffb6c1;
+       }
+
+       /* fila especial de compra */
+       .compra-header{
+       background:#fff0f5;
+       font-weight:bold;
+       }
+    </style>
+</head>
+<body>
+
+       <section>
+       <h1>Lista de Compras</h1>
+       <p>Administra las compras realizadas del spa</p>
+       </section>
+
+       <div style="text-align:center;">
+       <a href="{% url 'inventario:compra_nueva' %}">Nueva Compra</a>
+       </div>
+
+       <div class="tabla-container">
+              <table>
+                     <tr>
+                            <th>Nombre</th>
+                            <th>Fecha Compra</th>
+                            <th>Lote</th>
+                            <th>Fecha de Vencimiento</th>
+                            <th>Cantidad</th>
+                            <th>Proveedor</th>
+                            <th>Valor</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                     </tr>
+
+                     {% for compra in compras %}
+                     <tr class="compra-header">
+                            <td colspan="8">Compra Número: {{ compra.id }}</td>
+                            <td rowspan="{{ compra.detallecompra_set.count|add:'1' }}">
+                            <!-- Opcional: botones generales de compra -->
+                            <button class="btn-edit">Modificar</button>
+                            <button class="btn-delete">Eliminar</button>
+                            </td>
+                     </tr>
+
+                     {% for detalle in compra.detallecompra_set.all %}
+                     <tr>
+                            <td>{{ detalle.unProducto.nombre }}</td>
+                            <td>{{ compra.fechaCompra }}</td>
+                            <td>{{ detalle.lote }}</td>
+                            <td>{{ detalle.fechaVencimiento }}</td>
+                            <td>{{ detalle.cantidad }}</td>
+                            <td>
+                            {% if detalle.unProducto.proveedor %}
+                                   {{ detalle.unProducto.proveedor.nombre }}
+                            {% else %}
+                                   Sin proveedor
+                            {% endif %}
+                            </td>
+                            <td>{{ detalle.precio_compra }}</td>
+                            <td>{{ detalle.cantidad|floatformat|add:"0"|floatformat }}</td>
+                     </tr>
+                     {% endfor %}
+
+                     <tr>
+                            <td colspan="7"><strong>Total de Compra</strong></td>
+                            <td><strong>{{ compra.total }}</strong></td>
+                            <td></td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                            <td colspan="9">No hay compras registradas</td>
+                     </tr>
+                     {% endfor %}
+
+              </table>
+       </div>
+</body>
+</html>

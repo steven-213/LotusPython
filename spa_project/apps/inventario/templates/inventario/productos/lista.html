@@ -1,17 +1,94 @@
-<h1>Productos</h1>
-<a href="{% url 'inventario:producto_nuevo' %}">Nuevo</a>
-<ul>
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Productos</title>
+
+<link rel="stylesheet" href="{% static 'css/site/admin_productos.css' %}">
+
+</head>
+
+<body>
+
+<section class="dashboard-hero">
+  <article class="dashboard-card">
+    <h2>Inventario</h2>
+    <p>Gestion de productos, proveedores y compras.</p>
+    <a class="btn-nuevo"
+      href="{% url 'inventario:compra_lista' %}">
+      Compra
+    </a>
+    <a class="btn-nuevo"
+      href="{% url 'inventario:proveedor_lista' %}">
+      Proveedores
+    </a>
+  </article>
+
+  <div class="header-productos">
+      <h1>Productos</h1>
+
+      <a class="btn-nuevo"
+      href="{% url 'inventario:producto_nuevo' %}">
+      + Nuevo Producto
+      </a>
+  </div>
+</section>
+
+<div class="dashboard-grid">
+
 {% for p in productos %}
-  <li>
-    {{ p.nombre }} - {{ p.stock }}
-    <a href="{% url 'inventario:producto_detalle' p.id %}">Detalle</a>
-    <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
-    <form method="post" action="{% url 'inventario:producto_eliminar' p.id %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit">Eliminar</button>
-    </form>
-  </li>
+
+<div class="dashboard-card producto-card">
+
+    <div class="producto-info">
+
+        <h2>{{ p.nombre }}</h2>
+        
+        <p><strong>Descripción:</strong> {{ p.descripcion }}</p>
+        
+        <p><strong>Stock:</strong> {{ p.stock }}</p>
+
+        <p><strong>Precio Compra:</strong> ${{ p.precio_compra }}</p>
+
+        <p><strong>Impuesto:</strong> {{ p.impuesto }}</p>
+
+        <p><strong>Precio venta:</strong> {{ p.precio_venta }}</p>
+
+    </div>
+
+    <div class="acciones">
+
+
+        <a class="btn-edit"
+        href="{% url 'inventario:producto_editar' p.id %}">
+        Editar
+        </a>
+
+        <form method="post"
+        action="{% url 'inventario:producto_eliminar' p.id %}">
+        {% csrf_token %}
+
+        <button class="btn-delete" type="submit">
+        Eliminar
+        </button>
+
+        </form>
+
+    </div>
+
+</div>
+
 {% empty %}
-  <li>Sin productos</li>
+
+<div class="dashboard-card">
+<p>No hay productos registrados.</p>
+</div>
+
 {% endfor %}
-</ul>
+
+</div>
+
+</body>
+</html>

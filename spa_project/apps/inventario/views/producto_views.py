@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.inventario.models import Producto, Proveedor
+from apps.inventario.models import Producto, Proveedor, Impuesto
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import DetalleVenta, ValidacionVenta, Venta
@@ -74,22 +74,37 @@ def producto_lista(request):
 
 @admin_required_session
 def producto_nuevo(request):
+
     if request.method == "POST":
+
         proveedor_id = request.POST.get("proveedor_id")
         proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
+
+        impuesto_id = request.POST.get("impuesto_id")
+        impuesto = Impuesto.objects.filter(id=impuesto_id).first() if impuesto_id else None
+
         Producto.objects.create(
             nombre=request.POST.get("nombre"),
             descripcion=request.POST.get("descripcion", ""),
             stock=request.POST.get("stock") or 0,
             proveedor=proveedor,
             precio_compra=request.POST.get("precio_compra") or 0,
-            precio_venta=request.POST.get("precio_venta") or 0,
-            iva=request.POST.get("iva") or 0,
+            impuesto=impuesto
         )
-        return redirect("inventario:producto_lista")
-    proveedores = Proveedor.objects.all()
-    return render(request, "inventario/productos/form.html", {"proveedores": proveedores})
 
+        return redirect("inventario:producto_lista")
+
+    proveedores = Proveedor.objects.all()
+    impuestos = Impuesto.objects.all()
+
+    return render(
+        request,
+        "inventario/productos/form.html",
+        {
+            "proveedores": proveedores,
+            "impuestos": impuestos
+        }
+    )
 
 @admin_required_session
 def producto_editar(request, producto_id):
