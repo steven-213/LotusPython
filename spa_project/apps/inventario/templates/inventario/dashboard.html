@@ -1,0 +1,251 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Dashboard - Inventario{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/admin_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-3 inv-dashboard">
+    <!-- Encabezado -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-1 h5"><i class="bi bi-box-seam me-1"></i> Dashboard de Inventario</h1>
+                <p class="mb-0 opacity-75">Gestión completa de productos, proveedores y compras</p>
+            </div>
+            <div class="d-none d-lg-block">
+                <i class="bi bi-pie-chart-fill header-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    {% if proveedores %}
+    <div class="filter-card">
+        <h5 class="section-subtitle"><i class="bi bi-funnel me-1"></i> Filtros Avanzados</h5>
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label form-label-compact">Rango de Fechas</label>
+                <div class="d-grid gap-1">
+                    <input type="date" class="form-control" name="fecha_inicio" value="{{ fecha_inicio }}" placeholder="Desde">
+                    <input type="date" class="form-control" name="fecha_fin" value="{{ fecha_fin }}" placeholder="Hasta">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label form-label-compact">Proveedor</label>
+                <select class="form-select" name="proveedor_id">
+                    <option value="">-- Todos los proveedores --</option>
+                    {% for proveedor in proveedores %}
+                    <option value="{{ proveedor.id }}" {% if proveedor.id|stringformat:"s" == proveedor_id %}selected{% endif %}>
+                        {{ proveedor.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label form-label-compact">Estado Compra</label>
+                <select class="form-select" name="estado_compra">
+                    <option value="">-- Todos los estados --</option>
+                    <option value="completada" {% if estado_compra == "completada" %}selected{% endif %}>Completada</option>
+                    <option value="pendiente" {% if estado_compra == "pendiente" %}selected{% endif %}>Pendiente</option>
+                    <option value="cancelada" {% if estado_compra == "cancelada" %}selected{% endif %}>Cancelada</option>
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 btn-compact">
+                    <i class="bi bi-search"></i> Filtrar
+                </button>
+                <a href="{% url 'inventario:dashboard' %}" class="btn btn-secondary w-100 btn-compact">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- ESTADÍSTICAS PRINCIPALES -->
+    <h2 class="section-title"><i class="bi bi-lightning-fill"></i> Estadísticas Principales</h2>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-primary">
+                <p class="stat-label"><i class="bi bi-box"></i> Total Productos</p>
+                <h2 class="stat-value">{{ total_productos }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-success">
+                <p class="stat-label"><i class="bi bi-building"></i> Proveedores</p>
+                <h2 class="stat-value">{{ total_proveedores }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-primary">
+                <p class="stat-label"><i class="bi bi-cart-check"></i> Total Compras</p>
+                <h2 class="stat-value">{{ total_compras }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-rose">
+                <p class="stat-label"><i class="bi bi-arrow-return-left"></i> Devoluciones</p>
+                <h2 class="stat-value">{{ total_devoluciones }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- STOCK E INVENTARIO -->
+    <h2 class="section-title"><i class="bi bi-collection"></i> Stock e Inventario</h2>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-success">
+                <p class="stat-label"><i class="bi bi-boxes"></i> Stock Total</p>
+                <h2 class="stat-value">{{ total_stock }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-warning">
+                <p class="stat-label"><i class="bi bi-exclamation-triangle"></i> Bajo Stock</p>
+                <h2 class="stat-value">{{ productos_bajo_stock }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-danger">
+                <p class="stat-label"><i class="bi bi-exclamation-circle"></i> Sin Stock</p>
+                <h2 class="stat-value">{{ productos_sin_stock }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-rose">
+                <p class="stat-label"><i class="bi bi-exclamation-diamond"></i> Necesitan Reorden</p>
+                <h2 class="stat-value">{{ productos_necesitan_reorden }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- VALORES MONETARIOS -->
+    <h2 class="section-title"><i class="bi bi-currency-dollar"></i> Valores Monetarios</h2>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-money">
+                <p class="stat-label">Valor Inventario (Costo)</p>
+                <h2 class="stat-value">{{ valor_inventario }}</h2>
+                <small class="text-muted">A precio de compra</small>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-success">
+                <p class="stat-label">Valor Potencial Venta</p>
+                <h2 class="stat-value">{{ valor_total_ventas_potencial }}</h2>
+                <small class="text-muted">Stock actual a precio venta</small>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-primary">
+                <p class="stat-label">Total Invertido</p>
+                <h2 class="stat-value">{{ total_invertido }}</h2>
+                <small class="text-muted">En todas las compras</small>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card stat-card-success">
+                <p class="stat-label">Compras Completadas</p>
+                <h2 class="stat-value">{{ compras_completadas_monto }}</h2>
+                <small class="text-muted">Monto facturado</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÁRGENES DE GANANCIA -->
+    <h2 class="section-title"><i class="bi bi-graph-up"></i> Análisis de Márgenes</h2>
+
+    <div class="row g-3 mb-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card stat-card-primary">
+                <p class="stat-label">Margen Promedio</p>
+                <h2 class="stat-value">{{ margen_promedio }}</h2>
+                <small class="text-muted">De ganancia en productos</small>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-8">
+            <div class="stat-card stat-card-success">
+                <p class="stat-label mb-3"><i class="bi bi-star"></i> Top 5 Productos por Margen</p>
+
+                {% if top_margenes %}
+                    {% for item in top_margenes %}
+                    <div class="top-margin-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ item.producto.nombre|truncatewords:4 }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    Margen:
+                                    <span class="badge badge-rose">{{ item.margen }}%</span>
+                                </small>
+                            </div>
+
+                            <div class="text-end">
+                                <small>Venta: ${{ item.producto.precio_venta|floatformat:2 }}</small><br>
+                                <small>Compra: ${{ item.producto.precio_compra|floatformat:2 }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No hay datos de márgenes</p>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS -->
+    <h2 class="section-title"><i class="bi bi-lightning"></i> Acciones Rápidas</h2>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'inventario:producto_nuevo' %}" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle"></i> Nuevo Producto
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'inventario:proveedor_nuevo' %}" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'inventario:compra_nueva' %}" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle"></i> Nueva Compra
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-primary w-100">
+                <i class="bi bi-plus-circle"></i> Nueva Devolución
+            </a>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <a href="{% url 'inventario:producto_lista' %}" class="btn btn-outline-primary btn-outline-rose w-100">
+                <i class="bi bi-list-ul"></i> Gestionar Productos
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

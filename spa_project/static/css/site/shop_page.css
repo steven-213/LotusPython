@@ -1,3 +1,63 @@
+.producto-card {
+  border-radius: 1rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 4px 24px 0 rgba(202,107,134,0.10);
+  background: #fff;
+  border: 1.5px solid #fbcdd9;
+}
+.producto-card:hover {
+  box-shadow: 0 12px 36px 0 rgba(202,107,134,0.22);
+  transform: translateY(-6px) scale(1.025);
+}
+.producto-img-container {
+  background: linear-gradient(120deg, #fbcdd9 60%, #fff 100%);
+  border-radius: 1rem 1rem 0 0;
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.producto-card .card-title {
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #3b2b32;
+  letter-spacing: 0.2px;
+}
+.producto-card .badge {
+  font-size: 1rem;
+  border-radius: 0.7em;
+  padding: 0.45em 1em;
+  font-weight: 600;
+}
+.producto-card .btn-primary {
+  background: #ca6b86;
+  border: none;
+  font-weight: 700;
+  font-size: 1.08rem;
+  padding: 0.6em 1.5em;
+}
+.producto-card .btn-primary:hover {
+  background: #8b3d56;
+}
+.producto-card .btn-outline-primary {
+  border-color: #ca6b86;
+  color: #ca6b86;
+  font-weight: 700;
+  font-size: 1.08rem;
+  padding: 0.6em 1.5em;
+}
+.producto-card .btn-outline-primary:hover {
+  background: #ca6b86;
+  color: #fff;
+}
+.producto-card .card-footer {
+  background: #fbcdd9 !important;
+  border-radius: 0 0 1rem 1rem;
+  font-size: 1rem;
+  color: #8b3d56;
+  font-weight: 600;
+}
 .encabezado-pagina {
   background: #fff;
   border: 1px solid #fee7ed;

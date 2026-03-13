@@ -1,3 +1,167 @@
-<h1>Detalle venta {{ venta.id }}</h1>
-<p>Cliente: {{ venta.cliente.nombre }}</p>
-<p>Total: {{ venta.total }}</p>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Detalle Venta #{{ venta.id }} | Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Volver a Ventas
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-receipt-cutoff" style="color: #ca6b86;"></i> Detalle de Venta #{{ venta.id }}
+        </h1>
+        <p class="text-muted">Información completa del registro de venta</p>
+    </div>
+
+    <div class="row">
+        <!-- Información principal -->
+        <div class="col-lg-8 mb-4">
+            <!-- Card Cliente -->
+            <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-person-check"></i> Información del Cliente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label style="color: #999; font-size: 0.9rem;">Nombre</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.nombre }}</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label style="color: #999; font-size: 0.9rem;">Email</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.email }}</h6>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <label style="color: #999; font-size: 0.9rem;">Teléfono</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.telefono|default:"No registrado" }}</h6>
+                        </div>
+                        <div class="col-md-6 mt-3">
+                            <label style="color: #999; font-size: 0.9rem;">CI/RIF</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.ci_rif|default:"No registrado" }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Detalles de Venta -->
+            <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-basket"></i> Detalles de Productos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if venta.detalles.all %}
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr style="border-bottom: 2px solid #fbcdd9;">
+                                    <th style="color: #ca6b86; font-weight: 600;">Producto</th>
+                                    <th style="color: #ca6b86; font-weight: 600; text-align: center;">Cantidad</th>
+                                    <th style="color: #ca6b86; font-weight: 600; text-align: right;">Precio Unit.</th>
+                                    <th style="color: #ca6b86; font-weight: 600; text-align: right;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in venta.detalles.all %}
+                                <tr style="border-bottom: 1px solid #ecf0f1;">
+                                    <td>
+                                        <strong style="color: #3b2b32;">{{ detalle.producto.nombre }}</strong>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <span class="badge bg-light text-dark">{{ detalle.cantidad }}</span>
+                                    </td>
+                                    <td style="text-align: right; color: #666;">
+                                        ${{ detalle.precio_unitario|floatformat:2 }}
+                                    </td>
+                                    <td style="text-align: right;">
+                                        <strong style="color: #ca6b86;">
+                                            ${{ detalle.subtotal|floatformat:2 }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info" style="border-radius: 0.5rem; border-left: 4px solid #ca6b86;">
+                        <i class="bi bi-info-circle"></i> Sin productos en esta venta
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen lateral -->
+        <div class="col-lg-4">
+            <!-- Card Resumen Financiero -->
+            <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem; border: 2px solid #fbcdd9;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-calculator"></i> Resumen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% with detalles=venta.detalles.all %}
+                    <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                        <span style="color: #666;">Subtotal:</span>
+                        <strong style="color: #3b2b32;">${{ detalles|dictsort:"subtotal"|first|default:"0" }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                        <span style="color: #666;">Impuesto (IVA):</span>
+                        <strong style="color: #3b2b32;">$0.00</strong>
+                    </div>
+                    <div class="d-flex justify-content-between" style="background-color: #fbcdd9; padding: 1rem; border-radius: 0.5rem;">
+                        <span style="font-weight: 700; color: #3b2b32;">Total:</span>
+                        <strong style="color: #ca6b86; font-size: 1.3rem;">${{ venta.total|floatformat:2 }}</strong>
+                    </div>
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Card Información de Venta -->
+            <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-calendar-event"></i> Detalles de Transacción
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label style="color: #999; font-size: 0.9rem;">ID de Venta</label>
+                        <h6 style="color: #3b2b32; font-weight: 600; word-break: break-all;">{{ venta.id }}</h6>
+                    </div>
+                    <div class="mb-3">
+                        <label style="color: #999; font-size: 0.9rem;">Fecha y Hora</label>
+                        <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.fecha|date:"d/m/Y H:i" }}</h6>
+                    </div>
+                    <div class="mb-0">
+                        <label style="color: #999; font-size: 0.9rem;">Estado</label>
+                        <h6 style="color: #3b2b32; font-weight: 600;">
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Completada
+                            </span>
+                        </h6>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="d-grid gap-2">
+                <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600;">
+                    <i class="bi bi-check-square"></i> Validar Pago
+                </a>
+                <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

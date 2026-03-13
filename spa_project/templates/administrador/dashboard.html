@@ -1,39 +1,156 @@
 ﻿{% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Panel | Dashboard{% endblock %}
+{% block title %}Panel | Dashboard Admin{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/admin_dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'administrador/dashboard_style.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="portada-panel">
-  <h1>Panel administrador</h1>
-  <p>Acceso rapido a inventario, agenda de citas y control de ventas.</p>
-</section>
+<div class="container-lg py-2 admin-dashboard">
+    <!-- ENCABEZADO PRINCIPAL -->
+    <div class="card border-0 shadow-sm text-white mb-2 dashboard-hero">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h6 mb-1"><i class="bi bi-speedometer2 me-1"></i> Panel Admin</h1>
+                    <small class="text-white-50">Lotus Dream Spa</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<section class="grilla-panel">
-  <article class="tarjeta-panel">
-    <h2>Inventario</h2>
-    <p>Gestion de productos, proveedores y compras.</p>
-    <a class="boton boton-primario" href="{% url 'inventario:producto_lista' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Citas</h2>
-    <p>Agenda semanal y creacion de eventos.</p>
-    <a class="boton boton-primario" href="{% url 'citas:calendario' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Ventas</h2>
-    <p>Registro de ventas y validaciones.</p>
-    <a class="boton boton-primario" href="{% url 'ventas:venta_lista' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Servicios</h2>
-    <p>Administracion del catalogo de servicios.</p>
-    <a class="boton boton-primario" href="{% url 'citas:servicio_lista' %}">Abrir</a>
-  </article>
-</section>
+    <!-- MÓDULOS PRINCIPALES -->
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h6 mb-0 section-title"><i class="bi bi-layers me-1"></i> Módulos</h2>
+    </div>
+    <div class="row g-2 mb-2">
+        <!-- MÓDULO: INVENTARIO -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 module-card">
+                <div class="card-body p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge module-badge"><i class="bi bi-box-seam"></i></span>
+                        <div>
+                            <h5 class="h6 mb-0 module-title">Inventario</h5>
+                            <small class="module-subtitle">Productos y compras</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-1 mt-2">
+                        <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-pie-chart me-1"></i> Dashboard
+                        </a>
+                        <a href="{% url 'inventario:producto_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-box me-1"></i> Productos
+                        </a>
+                        <a href="{% url 'inventario:compra_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-cart-check me-1"></i> Compras
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: VENTAS -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 module-card">
+                <div class="card-body p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge module-badge"><i class="bi bi-graph-up"></i></span>
+                        <div>
+                            <h5 class="h6 mb-0 module-title">Ventas</h5>
+                            <small class="module-subtitle">Transacciones</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-1 mt-2">
+                        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-receipt me-1"></i> Ventas
+                        </a>
+                        <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-plus me-1"></i> Nueva
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: CITAS -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 module-card">
+                <div class="card-body p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge module-badge"><i class="bi bi-calendar-event"></i></span>
+                        <div>
+                            <h5 class="h6 mb-0 module-title">Citas</h5>
+                            <small class="module-subtitle">Reservas y servicios</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-1 mt-2">
+                        <a href="{% url 'citas:calendario' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-calendar me-1"></i> Calendario
+                        </a>
+                        <a href="{% url 'citas:servicio_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-stars me-1"></i> Servicios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MÓDULO: DEVOLUCIONES -->
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 module-card">
+                <div class="card-body p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge module-badge"><i class="bi bi-arrow-return-left"></i></span>
+                        <div>
+                            <h5 class="h6 mb-0 module-title">Devoluciones</h5>
+                            <small class="module-subtitle">Retornos</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-1 mt-2">
+                        <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-list me-1"></i> Lista
+                        </a>
+                        <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-plus me-1"></i> Nueva
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS -->
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h6 mb-0 section-title"><i class="bi bi-lightning-fill me-1"></i> Acciones Rápidas</h2>
+    </div>
+    <div class="row g-2">
+        <div class="col-6 col-md-3">
+            <a href="{% url 'inventario:producto_nuevo' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
+                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
+                <span class="small fw-semibold">Producto</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{% url 'inventario:compra_nueva' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
+                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
+                <span class="small fw-semibold">Compra</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{% url 'ventas:venta_nueva' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
+                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
+                <span class="small fw-semibold">Venta</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="{% url 'citas:calendario' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
+                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
+                <span class="small fw-semibold">Cita</span>
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}
-
-

@@ -1,19 +1,183 @@
-<h1>Validaciones venta {{ venta.id }}</h1>
-<form method="post">{% csrf_token %}
-  <input name="metodo_pago" placeholder="Metodo de pago">
-  <input name="referencia_pago" placeholder="Referencia">
-  <input name="monto" type="number" step="0.01">
-  <select name="estado">
-    <option value="pendiente" selected>Pendiente</option>
-    <option value="validada">Validada</option>
-  </select>
-  <button type="submit">Validar</button>
-</form>
-<p>Cuando el estado sea pendiente, se enviara notificacion a Telegram.</p>
-<ul>
-{% for v in validaciones %}
-  <li>{{ v.estado }} - {{ v.monto }}</li>
-{% empty %}
-  <li>Sin validaciones</li>
-{% endfor %}
-</ul>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Validaciones Venta #{{ venta.id }} | Administraci?n{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/validaciones_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Volver a Venta
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-check-circle" style="color: #ca6b86;"></i> Validaci?n de Pago - Venta #{{ venta.id }}
+        </h1>
+        <p class="text-muted">Administra las validaciones y confirmaciones de pago para esta transacci?n</p>
+    </div>
+
+    <div class="row">
+        <!-- Columna izquierda: Informaci?n de la venta y formulario -->
+        <div class="col-lg-8 mb-4">
+            <!-- Card: Informaci?n de la venta -->
+            <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-receipt"></i> Informaci?n de la Venta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label style="color: #999; font-size: 0.9rem;">Cliente</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.nombre }}</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label style="color: #999; font-size: 0.9rem;">Monto Total</label>
+                            <h6 style="color: #ca6b86; font-weight: 600; font-size: 1.2rem;">
+                                ${{ venta.total|floatformat:2 }}
+                            </h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label style="color: #999; font-size: 0.9rem;">Fecha</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.fecha|date:"d/m/Y H:i" }}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Formulario de validaci?n -->
+            <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-file-earmark-plus"></i> Registrar Nueva Validaci?n
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- M?todo de pago -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="metodo_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">M?todo de Pago</label>
+                                <select class="form-select form-control" id="metodo_pago" name="metodo_pago" required style="border-color: #fbcdd9; border-width: 2px;">
+                                    <option value="" selected disabled>Selecciona m?todo</option>
+                                    <option value="efectivo">ðŸ’µ Efectivo</option>
+                                    <option value="transferencia">ðŸ¦ Transferencia Bancaria</option>
+                                    <option value="tarjeta">ðŸ’³ Tarjeta de Cr?dito</option>
+                                    <option value="billetera">ðŸ“± Billetera Digital</option>
+                                    <option value="otro">âž• Otro</option>
+                                </select>
+                                <small class="form-text text-muted">Selecciona c?mo se realiz? el pago</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="monto" class="form-label" style="color: #3b2b32; font-weight: 600;">Monto Pagado</label>
+                                <div class="input-group" style="border-radius: 0.5rem; overflow: hidden;">
+                                    <span class="input-group-text" style="background: #fbcdd9; border: 2px solid #fbcdd9; color: #ca6b86; font-weight: 600;">$</span>
+                                    <input type="number" class="form-control" id="monto" name="monto" placeholder="0.00" step="0.01" min="0" required style="border-color: #fbcdd9; border-width: 2px;">
+                                </div>
+                                <small class="form-text text-muted">Monto confirmado del pago</small>
+                            </div>
+                        </div>
+
+                        <!-- Referencia de pago -->
+                        <div class="mb-4">
+                            <label for="referencia_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">Referencia de Pago / N?mero de Transacci?n</label>
+                            <input type="text" class="form-control" id="referencia_pago" name="referencia_pago" placeholder="Ej: TRF123456789 o Ult. 4 d?gitos" style="border-color: #fbcdd9; border-width: 2px;">
+                            <small class="form-text text-muted">N?mero de referencia para rastrear el pago (opcional)</small>
+                        </div>
+
+                        <!-- Estado -->
+                        <div class="mb-4">
+                            <label for="estado" class="form-label" style="color: #3b2b32; font-weight: 600;">Estado del Pago</label>
+                            <select class="form-select form-control" id="estado" name="estado" required style="border-color: #fbcdd9; border-width: 2px;">
+                                <option value="pendiente" selected>â³ Pendiente de Confirmaci?n</option>
+                                <option value="validada">âœ… Validada / Confirmada</option>
+                                <option value="rechazada">âŒ Rechazada</option>
+                            </select>
+                            <small class="form-text text-muted">Si seleccionas "Pendiente", se enviar? notificaci?n por Telegram</small>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div class="mb-4">
+                            <label for="observaciones" class="form-label" style="color: #3b2b32; font-weight: 600;">Observaciones</label>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Notas adicionales sobre la validaci?n..." style="border-color: #fbcdd9; border-width: 2px; resize: vertical;"></textarea>
+                            <small class="form-text text-muted">Informaci?n adicional sobre la transacci?n</small>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600;">
+                                <i class="bi bi-check-circle"></i> Registrar Validaci?n
+                            </button>
+                            <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: Historial de validaciones -->
+        <div class="col-lg-4">
+            <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-clock-history"></i> Historial de Validaciones
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if validaciones %}
+                    <div class="list-group list-group-flush">
+                        {% for validacion in validaciones %}
+                        <div class="list-group-item" style="border-bottom: 1px solid #ecf0f1; padding: 1rem;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 style="color: #3b2b32; font-weight: 600; margin-bottom: 0.25rem;">
+                                        {{ validacion.metodo_pago|title }}
+                                    </h6>
+                                    <small style="color: #999;">{{ validacion.fecha|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                <span class="badge {% if validacion.estado == 'validada' %}bg-success{% elif validacion.estado == 'pendiente' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                    {% if validacion.estado == 'validada' %}âœ…{% elif validacion.estado == 'pendiente' %}â³{% else %}âŒ{% endif %}
+                                    {{ validacion.estado|title }}
+                                </span>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 0.5rem;">
+                                <strong style="color: #ca6b86; font-size: 1rem;">
+                                    ${{ validacion.monto|floatformat:2 }}
+                                </strong>
+                            </div>
+                            {% if validacion.referencia_pago %}
+                            <small style="color: #666;">
+                                <i class="bi bi-link"></i> {{ validacion.referencia_pago }}
+                            </small>
+                            {% endif %}
+                            {% if validacion.observaciones %}
+                            <div class="mt-2" style="padding: 0.5rem; background: #fbcdd9; background: rgba(251, 205, 217, 0.3); border-radius: 0.25rem; font-size: 0.85rem; color: #666;">
+                                {{ validacion.observaciones }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info m-3" style="border-radius: 0.5rem; border-left: 4px solid #ca6b86;">
+                        <i class="bi bi-info-circle"></i>
+                        <small>Sin validaciones registradas. Crea la primera validaci?n con el formulario.</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

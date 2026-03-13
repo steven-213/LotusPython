@@ -1,0 +1,58 @@
+{% extends "base_public.html" %}
+
+{% block title %}Editar Compra #{{ compra.id }} - Administración{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Compra #{{ compra.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="proveedor_id" class="form-label">Proveedor *</label>
+                                <select class="form-control" id="proveedor_id" name="proveedor_id" required>
+                                    <option value="">-- Seleccionar Proveedor --</option>
+                                    {% for proveedor in proveedores %}
+                                    <option value="{{ proveedor.id }}" {% if proveedor.id == compra.proveedor.id %}selected{% endif %}>
+                                        {{ proveedor.nombre }} ({{ proveedor.empresa }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="numero_factura" class="form-label">Número de Factura</label>
+                                <input type="text" class="form-control" id="numero_factura" name="numero_factura" value="{{ compra.numero_factura }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="total" class="form-label">Total</label>
+                            <input type="number" class="form-control" id="total" name="total" step="0.01" value="{{ compra.total }}" required>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Nota:</strong> Para modificar los productos de esta compra, debes acceder a la vista de detalles y editar desde allí.
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'inventario:compra_detalle' compra.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

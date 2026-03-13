@@ -1,0 +1,8 @@
+﻿.form-control, .form-select, .input-group-text {
+        border-width: 2px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #ca6b86;
+        box-shadow: 0 0 0 0.2rem rgba(202, 107, 134, 0.25);
+    }

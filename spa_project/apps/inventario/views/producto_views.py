@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models import F, Q
 
 from apps.inventario.models import Producto, Proveedor
 from apps.inventario.storage import subir_imagen_producto
@@ -68,10 +69,56 @@ def producto_comprar(request, producto_id):
 @admin_required_session
 def producto_lista(request):
     query = request.GET.get("q", "")
+    estado_filtro = request.GET.get("estado", "")  # "activo", "inactivo", "bajo_stock", "sin_stock"
+    proveedor_id = request.GET.get("proveedor_id", "")
+    
     productos = Producto.objects.all()
+    
+    # Filtro por búsqueda
     if query:
-        productos = productos.filter(nombre__icontains=query)
-    return render(request, "inventario/productos/lista.html", {"productos": productos, "query": query})
+        productos = productos.filter(
+            Q(nombre__icontains=query) | Q(descripcion__icontains=query)
+        )
+    
+    # Filtro por estado
+    if estado_filtro == "activo":
+        productos = productos.filter(activo=True)
+    elif estado_filtro == "inactivo":
+        productos = productos.filter(activo=False)
+    elif estado_filtro == "bajo_stock":
+        productos = productos.filter(Q(stock__lte=F("stock_minimo")) & Q(stock__gt=0))
+    elif estado_filtro == "sin_stock":
+        productos = productos.filter(stock=0)
+    
+    # Filtro por proveedor
+    if proveedor_id:
+        productos = productos.filter(proveedor_id=proveedor_id)
+    
+    # Contar estados
+    sin_stock = Producto.objects.filter(stock=0).count()
+    stock_bajo = Producto.objects.filter(stock__gt=0, stock__lte=F("stock_minimo")).count()
+    
+    # Obtener proveedores para el filtro
+    proveedores = Proveedor.objects.all()
+    
+    # Agregar propiedades calculadas
+    productos_list = []
+    for producto in productos:
+        productos_list.append({
+            "producto": producto,
+            "margen": round(producto.margen_ganancia, 2),
+            "necesita_reorden": producto.necesita_reorden
+        })
+    
+    return render(request, "inventario/productos/lista.html", {
+        "productos": productos_list,
+        "query": query,
+        "sin_stock": sin_stock,
+        "stock_bajo": stock_bajo,
+        "estado_filtro": estado_filtro,
+        "proveedor_id": proveedor_id,
+        "proveedores": proveedores,
+    })
 
 
 @admin_required_session
@@ -123,7 +170,10 @@ def producto_editar(request, producto_id):
 @admin_required_session
 def producto_detalle(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
-    return render(request, "inventario/productos/detalle.html", {"producto": producto})
+    margen = 0
+    if producto.precio_compra > 0:
+        margen = ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100
+    return render(request, "inventario/productos/detalle.html", {"producto": producto, "margen": margen})
 
 
 @admin_required_session

@@ -1,58 +1,222 @@
-<h1>{% if producto %}Editar{% else %}Nuevo{% endif %} producto</h1>
-
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-
-  <div>
-    <label for="nombre">Nombre</label>
-    <input id="nombre" name="nombre" value="{{ producto.nombre|default:'' }}" placeholder="Nombre del producto" required>
-  </div>
-
-  <div>
-    <label for="descripcion">Descripcion</label>
-    <textarea id="descripcion" name="descripcion" placeholder="Describe el producto">{{ producto.descripcion|default:'' }}</textarea>
-  </div>
-
-  <div>
-    <label for="imagen">Imagen</label>
-    {% if producto and producto.imagen %}
-      <div>
-        <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" style="max-width: 220px; height: auto;">
-        <p>Sube otra imagen si quieres reemplazarla.</p>
-      </div>
-    {% endif %}
-    <input id="imagen" type="file" name="imagen" accept="image/*">
-  </div>
-
-  <div>
-    <label for="stock">Stock</label>
-    <input id="stock" name="stock" type="number" min="0" value="{{ producto.stock|default:0 }}">
-  </div>
-
-  <div>
-    <label for="precio_compra">Precio compra</label>
-    <input id="precio_compra" name="precio_compra" type="number" step="0.01" min="0" value="{{ producto.precio_compra|default:0 }}">
-  </div>
-
-  <div>
-    <label for="precio_venta">Precio venta</label>
-    <input id="precio_venta" name="precio_venta" type="number" step="0.01" min="0" value="{{ producto.precio_venta|default:0 }}">
-  </div>
-
-  <div>
-    <label for="iva">IVA (%)</label>
-    <input id="iva" name="iva" type="number" step="0.01" min="0" value="{{ producto.iva|default:0 }}">
-  </div>
-
-  <div>
-    <label for="proveedor_id">Proveedor</label>
-    <select id="proveedor_id" name="proveedor_id">
-      <option value="">Sin proveedor</option>
-      {% for prov in proveedores %}
-      <option value="{{ prov.id }}" {% if producto.proveedor_id == prov.id %}selected{% endif %}>{{ prov.nombre }}</option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <button type="submit">Guardar</button>
-</form>
+{% extends "base_public.html" %}
+
+{% block title %}{% if producto %}Editar{% else %}Nuevo{% endif %} Producto{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/productos/form_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Header -->
+            <div class="mb-4">
+                <h1 style="color: #3b2b32;">
+                    <i class="bi bi-{% if producto %}pencil-square{% else %}plus-circle{% endif %}" style="color: #ca6b86;"></i> 
+                    {% if producto %}Editar Producto{% else %}Crear Nuevo Producto{% endif %}
+                </h1>
+                <p class="text-muted">{% if producto %}Modifica la información del producto{% else %}Registra un nuevo producto en el sistema{% endif %}</p>
+            </div>
+
+            <!-- Formulario -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Información General -->
+                <div class="card border-0 shadow-lg mb-4">
+                    <div class="card-header border-0" style="background-color: #fbcdd9;">
+                        <h5 class="mb-0" style="color: #3b2b32;">
+                            <i class="bi bi-info-circle"></i> Información General
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Nombre -->
+                        <div class="mb-4">
+                            <label for="nombre" class="form-label fw-bold" style="color: #3b2b32;">
+                                <i class="bi bi-box-seam" style="color: #ca6b86;"></i> Nombre del Producto
+                            </label>
+                            <input 
+                                type="text" 
+                                id="nombre" 
+                                name="nombre" 
+                                class="form-control form-control-lg" 
+                                value="{{ producto.nombre|default:'' }}" 
+                                placeholder="Ej: Shampoo profesional"
+                                required
+                                style="border-color: #ca6b86;"
+                            >
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="mb-4">
+                            <label for="descripcion" class="form-label fw-bold" style="color: #3b2b32;">
+                                <i class="bi bi-chat-left-text" style="color: #ca6b86;"></i> Descripción
+                            </label>
+                            <textarea 
+                                id="descripcion" 
+                                name="descripcion" 
+                                class="form-control" 
+                                rows="3" 
+                                placeholder="Describe el producto..."
+                                style="border-color: #ca6b86;"
+                            >{{ producto.descripcion|default:'' }}</textarea>
+                        </div>
+
+                        <!-- Imagen -->
+                        <div class="mb-4">
+                            <label for="imagen" class="form-label fw-bold" style="color: #3b2b32;">
+                                <i class="bi bi-image" style="color: #ca6b86;"></i> Imagen
+                            </label>
+                            {% if producto and producto.imagen %}
+                                <div class="mb-3">
+                                    <img src="{{ producto.imagen }}" alt="Imagen actual" style="max-width: 200px; height: auto; border-radius: 0.5rem;">
+                                    <p class="text-muted small mt-2">Sube una nueva imagen para reemplazarla</p>
+                                </div>
+                            {% endif %}
+                            <input 
+                                type="file" 
+                                id="imagen" 
+                                name="imagen" 
+                                class="form-control" 
+                                accept="image/*"
+                                style="border-color: #ca6b86;"
+                            >
+                        </div>
+
+                        <!-- Proveedor -->
+                        <div>
+                            <label for="proveedor_id" class="form-label fw-bold" style="color: #3b2b32;">
+                                <i class="bi bi-building" style="color: #ca6b86;"></i> Proveedor
+                            </label>
+                            <select 
+                                id="proveedor_id" 
+                                name="proveedor_id" 
+                                class="form-select form-select-lg"
+                                style="border-color: #ca6b86;"
+                            >
+                                <option value="">-- Sin proveedor --</option>
+                                {% for prov in proveedores %}
+                                <option value="{{ prov.id }}" {% if producto.proveedor_id == prov.id %}selected{% endif %}>
+                                    {{ prov.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de Precios -->
+                <div class="card border-0 shadow-lg mb-4">
+                    <div class="card-header border-0" style="background-color: #fbcdd9;">
+                        <h5 class="mb-0" style="color: #3b2b32;">
+                            <i class="bi bi-cash-coin"></i> Precios
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <!-- Precio Compra -->
+                            <div class="col-md-6 mb-4">
+                                <label for="precio_compra" class="form-label fw-bold" style="color: #3b2b32;">
+                                    Precio de Compra
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">$</span>
+                                    <input 
+                                        type="number" 
+                                        id="precio_compra" 
+                                        name="precio_compra" 
+                                        class="form-control" 
+                                        step="0.01" 
+                                        min="0" 
+                                        value="{{ producto.precio_compra|default:0 }}"
+                                        style="border-color: #ca6b86;"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Precio Venta -->
+                            <div class="col-md-6 mb-4">
+                                <label for="precio_venta" class="form-label fw-bold" style="color: #3b2b32;">
+                                    Precio de Venta
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">$</span>
+                                    <input 
+                                        type="number" 
+                                        id="precio_venta" 
+                                        name="precio_venta" 
+                                        class="form-control" 
+                                        step="0.01" 
+                                        min="0" 
+                                        value="{{ producto.precio_venta|default:0 }}"
+                                        style="border-color: #ca6b86;"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- IVA -->
+                            <div class="col-md-6">
+                                <label for="iva" class="form-label fw-bold" style="color: #3b2b32;">
+                                    IVA (%)
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <input 
+                                        type="number" 
+                                        id="iva" 
+                                        name="iva" 
+                                        class="form-control" 
+                                        step="0.01" 
+                                        min="0" 
+                                        value="{{ producto.iva|default:0 }}"
+                                        style="border-color: #ca6b86;"
+                                    >
+                                    <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock -->
+                <div class="card border-0 shadow-lg mb-4">
+                    <div class="card-header border-0" style="background-color: #fbcdd9;">
+                        <h5 class="mb-0" style="color: #3b2b32;">
+                            <i class="bi bi-box2"></i> Inventario
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <label for="stock" class="form-label fw-bold" style="color: #3b2b32;">
+                            <i class="bi bi-box-seam"></i> Stock Disponible
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <input 
+                                type="number" 
+                                id="stock" 
+                                name="stock" 
+                                class="form-control" 
+                                min="0" 
+                                value="{{ producto.stock|default:0 }}"
+                                style="border-color: #ca6b86;"
+                            >
+                            <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">unid.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="d-flex gap-2 justify-content-end mb-4">
+                    <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary btn-lg">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none;">
+                        <i class="bi bi-check-circle"></i> {% if producto %}Actualizar{% else %}Crear{% endif %} Producto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

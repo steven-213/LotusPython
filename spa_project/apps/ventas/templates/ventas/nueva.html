@@ -1,10 +1,103 @@
-<h1>Nueva venta</h1>
-<form method="post">{% csrf_token %}
-  <select name="cliente_id">
-    {% for c in clientes %}
-    <option value="{{ c.id }}">{{ c.nombre }}</option>
-    {% endfor %}
-  </select>
-  <input name="total" type="number" step="0.01">
-  <button type="submit">Guardar</button>
-</form>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Nueva Venta | Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/nueva_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-plus-circle" style="color: #ca6b86;"></i> Registrar Nueva Venta
+        </h1>
+        <p class="text-muted">Complete el formulario para crear una nueva transacción de venta</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Card Formulario -->
+            <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-file-earmark-text"></i> Datos de la Venta
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Sección: Cliente -->
+                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
+                                <i class="bi bi-person-fill" style="color: #ca6b86;"></i> Seleccionar Cliente
+                            </h6>
+                            <div class="form-group">
+                                <label for="cliente_id" class="form-label" style="color: #3b2b32; font-weight: 600;">Cliente *</label>
+                                <select class="form-select form-control" id="cliente_id" name="cliente_id" required style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <option value="" selected disabled style="color: #999;">-- Selecciona un cliente --</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}" style="color: #3b2b32;">
+                                        {{ cliente.nombre }} ({{ cliente.email }})
+                                    </option>
+                                    {% empty %}
+                                    <option value="" disabled style="color: #999;">No hay clientes registrados</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Selecciona el cliente que realiza la compra</small>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Monto -->
+                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
+                                <i class="bi bi-cash-coin" style="color: #ca6b86;"></i> Monto de la Venta
+                            </h6>
+                            <div class="form-group">
+                                <label for="total" class="form-label" style="color: #3b2b32; font-weight: 600;">Total *</label>
+                                <div class="input-group" style="border-radius: 0.5rem; overflow: hidden;">
+                                    <span class="input-group-text" style="background: #fbcdd9; border: 2px solid #fbcdd9; color: #ca6b86; font-weight: 600;">$</span>
+                                    <input type="number" class="form-control" id="total" name="total" placeholder="0.00" step="0.01" min="0" required style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                </div>
+                                <small class="form-text text-muted">Ingresa el monto total de la venta</small>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600; padding: 0.75rem;">
+                                <i class="bi bi-check-circle"></i> Crear Venta
+                            </button>
+                            <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600; padding: 0.75rem;">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Card de información -->
+            <div class="card shadow-sm border-0 mt-4" style="border-radius: 1rem; border-left: 4px solid #ca6b86; background-color: #fbcdd9; background-color: rgba(251, 205, 217, 0.3);">
+                <div class="card-body">
+                    <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 0.5rem;">
+                        <i class="bi bi-info-circle" style="color: #ca6b86;"></i> Información Importante
+                    </h6>
+                    <ul class="mb-0" style="color: #666; font-size: 0.95rem;">
+                        <li>Después de crear la venta, podrás agregar más detalles.</li>
+                        <li>El monto debe ser un número válido (ej: 150.50).</li>
+                        <li>La venta quedará en estado "Pendiente de Validación" hasta confirmar el pago.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

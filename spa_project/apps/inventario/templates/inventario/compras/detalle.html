@@ -1,3 +1,349 @@
-<h1>Detalle compra {{ compra.id }}</h1>
-<p>Proveedor: {{ compra.proveedor.nombre }}</p>
-<p>Total: {{ compra.total }}</p>
+{% extends "base_public.html" %}
+{% load static inventario_tags %}
+
+{% block title %}Compra #{{ compra.id }} - Administración{% endblock %}
+
+
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'inventario/compras/detalle_style.css' %}">
+
+{% endblock %}
+
+
+
+{% block content %}
+
+<div class="container mt-4">
+
+    <div class="row mb-4">
+
+        <div class="col-md-8">
+
+            <h1>Compra #{{ compra.id }}</h1>
+
+        </div>
+
+        <div class="col-md-4 text-end">
+
+            <a href="{% url 'inventario:compra_editar' compra.id %}" class="btn btn-warning">
+
+                <i class="bi bi-pencil"></i> Editar
+
+            </a>
+
+            <a href="{% url 'inventario:compra_lista' %}" class="btn btn-secondary">
+
+                <i class="bi bi-arrow-left"></i> Volver
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Información de la Compra -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+
+            <div class="card">
+
+                <div class="card-header bg-primary text-white">
+
+                    <h5 class="mb-0">Información General</h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <dl class="row">
+
+                        <dt class="col-sm-5">ID Compra:</dt>
+
+                        <dd class="col-sm-7"><strong>#{{ compra.id }}</strong></dd>
+
+                        
+
+                        <dt class="col-sm-5">Proveedor:</dt>
+
+                        <dd class="col-sm-7">
+
+                            <a href="{% url 'inventario:proveedor_detalle' compra.proveedor.id %}">
+
+                                {{ compra.proveedor.nombre }}
+
+                            </a>
+
+                        </dd>
+
+                        
+
+                        <dt class="col-sm-5">Número Factura:</dt>
+
+                        <dd class="col-sm-7">{{ compra.numero_factura|default:"No especificado" }}</dd>
+
+                    </dl>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="col-md-6">
+
+            <div class="card">
+
+                <div class="card-header bg-success text-white">
+
+                    <h5 class="mb-0">Fecha y Total</h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <dl class="row">
+
+                        <dt class="col-sm-5">Fecha:</dt>
+
+                        <dd class="col-sm-7">{{ compra.fecha|date:"d/m/Y H:i" }}</dd>
+
+                        
+
+                        <dt class="col-sm-5">Total:</dt>
+
+                        <dd class="col-sm-7"><strong class="text-success" style="font-size: 1.2em;">${{ compra.total }}</strong></dd>
+
+                    </dl>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Detalles de Productos -->
+
+    <div class="card mb-4">
+
+        <div class="card-header bg-info text-white">
+
+            <h5 class="mb-0"><i class="bi bi-list"></i> Productos en esta Compra</h5>
+
+        </div>
+
+        <div class="card-body">
+
+            {% if detalles %}
+
+            <div class="table-responsive">
+
+                <table class="table table-hover">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>Producto</th>
+
+                            <th>Cantidad</th>
+
+                            <th>Precio Unitario</th>
+
+                            <th>Subtotal</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for detalle in detalles %}
+
+                        <tr>
+
+                            <td>
+
+                                <a href="{% url 'inventario:producto_detalle' detalle.producto.id %}">
+
+                                    {{ detalle.producto.nombre }}
+
+                                </a>
+
+                            </td>
+
+                            <td>{{ detalle.cantidad }}</td>
+
+                            <td>${{ detalle.precio_compra }}</td>
+
+                            <td><strong>${{ detalle.cantidad|multiply:detalle.precio_compra }}</strong></td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <p class="text-muted">No hay productos en esta compra.</p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Devoluciones -->
+
+    <div class="row mb-4">
+
+        <div class="col-12">
+
+            <div class="card">
+
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+
+                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Devoluciones</h5>
+
+                    <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-sm btn-outline-dark">
+
+                        <i class="bi bi-plus"></i> Nueva Devolución
+
+                    </a>
+
+                </div>
+
+                <div class="card-body">
+
+                    {% if devoluciones %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover">
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>Producto</th>
+
+                                    <th>Cantidad</th>
+
+                                    <th>Motivo</th>
+
+                                    <th>Fecha</th>
+
+                                    <th>Acciones</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {% for devolucion in devoluciones %}
+
+                                <tr>
+
+                                    <td>{{ devolucion.producto.nombre }}</td>
+
+                                    <td><span class="badge bg-warning text-dark">{{ devolucion.cantidad }}</span></td>
+
+                                    <td>{{ devolucion.motivo }}</td>
+
+                                    <td>{{ devolucion.fecha|date:"d/m/Y H:i" }}</td>
+
+                                    <td>
+
+                                        <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-info">
+
+                                            <i class="bi bi-eye"></i> Ver
+
+                                        </a>
+
+                                        <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display:inline;">
+
+                                            {% csrf_token %}
+
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro?')">
+
+                                                <i class="bi bi-trash"></i> Eliminar
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    {% else %}
+
+                    <p class="text-muted">No hay devoluciones registradas para esta compra.</p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- Botones de Acción -->
+
+    <div class="d-flex gap-2 justify-content-end">
+
+        <form method="post" action="{% url 'inventario:compra_eliminar' compra.id %}" style="display:inline;">
+
+            {% csrf_token %}
+
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar esta compra?')">
+
+                <i class="bi bi-trash"></i> Eliminar Compra
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+<!-- Filtro para multiply template tag -->
+
+{% endblock %}
+
+
+
