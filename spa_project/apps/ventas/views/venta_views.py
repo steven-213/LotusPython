@@ -15,7 +15,13 @@ from apps.ventas.models import ValidacionVenta, Venta
 @admin_required_session
 def venta_lista(request):
     ventas = Venta.objects.select_related("cliente").order_by("-fecha")
-    return render(request, "ventas/lista.html", {"ventas": ventas})
+    monto_total = sum(v.total for v in ventas)
+    promedio = monto_total / len(ventas) if ventas else 0
+    return render(request, "ventas/lista.html", {
+        "ventas": ventas,
+        "monto_total": monto_total,
+        "promedio": promedio
+    })
 
 
 @admin_required_session
@@ -32,7 +38,18 @@ def venta_nueva(request):
 @admin_required_session
 def venta_detalle(request, venta_id):
     venta = get_object_or_404(Venta.objects.select_related("cliente"), id=venta_id)
-    return render(request, "ventas/detalle.html", {"venta": venta})
+    detalles = venta.detalles.select_related("producto")
+    validaciones = venta.validaciones.all()
+    
+    # Calcular subtotales
+    for detalle in detalles:
+        detalle.subtotal = detalle.cantidad * detalle.precio_unitario
+    
+    return render(request, "ventas/detalle.html", {
+        "venta": venta,
+        "detalles": detalles,
+        "validaciones": validaciones
+    })
 
 
 @admin_required_session
@@ -107,3 +124,26 @@ def rechazar_compra_telegram(request, validacion_id):
     validacion.observaciones = "Rechazado "
     validacion.save(update_fields=["estado", "observaciones"])
     return HttpResponse("Compra rechazada correctamente.")
+
+
+@admin_required_session
+def venta_editar(request, venta_id):
+    venta = get_object_or_404(Venta.objects.select_related("cliente"), id=venta_id)
+    if request.method == "POST":
+        venta.total = Decimal(request.POST.get("total") or "0")
+        venta.save()
+        messages.success(request, "Venta actualizada correctamente.")
+        return redirect("ventas:venta_detalle", venta_id=venta.id)
+    clientes = Usuario.objects.all()
+    return render(request, "ventas/editar.html", {"venta": venta, "clientes": clientes})
+
+
+@admin_required_session
+def venta_eliminar(request, venta_id):
+    venta = get_object_or_404(Venta, id=venta_id)
+    if request.method == "POST":
+        venta_id_temp = venta.id
+        venta.delete()
+        messages.success(request, "Venta eliminada correctamente.")
+        return redirect("ventas:venta_lista")
+    return render(request, "ventas/eliminar_confirmacion.html", {"venta": venta})

@@ -7,40 +7,86 @@
 {% endblock %}
 
 {% block content %}
-<section class="encabezado-ventas">
-  <h1>Ventas</h1>
-  <p>Resumen del modulo de ventas y registro reciente.</p>
-</section>
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-graph-up"></i> Gestión de Ventas
+                </h1>
+                <p class="text-muted">Resumen y registro de transacciones</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Atrás
+            </a>
+            <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> Nueva Venta
+            </a>
+        </div>
+    </div>
 
-<section class="resumen-ventas" id="sales-summary">
-  <article class="tarjeta-resumen">
-    <h2>Total ventas</h2>
-    <p id="total-ventas">-</p>
-  </article>
-  <article class="tarjeta-resumen">
-    <h2>Monto total</h2>
-    <p id="monto-total">-</p>
-  </article>
-</section>
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0">Total de Ventas</p>
+                            <h3 class="mb-0 text-primary" id="total-ventas">-</h3>
+                        </div>
+                        <i class="bi bi-bag-check" style="font-size: 2rem; color: #ca6b86;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-0">Monto Total</p>
+                            <h3 class="mb-0 text-primary" id="monto-total">-</h3>
+                        </div>
+                        <i class="bi bi-cash-coin" style="font-size: 2rem; color: #ca6b86;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<section class="tabla-ventas-contenedor">
-  <div class="barra-ventas">
-    <a class="boton boton-primario" href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
-  </div>
-  <table class="tabla-ventas">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Cliente</th>
-        <th>Total</th>
-        <th>Fecha</th>
-      </tr>
-    </thead>
-    <tbody id="sales-body">
-      <tr><td colspan="4">Cargando...</td></tr>
-    </tbody>
-  </table>
-</section>
+    <!-- Tabla de Ventas -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Ventas Recientes</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center"><i class="bi bi-hash"></i> ID</th>
+                        <th><i class="bi bi-person"></i> Cliente</th>
+                        <th class="text-end"><i class="bi bi-cash"></i> Total</th>
+                        <th><i class="bi bi-calendar"></i> Fecha</th>
+                        <th class="text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="sales-body">
+                    <tr>
+                        <td colspan="5" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <script>
 async function loadSales() {
@@ -63,19 +109,29 @@ async function loadSales() {
   body.innerHTML = "";
 
   if (!ventas.length) {
-    body.innerHTML = "<tr><td colspan='4'>No hay ventas registradas.</td></tr>";
+    body.innerHTML = "<tr><td colspan='5' class='text-center py-4'><i class='bi bi-inbox' style='font-size: 2rem; color: #ccc;'></i><p class='text-muted mt-2'>No hay ventas registradas</p></td></tr>";
     return;
   }
 
   ventas.forEach(v => {
+    const estado = v.estado === 'confirmada' ? '<span class="badge bg-success">Confirmada</span>' : 
+                   v.estado === 'pendiente' ? '<span class="badge bg-warning">Pendiente</span>' : 
+                   '<span class="badge bg-danger">Cancelada</span>';
     const tr = document.createElement("tr");
-    tr.innerHTML = "<td>" + v.id + "</td><td>" + v.cliente + "</td><td>$" + Number(v.total).toFixed(2) + "</td><td>" + v.fecha + "</td>";
+    tr.classList.add("align-middle");
+    tr.innerHTML = `
+      <td class="text-center fw-bold">${v.id}</td>
+      <td>${v.cliente}</td>
+      <td class="text-end fw-bold text-primary">$${Number(v.total).toFixed(2)}</td>
+      <td><small>${v.fecha}</small></td>
+      <td class="text-center">${estado}</td>
+    `;
     body.appendChild(tr);
   });
 }
 
 loadSales().catch(() => {
-  document.getElementById("sales-body").innerHTML = "<tr><td colspan='4'>Error cargando datos.</td></tr>";
+  document.getElementById("sales-body").innerHTML = "<tr><td colspan='5' class='text-center py-4'><div class='alert alert-danger mb-0'>Error cargando los datos. Por favor, recarga la página.</div></td></tr>";
 });
 </script>
 {% endblock %}

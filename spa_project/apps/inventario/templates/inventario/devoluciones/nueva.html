@@ -1,0 +1,91 @@
+{% extends "base_public.html" %}
+
+{% block title %}Nueva Devolución - Administración{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nueva Devolución de Compra</h4>
+                    <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-light text-primary">
+                        <i class="bi bi-arrow-left"></i> Atrás
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="compra_id" class="form-label">Compra *</label>
+                            <select class="form-control" id="compra_id" name="compra_id" required onchange="cargarProductos()">
+                                <option value="">-- Seleccionar Compra --</option>
+                                {% for compra in compras %}
+                                <option value="{{ compra.id }}" data-productos='{% for detalle in compra.detalles.all %}{"id": {{ detalle.producto.id }}, "nombre": "{{ detalle.producto.nombre }}"}{{ not forloop.last|yesno:"," }}{% endfor %}'>
+                                    Compra #{{ compra.id }} - {{ compra.proveedor.nombre }} ({{ compra.fecha|date:"d/m/Y" }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="producto_id" class="form-label">Producto *</label>
+                            <select class="form-control" id="producto_id" name="producto_id" required>
+                                <option value="">-- Seleccionar Producto --</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="cantidad" class="form-label">Cantidad *</label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" value="1" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="motivo" class="form-label">Motivo de la Devolución</label>
+                            <textarea class="form-control" id="motivo" name="motivo" rows="4" placeholder="Describe el motivo de la devolución..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Registrar Devolución
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cargarProductos() {
+    const compraSelect = document.getElementById('compra_id');
+    const productoSelect = document.getElementById('producto_id');
+    const selectedOption = compraSelect.options[compraSelect.selectedIndex];
+    
+    productoSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>';
+    
+    if (selectedOption.value) {
+        try {
+            const productosData = selectedOption.dataset.productos;
+            // Aquí deberías hacer una llamada AJAX para obtener los productos de la compra
+            // Por ahora, usamos un enfoque simple
+            const compraId = selectedOption.value;
+            obtenerProductosCompra(compraId);
+        } catch (e) {
+            console.error('Error al cargar productos:', e);
+        }
+    }
+}
+
+function obtenerProductosCompra(compraId) {
+    // Esta es una aproximación simple; en producción querrías hacer esto con AJAX
+    const productoSelect = document.getElementById('producto_id');
+    // Los productos se cargarían aquí mediante AJAX
+}
+</script>
+{% endblock %}

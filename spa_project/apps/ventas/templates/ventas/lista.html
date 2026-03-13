@@ -1,9 +1,124 @@
-<h1>Ventas</h1>
-<a href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
-<ul>
-{% for v in ventas %}
-  <li><a href="{% url 'ventas:venta_detalle' v.id %}">Venta {{ v.id }}</a> - {{ v.total }}</li>
-{% empty %}
-  <li>Sin ventas</li>
-{% endfor %}
-</ul>
+{% extends "base_public.html" %}
+
+{% block title %}Ventas{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Header con título y botones -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-graph-up" style="color: #ca6b86; font-size: 2rem;"></i> Ventas
+        </h1>
+    </div>
+
+    <!-- Tarjeta de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Ventas</h6>
+                    <h3 class="mb-0" style="color: #ca6b86;">{{ ventas|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Monto Total</h6>
+                    <h3 class="mb-0" style="color: #ca6b86;">${{ monto_total|default:"0.00" }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Promedio por Venta</h6>
+                    <h3 class="mb-0" style="color: #ca6b86;">${{ promedio|default:"0.00" }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de ventas -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header border-0" style="background-color: #fbcdd9;">
+            <h5 class="mb-0" style="color: #3b2b32;">Listado de Ventas</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if ventas %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr style="background-color: #fbcdd9;">
+                                <th style="color: #3b2b32;">ID</th>
+                                <th style="color: #3b2b32;">Cliente</th>
+                                <th style="color: #3b2b32;">Fecha</th>
+                                <th style="color: #3b2b32;">Total</th>
+                                <th style="color: #3b2b32;">Estado</th>
+                                <th style="color: #3b2b32; text-align: center;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for venta in ventas %}
+                                <tr>
+                                    <td class="align-middle">
+                                        <span class="badge bg-primary">#{{ venta.id }}</span>
+                                    </td>
+                                    <td class="align-middle">{{ venta.cliente.nombre }}</td>
+                                    <td class="align-middle" style="color: #8b3d56; font-size: 0.9rem;">
+                                        {{ venta.fecha|date:"d/m/Y H:i" }}
+                                    </td>
+                                    <td class="align-middle fw-bold" style="color: #ca6b86;">
+                                        ${{ venta.total|floatformat:2 }}
+                                    </td>
+                                    <td class="align-middle">
+                                        {% if venta.validaciones.count %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Validada
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock-history"></i> Pendiente
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-primary" title="Ver detalle">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'ventas:venta_editar' venta.id %}" class="btn btn-warning" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="btn btn-info" title="Validaciones">
+                                                <i class="bi bi-check2-square"></i>
+                                            </a>
+                                            <a href="{% url 'ventas:venta_eliminar' venta.id %}" class="btn btn-danger" title="Eliminar">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info m-0">
+                    <i class="bi bi-info-circle"></i> No hay ventas registradas
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Botones de navegación -->
+    <div class="d-flex gap-2 justify-content-end mt-4">
+        <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-plus-circle"></i> Nueva Venta
+        </a>
+    </div>
+</div>
+{% endblock %}

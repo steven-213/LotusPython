@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.citas.views.api_views import api_eventos
+from apps.citas.views.api_views import api_evento_detalle, api_eventos
 from apps.citas.views.cita_views import agenda, calendario, cita_editar, cita_nueva
 from apps.citas.views.servicio_views import (
     servicio_editar,
@@ -23,4 +23,5 @@ urlpatterns = [
     path("servicios/<int:servicio_id>/editar/", servicio_editar, name="servicio_editar"),
     path("servicios/<int:servicio_id>/eliminar/", servicio_eliminar, name="servicio_eliminar"),
     path("api/eventos/", api_eventos, name="api_eventos"),
+    path("api/eventos/<int:cita_id>/", api_evento_detalle, name="api_evento_detalle"),
 ]

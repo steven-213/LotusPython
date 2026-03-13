@@ -1,20 +1,138 @@
-<h1>Productos</h1>
-<a href="{% url 'inventario:producto_nuevo' %}">Nuevo</a>
-<ul>
+{% extends "base_public.html" %}
+
+{% block title %}Productos - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-box"></i> Gestión de Productos
+                </h1>
+                <p class="text-muted">Administra el inventario de productos disponibles</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-arrow-left"></i> Atrás
+                </a>
+                <a href="{% url 'inventario:producto_nuevo' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle"></i> Nuevo Producto
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="input-group w-100">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control border-start-0" placeholder="Buscar por nombre del producto..." value="{{ query }}">
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grid de Productos -->
+    <div class="row">
+        {% for p in productos %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm border-0 hover-shadow" style="transition: all 0.3s ease;">
+                {% if p.imagen %}
+                <img src="{{ p.imagen }}" class="card-img-top" alt="Imagen de {{ p.nombre }}" style="height: 220px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 220px;">
+                    <i class="bi bi-box" style="font-size: 3rem; color: #ccc;"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title mb-2">{{ p.nombre }}</h5>
+                    <p class="card-text text-muted small">{{ p.descripcion|truncatewords:12|default:"Sin descripción" }}</p>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-box2"></i> Stock:</small>
+                            <span class="badge {% if p.stock > 10 %}bg-success{% elif p.stock > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ p.stock }} unid.
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-tag"></i> Precio:</small>
+                            <strong class="text-primary">${{ p.precio_venta|floatformat:2 }}</strong>
+                        </div>
+                        {% if p.proveedor %}
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted"><i class="bi bi-building"></i> Proveedor:</small>
+                            <small>
+                                <a href="{% url 'inventario:proveedor_detalle' p.proveedor.id %}" class="text-decoration-none">
+                                    {{ p.proveedor.nombre }}
+                                </a>
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="btn-group d-grid gap-2" role="group">
+                        <a href="{% url 'inventario:producto_detalle' p.id %}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                        <a href="{% url 'inventario:producto_editar' p.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarProducto{{ p.id }}" title="Eliminar">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem; color: #ccc;"></i>
+                    <p class="text-muted mt-3">No hay productos registrados</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modales: Eliminar Producto -->
 {% for p in productos %}
-  <li>
-    {% if p.imagen %}
-      <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" style="width:60px; height:60px; object-fit:cover; vertical-align:middle;">
-    {% endif %}
-    {{ p.nombre }} - {{ p.stock }}
-    <a href="{% url 'inventario:producto_detalle' p.id %}">Detalle</a>
-    <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
-    <form method="post" action="{% url 'inventario:producto_eliminar' p.id %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit">Eliminar</button>
-    </form>
-  </li>
-{% empty %}
-  <li>Sin productos</li>
+<div class="modal fade" id="modalEliminarProducto{{ p.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar el producto <strong>{{ p.nombre }}</strong>?</p>
+                <p class="text-muted small">Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'inventario:producto_eliminar' p.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endfor %}
-</ul>
+{% endblock %}
+

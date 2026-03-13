@@ -1,19 +1,243 @@
-<h1>Validaciones venta {{ venta.id }}</h1>
-<form method="post">{% csrf_token %}
-  <input name="metodo_pago" placeholder="Metodo de pago">
-  <input name="referencia_pago" placeholder="Referencia">
-  <input name="monto" type="number" step="0.01">
-  <select name="estado">
-    <option value="pendiente" selected>Pendiente</option>
-    <option value="validada">Validada</option>
-  </select>
-  <button type="submit">Validar</button>
-</form>
-<p>Cuando el estado sea pendiente, se enviara notificacion a Telegram.</p>
-<ul>
-{% for v in validaciones %}
-  <li>{{ v.estado }} - {{ v.monto }}</li>
-{% empty %}
-  <li>Sin validaciones</li>
-{% endfor %}
-</ul>
+{% extends "base_public.html" %}
+
+{% block title %}Validaciones Venta #{{ venta.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-check2-square" style="color: #ca6b86; font-size: 2rem;"></i> Validaciones - Venta #{{ venta.id }}
+        </h1>
+    </div>
+
+    <div class="row">
+        <!-- Información de la venta -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">Información de Venta</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong style="color: #3b2b32;">Cliente:</strong><br>
+                        {{ venta.cliente.nombre }}
+                    </p>
+                    <p class="mb-2">
+                        <strong style="color: #3b2b32;">Total:</strong><br>
+                        <span style="color: #ca6b86; font-size: 1.3rem; font-weight: bold;">
+                            ${{ venta.total|floatformat:2 }}
+                        </span>
+                    </p>
+                    <p class="mb-0">
+                        <strong style="color: #3b2b32;">Fecha:</strong><br>
+                        <small>{{ venta.fecha|date:"d/m/Y H:i:s" }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario para agregar validación -->
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-plus-circle"></i> Nueva Validación
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <!-- Método de pago -->
+                            <div class="col-md-6 mb-3">
+                                <label for="metodo_pago" class="form-label fw-bold" style="color: #3b2b32;">
+                                    <i class="bi bi-credit-card"></i> Método de Pago
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="metodo_pago" 
+                                    id="metodo_pago" 
+                                    class="form-control" 
+                                    placeholder="Ej: Transferencia, Efectivo, Tarjeta"
+                                    style="border-color: #ca6b86;"
+                                >
+                            </div>
+
+                            <!-- Referencia de pago -->
+                            <div class="col-md-6 mb-3">
+                                <label for="referencia_pago" class="form-label fw-bold" style="color: #3b2b32;">
+                                    <i class="bi bi-hash"></i> Referencia
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="referencia_pago" 
+                                    id="referencia_pago" 
+                                    class="form-control" 
+                                    placeholder="Ej: Número de comprobante"
+                                    style="border-color: #ca6b86;"
+                                >
+                            </div>
+
+                            <!-- Monto -->
+                            <div class="col-md-6 mb-3">
+                                <label for="monto" class="form-label fw-bold" style="color: #3b2b32;">
+                                    <i class="bi bi-cash-coin"></i> Monto
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">$</span>
+                                    <input 
+                                        type="number" 
+                                        name="monto" 
+                                        id="monto" 
+                                        class="form-control" 
+                                        placeholder="0.00" 
+                                        step="0.01" 
+                                        min="0"
+                                        style="border-color: #ca6b86;"
+                                    >
+                                </div>
+                            </div>
+
+                            <!-- Estado -->
+                            <div class="col-md-6 mb-3">
+                                <label for="estado" class="form-label fw-bold" style="color: #3b2b32;">
+                                    <i class="bi bi-info-circle"></i> Estado
+                                </label>
+                                <select 
+                                    name="estado" 
+                                    id="estado" 
+                                    class="form-select"
+                                    style="border-color: #ca6b86;"
+                                >
+                                    <option value="pendiente" selected>Pendiente</option>
+                                    <option value="validada">Validada</option>
+                                    <option value="comprado">Comprado</option>
+                                    <option value="rechazado">Rechazado</option>
+                                </select>
+                            </div>
+
+                            <!-- Observaciones -->
+                            <div class="col-12 mb-3">
+                                <label for="observaciones" class="form-label fw-bold" style="color: #3b2b32;">
+                                    <i class="bi bi-chat-left-text"></i> Observaciones
+                                </label>
+                                <textarea 
+                                    name="observaciones" 
+                                    id="observaciones" 
+                                    class="form-control" 
+                                    rows="3" 
+                                    placeholder="Notas adicionales..."
+                                    style="border-color: #ca6b86;"
+                                ></textarea>
+                            </div>
+
+                            <!-- Botón guardar -->
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="bi bi-check-circle"></i> Registrar Validación
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Alerta info -->
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Nota:</strong> Cuando el estado sea "Pendiente", se enviará una notificación a Telegram.
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de validaciones -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header border-0" style="background-color: #fbcdd9;">
+            <h5 class="mb-0" style="color: #3b2b32;">
+                <i class="bi bi-list-check"></i> Historial de Validaciones
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if validaciones %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr style="background-color: #fbcdd9;">
+                                <th style="color: #3b2b32;">Fecha</th>
+                                <th style="color: #3b2b32;">Método</th>
+                                <th style="color: #3b2b32;">Referencia</th>
+                                <th style="color: #3b2b32;">Monto</th>
+                                <th style="color: #3b2b32;">Estado</th>
+                                <th style="color: #3b2b32;">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for validacion in validaciones %}
+                                <tr>
+                                    <td class="align-middle">
+                                        <small class="text-muted">{{ validacion.fecha_validacion|date:"d/m/Y H:i" }}</small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <small>{{ validacion.metodo_pago|default:"N/A" }}</small>
+                                    </td>
+                                    <td class="align-middle">
+                                        <small>{{ validacion.referencia_pago|default:"-" }}</small>
+                                    </td>
+                                    <td class="align-middle fw-bold" style="color: #ca6b86;">
+                                        ${{ validacion.monto|floatformat:2 }}
+                                    </td>
+                                    <td class="align-middle">
+                                        {% if validacion.estado == "comprado" %}
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Comprado
+                                            </span>
+                                        {% elif validacion.estado == "validada" %}
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-check-circle"></i> Validada
+                                            </span>
+                                        {% elif validacion.estado == "pendiente" %}
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-clock-history"></i> Pendiente
+                                            </span>
+                                        {% elif validacion.estado == "rechazado" %}
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-x-circle"></i> Rechazado
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="align-middle">
+                                        <small>{{ validacion.observaciones|truncatewords:5 }}</small>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info m-3">
+                    <i class="bi bi-info-circle"></i> No hay validaciones registradas aún
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Botones de navegación -->
+    <div class="d-flex gap-2 justify-content-end mt-4">
+        <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select {
+        border-width: 2px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #ca6b86;
+        box-shadow: 0 0 0 0.2rem rgba(202, 107, 134, 0.25);
+    }
+</style>
+{% endblock %}

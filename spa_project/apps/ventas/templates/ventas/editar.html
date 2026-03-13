@@ -1,6 +1,6 @@
 {% extends "base_public.html" %}
 
-{% block title %}Nueva Venta{% endblock %}
+{% block title %}Editar Venta #{{ venta.id }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-5">
@@ -9,9 +9,9 @@
             <!-- Header -->
             <div class="mb-4">
                 <h1 style="color: #3b2b32;">
-                    <i class="bi bi-plus-circle" style="color: #ca6b86;"></i> Nueva Venta
+                    <i class="bi bi-pencil-square" style="color: #ca6b86;"></i> Editar Venta #{{ venta.id }}
                 </h1>
-                <p class="text-muted">Registra una nueva venta en el sistema</p>
+                <p class="text-muted">Modifica los detalles de la venta</p>
             </div>
 
             <!-- Formulario -->
@@ -23,24 +23,15 @@
                     <form method="post">
                         {% csrf_token %}
 
-                        <!-- Campo Cliente -->
+                        <!-- Campo Cliente (Solo lectura) -->
                         <div class="mb-4">
-                            <label for="cliente_id" class="form-label fw-bold" style="color: #3b2b32;">
+                            <label for="cliente" class="form-label fw-bold" style="color: #3b2b32;">
                                 <i class="bi bi-person-circle" style="color: #ca6b86;"></i> Cliente
                             </label>
-                            <select 
-                                name="cliente_id" 
-                                id="cliente_id" 
-                                class="form-select form-select-lg" 
-                                required
-                                style="border-color: #ca6b86;"
-                            >
-                                <option value="">-- Selecciona un cliente --</option>
-                                {% for cliente in clientes %}
-                                    <option value="{{ cliente.id }}">{{ cliente.nombre }}</option>
-                                {% endfor %}
-                            </select>
-                            <small class="text-muted">Selecciona el cliente para esta venta</small>
+                            <div class="form-control-plaintext fw-bold" style="color: #3b2b32; font-size: 1.1rem; padding: 0.375rem 0;">
+                                {{ venta.cliente.nombre }}
+                            </div>
+                            <small class="text-muted">Este campo no puede ser modificado</small>
                         </div>
 
                         <!-- Campo Total -->
@@ -58,6 +49,7 @@
                                     placeholder="0.00" 
                                     step="0.01" 
                                     min="0" 
+                                    value="{{ venta.total }}"
                                     required
                                     style="border-color: #ca6b86;"
                                 >
@@ -65,13 +57,23 @@
                             <small class="text-muted">Monto total de la venta</small>
                         </div>
 
+                        <!-- Fecha (Solo lectura) -->
+                        <div class="mb-4">
+                            <label for="fecha" class="form-label fw-bold" style="color: #3b2b32;">
+                                <i class="bi bi-calendar-event" style="color: #ca6b86;"></i> Fecha de Registro
+                            </label>
+                            <div class="form-control-plaintext text-muted">
+                                {{ venta.fecha|date:"d/m/Y H:i:s" }}
+                            </div>
+                        </div>
+
                         <!-- Botones -->
                         <div class="d-flex gap-2">
-                            <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary btn-lg flex-grow-1">
+                            <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-secondary btn-lg flex-grow-1">
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </a>
                             <button type="submit" class="btn btn-primary btn-lg flex-grow-1">
-                                <i class="bi bi-check-circle"></i> Guardar
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
                             </button>
                         </div>
                     </form>
@@ -82,12 +84,12 @@
 </div>
 
 <style>
-    .form-select, .form-control {
+    .form-control {
         padding: 0.75rem;
         border-width: 2px;
     }
 
-    .form-select:focus, .form-control:focus {
+    .form-control:focus {
         border-color: #ca6b86;
         box-shadow: 0 0 0 0.2rem rgba(202, 107, 134, 0.25);
     }

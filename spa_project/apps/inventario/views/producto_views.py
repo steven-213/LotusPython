@@ -120,10 +120,20 @@ def producto_editar(request, producto_id):
     )
 
 
-@admin_required_session
+@login_required_session
 def producto_detalle(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
-    return render(request, "inventario/productos/detalle.html", {"producto": producto})
+    
+    # Calcular margen de ganancia
+    if producto.precio_compra > 0:
+        margen = ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100
+    else:
+        margen = 0
+    
+    return render(request, "inventario/productos/detalle.html", {
+        "producto": producto,
+        "margen": margen
+    })
 
 
 @admin_required_session

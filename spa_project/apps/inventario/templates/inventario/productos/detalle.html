@@ -1,11 +1,116 @@
-<h1>Detalle producto</h1>
-{% if producto.imagen %}
-  <p>
-    <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" style="max-width: 320px; height: auto;">
-  </p>
-{% endif %}
-<p>{{ producto.nombre }}</p>
-<p>{{ producto.descripcion }}</p>
-<p>Stock: {{ producto.stock }}</p>
-<p>Precio venta: {{ producto.precio_venta }}</p>
-<p><a href="{% url 'inventario:producto_lista' %}">Volver al listado</a></p>
+{% extends "base_public.html" %}
+
+{% block title %}{{ producto.nombre }} - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-box text-primary"></i> {{ producto.nombre }}
+                </h1>
+                <p class="text-muted">Información detallada del producto</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventario:producto_editar' producto.id %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Imagen -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                {% if producto.imagen %}
+                <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" class="card-img-top" style="height: 300px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                    <i class="bi bi-box" style="font-size: 4rem; color: #ccc;"></i>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información Básica -->
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Descripción:</small>
+                            <p class="mb-0">{{ producto.descripcion|default:"No especificada" }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-muted d-block">Proveedor:</small>
+                            {% if producto.proveedor %}
+                            <a href="{% url 'inventario:proveedor_detalle' producto.proveedor.id %}" class="text-decoration-none">
+                                <strong>{{ producto.proveedor.nombre }}</strong>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">No asignado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light text-dark">
+                    <h5 class="mb-0"><i class="bi bi-box2"></i> Stock Disponible</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert {% if producto.stock > 10 %}alert-success{% elif producto.stock > 0 %}alert-warning{% else %}alert-danger{% endif %} mb-0">
+                        <h3 class="mb-0">
+                            <span class="badge {% if producto.stock > 10 %}bg-success{% elif producto.stock > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ producto.stock }} unidades
+                            </span>
+                        </h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Precios -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light text-dark">
+                    <h5 class="mb-0"><i class="bi bi-tag"></i> Precios e Impuestos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="mb-0">
+                                <dt class="text-muted">Precio Compra:</dt>
+                                <dd class="h5 text-primary mb-3">${{ producto.precio_compra|floatformat:2 }}</dd>
+
+                                <dt class="text-muted">IVA:</dt>
+                                <dd>{{ producto.iva }}%</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="mb-0">
+                                <dt class="text-muted">Precio Venta:</dt>
+                                <dd class="h5 text-primary mb-3"><strong>${{ producto.precio_venta|floatformat:2 }}</strong></dd>
+
+                                <dt class="text-muted">Margen:</dt>
+                                <dd class="text-primary">
+                                    <strong>{{ margen|floatformat:2 }}%</strong>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

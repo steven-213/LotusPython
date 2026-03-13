@@ -16,6 +16,7 @@ class SesionesUrlsTest(TestCase):
 
 class SesionesAuthFlowTest(TestCase):
     def setUp(self):
+        Usuario.objects.filter(documento=12345).delete()
         Usuario.objects.create(
             documento=12345,
             nombre="Admin",

@@ -23,6 +23,19 @@ body {
 
 a {
   color: inherit;
+  text-decoration: none;
+}
+
+a:visited {
+  color: inherit;
+}
+
+a.btn,
+a.btn:visited,
+.btn-link,
+.btn-link:visited {
+  color: inherit;
+  text-decoration: none;
 }
 
 .encabezado-sitio {

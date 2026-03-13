@@ -17,6 +17,21 @@ def _validar_login(request):
     return None
 
 
+def _cita_payload(cita):
+    titulo = cita.notas.strip() if cita.notas else ""
+    if not titulo:
+        titulo = f"{cita.cliente.nombre} - {cita.servicio.nombre}"
+    return {
+        "id": cita.id,
+        "title": titulo,
+        "cliente": f"{cita.cliente.nombre} {cita.cliente.apellido}",
+        "servicio": cita.servicio.nombre,
+        "startDate": cita.fecha_inicio.isoformat(),
+        "endDate": cita.fecha_fin.isoformat(),
+        "estado": cita.estado,
+    }
+
+
 @csrf_exempt
 def api_eventos(request):
     denied = _validar_login(request)
@@ -31,18 +46,7 @@ def api_eventos(request):
         if usuario_rol != Usuario.ROL_ADMIN:
             citas = citas.filter(cliente_id=usuario_id)
 
-        payload = [
-            {
-                "id": cita.id,
-                "title": f"{cita.cliente.nombre} - {cita.servicio.nombre}",
-                "cliente": f"{cita.cliente.nombre} {cita.cliente.apellido}",
-                "servicio": cita.servicio.nombre,
-                "startDate": cita.fecha_inicio.isoformat(),
-                "endDate": cita.fecha_fin.isoformat(),
-                "estado": cita.estado,
-            }
-            for cita in citas
-        ]
+        payload = [_cita_payload(cita) for cita in citas]
         return JsonResponse(payload, safe=False)
 
     if request.method == "POST":
@@ -54,6 +58,8 @@ def api_eventos(request):
 
         if usuario_rol != Usuario.ROL_ADMIN:
             cliente_id = usuario_id
+        if not cliente_id:
+            cliente_id = usuario_id
 
         if not servicio_id:
             return JsonResponse({"error": "servicio_id es obligatorio"}, status=400)
@@ -63,24 +69,56 @@ def api_eventos(request):
         if not cliente or not servicio:
             return JsonResponse({"error": "cliente_id o servicio_id invalido"}, status=400)
 
+        notas = body.get("title") or ""
         cita = Cita.objects.create(
             cliente=cliente,
             servicio=servicio,
             fecha_inicio=inicio,
             fecha_fin=fin,
             estado=body.get("estado", "programada"),
+            notas=notas,
         )
-        return JsonResponse(
-            {
-                "id": cita.id,
-                "title": f"{cita.cliente.nombre} - {cita.servicio.nombre}",
-                "cliente": f"{cita.cliente.nombre} {cita.cliente.apellido}",
-                "servicio": cita.servicio.nombre,
-                "startDate": cita.fecha_inicio.isoformat(),
-                "endDate": cita.fecha_fin.isoformat(),
-                "estado": cita.estado,
-            },
-            status=201,
-        )
+        return JsonResponse(_cita_payload(cita), status=201)
+
+    return JsonResponse({"error": "metodo no permitido"}, status=405)
+
+
+@csrf_exempt
+def api_evento_detalle(request, cita_id):
+    denied = _validar_login(request)
+    if denied:
+        return denied
+
+    usuario_id = request.session.get("usuario_id")
+    usuario_rol = request.session.get("usuario_rol")
+
+    cita = Cita.objects.select_related("cliente", "servicio").filter(id=cita_id).first()
+    if not cita:
+        return JsonResponse({"error": "cita no encontrada"}, status=404)
+
+    if usuario_rol != Usuario.ROL_ADMIN and cita.cliente_id != usuario_id:
+        return JsonResponse({"error": "acceso denegado"}, status=403)
+
+    if request.method == "PATCH":
+        body = json.loads(request.body or "{}")
+        if "startDate" in body:
+            inicio = parse_datetime(body.get("startDate"))
+            if inicio:
+                cita.fecha_inicio = inicio
+        if "endDate" in body:
+            fin = parse_datetime(body.get("endDate"))
+            if fin:
+                cita.fecha_fin = fin
+        if "title" in body:
+            cita.notas = body.get("title") or ""
+        if "estado" in body:
+            cita.estado = body.get("estado") or cita.estado
+
+        cita.save()
+        return JsonResponse(_cita_payload(cita))
+
+    if request.method == "DELETE":
+        cita.delete()
+        return JsonResponse({"ok": True})
 
     return JsonResponse({"error": "metodo no permitido"}, status=405)

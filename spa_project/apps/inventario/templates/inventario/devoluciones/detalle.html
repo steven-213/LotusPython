@@ -1,0 +1,134 @@
+{% extends "base_public.html" %}
+
+{% block title %}Devolución #{{ devolucion.id }} - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-box-seam text-primary"></i> Devolución #{{ devolucion.id }}
+                </h1>
+                <p class="text-muted">Detalles de la devolución de compra</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Información General -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Información General</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-5 fw-bold">ID Devolución:</dt>
+                        <dd class="col-sm-7"><code>#{{ devolucion.id }}</code></dd>
+
+                        <dt class="col-sm-5 fw-bold">Compra:</dt>
+                        <dd class="col-sm-7">
+                            <a href="{% url 'inventario:compra_detalle' devolucion.compra.id %}" class="text-decoration-none">
+                                Compra #{{ devolucion.compra.id }}
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-5 fw-bold">Proveedor:</dt>
+                        <dd class="col-sm-7">
+                            <a href="{% url 'inventario:proveedor_detalle' devolucion.compra.proveedor.id %}" class="text-decoration-none">
+                                {{ devolucion.compra.proveedor.nombre }}
+                            </a>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light text-dark">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Fecha</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0"><strong>{{ devolucion.fecha|date:"d \d\e F \d\e Y \a \l\a\s H:i" }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Producto Devuelto -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light text-dark">
+            <h5 class="mb-0"><i class="bi bi-box"></i> Producto Devuelto</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <dl class="row">
+                        <dt class="col-sm-4 fw-bold">Producto:</dt>
+                        <dd class="col-sm-8">
+                            <a href="{% url 'inventario:producto_detalle' devolucion.producto.id %}" class="text-decoration-none">
+                                <strong>{{ devolucion.producto.nombre }}</strong>
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-4 fw-bold">Cantidad:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-warning text-dark fw-bold">{{ devolucion.cantidad }} unidades</span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Motivo -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light text-dark">
+            <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Motivo de la Devolución</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-0">{{ devolucion.motivo|default:"Sin motivo especificado" }}</p>
+        </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="d-flex gap-2 justify-content-end pt-3 border-top">
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarDevolucion">
+            <i class="bi bi-trash"></i> Eliminar Devolución
+        </button>
+    </div>
+</div>
+
+<!-- Modal: Confirmar Eliminación -->
+<div class="modal fade" id="modalEliminarDevolucion" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar esta devolución <strong>#{{ devolucion.id }}</strong>?</p>
+                <p class="text-muted small">Esto restaurará el stock del producto. Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

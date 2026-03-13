@@ -1,6 +1,6 @@
 {% extends "base_public.html" %}
 
-{% block title %}Nuevo Proveedor - Administración{% endblock %}
+{% block title %}Editar Proveedor - Administración{% endblock %}
 
 {% block content %}
 <div class="container mt-4 mb-5">
@@ -9,10 +9,10 @@
             <div class="card shadow-lg border-0">
                 <div class="card-header bg-primary text-white py-4 d-flex justify-content-between align-items-center">
                     <div>
-                        <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Registrar Nuevo Proveedor</h4>
-                        <p class="mb-0 small mt-2">Completa todos los campos requeridos para agregar un nuevo proveedor</p>
+                        <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Proveedor</h4>
+                        <p class="mb-0 small mt-2">Actualiza la información del proveedor</p>
                     </div>
-                    <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-light text-primary">
+                    <a href="{% url 'inventario:proveedor_detalle' proveedor.id %}" class="btn btn-light text-primary">
                         <i class="bi bi-arrow-left"></i> Atrás
                     </a>
                 </div>
@@ -31,15 +31,13 @@
                                     <label for="nombre" class="form-label">
                                         <strong>Nombre <span class="text-danger">*</span></strong>
                                     </label>
-                                    <input type="text" class="form-control form-control-lg" id="nombre" name="nombre" required placeholder="Ej: Distribuidora Nacional S.A.">
-                                    <small class="text-muted">Nombre del proveedor</small>
+                                    <input type="text" class="form-control form-control-lg" id="nombre" name="nombre" value="{{ proveedor.nombre }}" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="empresa" class="form-label">
                                         <strong>Empresa</strong>
                                     </label>
-                                    <input type="text" class="form-control form-control-lg" id="empresa" name="empresa" placeholder="Ej: Empresa Comercial Inc.">
-                                    <small class="text-muted">Razón social de la empresa</small>
+                                    <input type="text" class="form-control form-control-lg" id="empresa" name="empresa" value="{{ proveedor.empresa }}">
                                 </div>
                             </div>
 
@@ -48,15 +46,13 @@
                                     <label for="nit" class="form-label">
                                         <strong>NIT / Identificación</strong>
                                     </label>
-                                    <input type="text" class="form-control form-control-lg" id="nit" name="nit" placeholder="Ej: 123456789-1">
-                                    <small class="text-muted">Número de identificación tributaria</small>
+                                    <input type="text" class="form-control form-control-lg" id="nit" name="nit" value="{{ proveedor.nit }}">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="pais" class="form-label">
                                         <strong>País</strong>
                                     </label>
-                                    <input type="text" class="form-control form-control-lg" id="pais" name="pais" placeholder="Ej: Colombia">
-                                    <small class="text-muted">País de origen</small>
+                                    <input type="text" class="form-control form-control-lg" id="pais" name="pais" value="{{ proveedor.pais }}">
                                 </div>
                             </div>
                         </div>
@@ -72,15 +68,13 @@
                                     <label for="telefono" class="form-label">
                                         <strong>Teléfono</strong>
                                     </label>
-                                    <input type="tel" class="form-control form-control-lg" id="telefono" name="telefono" placeholder="Ej: +57 1 2345678">
-                                    <small class="text-muted">Número de teléfono de contacto</small>
+                                    <input type="tel" class="form-control form-control-lg" id="telefono" name="telefono" value="{{ proveedor.telefono }}">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="correo" class="form-label">
                                         <strong>Correo Electrónico</strong>
                                     </label>
-                                    <input type="email" class="form-control form-control-lg" id="correo" name="correo" placeholder="Ej: contacto@proveedor.com">
-                                    <small class="text-muted">Email de contacto principal</small>
+                                    <input type="email" class="form-control form-control-lg" id="correo" name="correo" value="{{ proveedor.correo }}">
                                 </div>
                             </div>
 
@@ -88,8 +82,7 @@
                                 <label for="direccion" class="form-label">
                                     <strong>Dirección</strong>
                                 </label>
-                                <input type="text" class="form-control form-control-lg" id="direccion" name="direccion" placeholder="Ej: Calle 10 #20-30, Oficina 501">
-                                <small class="text-muted">Dirección física del proveedor</small>
+                                <input type="text" class="form-control form-control-lg" id="direccion" name="direccion" value="{{ proveedor.direccion }}">
                             </div>
                         </div>
 
@@ -99,7 +92,7 @@
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </a>
                             <button type="submit" class="btn btn-lg btn-primary">
-                                <i class="bi bi-check-circle"></i> Guardar Proveedor
+                                <i class="bi bi-check-circle"></i> Guardar Cambios
                             </button>
                         </div>
                     </form>

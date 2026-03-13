@@ -7,33 +7,146 @@
 {% endblock %}
 
 {% block content %}
-<section class="portada-panel">
-  <h1>Panel administrador</h1>
-  <p>Acceso rapido a inventario, agenda de citas y control de ventas.</p>
-</section>
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="mb-4">
+                <h1 class="mb-1">
+                    <i class="bi bi-speedometer2"></i> Panel Administrador
+                </h1>
+                <p class="text-muted">Acceso rápido a inventario, agenda de citas y control de ventas</p>
+            </div>
+        </div>
+    </div>
 
-<section class="grilla-panel">
-  <article class="tarjeta-panel">
-    <h2>Inventario</h2>
-    <p>Gestion de productos, proveedores y compras.</p>
-    <a class="boton boton-primario" href="{% url 'inventario:producto_lista' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Citas</h2>
-    <p>Agenda semanal y creacion de eventos.</p>
-    <a class="boton boton-primario" href="{% url 'citas:calendario' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Ventas</h2>
-    <p>Registro de ventas y validaciones.</p>
-    <a class="boton boton-primario" href="{% url 'ventas:venta_lista' %}">Abrir</a>
-  </article>
-  <article class="tarjeta-panel">
-    <h2>Servicios</h2>
-    <p>Administracion del catalogo de servicios.</p>
-    <a class="boton boton-primario" href="{% url 'citas:servicio_lista' %}">Abrir</a>
-  </article>
-</section>
+    <!-- Grid de Módulos -->
+    <div class="row">
+        <!-- Inventario -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card shadow-lg border-0 h-100 dashboard-card">
+                <div class="card-body text-center py-5">
+                    <div class="dashboard-icon mb-3">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5 class="card-title mb-2">Inventario</h5>
+                    <p class="card-text text-muted small">Gestión de productos, proveedores y compras</p>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-building"></i> Proveedores
+                        </a>
+                        <a href="{% url 'inventario:producto_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-box"></i> Productos
+                        </a>
+                        <a href="{% url 'inventario:compra_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-cart-check"></i> Compras
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Citas/Agenda -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card shadow-lg border-0 h-100 dashboard-card">
+                <div class="card-body text-center py-5">
+                    <div class="dashboard-icon mb-3">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <h5 class="card-title mb-2">Citas y Agenda</h5>
+                    <p class="card-text text-muted small">Administración de calendario de reservas</p>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'citas:calendario' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-calendar"></i> Calendario
+                        </a>
+                        <a href="{% url 'citas:servicio_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-stars"></i> Servicios
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ventas -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card shadow-lg border-0 h-100 dashboard-card">
+                <div class="card-body text-center py-5">
+                    <div class="dashboard-icon mb-3">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h5 class="card-title mb-2">Ventas</h5>
+                    <p class="card-text text-muted small">Registro de transacciones y validaciones</p>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-cart-check"></i> Ver Ventas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Devoluciones -->
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card shadow-lg border-0 h-100 dashboard-card">
+                <div class="card-body text-center py-5">
+                    <div class="dashboard-icon mb-3">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5 class="card-title mb-2">Devoluciones</h5>
+                    <p class="card-text text-muted small">Gestión de devoluciones de compras</p>
+                </div>
+                <div class="card-footer bg-light border-top">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-arrow-return-left"></i> Ver Devoluciones
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-lightning-fill" style="color: #ca6b86;"></i> Acciones Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <a href="{% url 'inventario:producto_nuevo' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> Nuevo Producto
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'inventario:compra_nueva' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> Nueva Compra
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'inventario:proveedor_nuevo' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> Nuevo Proveedor
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a href="{% url 'citas:calendario' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-calendar-plus"></i> Nueva Cita
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 

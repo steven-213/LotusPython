@@ -5,9 +5,10 @@ from apps.sesiones.decorators import admin_required_session, login_required_sess
 from apps.sesiones.models import Usuario
 
 
-@admin_required_session
+@login_required_session
 def calendario(request):
-    return render(request, "citas/calendario.html")
+    servicios = list(Servicio.objects.values("id", "nombre"))
+    return render(request, "citas/calendario.html", {"servicios": servicios})
 
 
 @login_required_session

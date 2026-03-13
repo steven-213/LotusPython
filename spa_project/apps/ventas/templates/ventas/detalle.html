@@ -1,3 +1,190 @@
-<h1>Detalle venta {{ venta.id }}</h1>
-<p>Cliente: {{ venta.cliente.nombre }}</p>
-<p>Total: {{ venta.total }}</p>
+{% extends "base_public.html" %}
+
+{% block title %}Detalle Venta #{{ venta.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-receipt" style="color: #ca6b86; font-size: 2rem;"></i> Venta #{{ venta.id }}
+        </h1>
+    </div>
+
+    <!-- Información general de la venta -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Cliente</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.1rem;">
+                                {{ venta.cliente.nombre }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Correo</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.1rem;">
+                                {{ venta.cliente.email|default:"No registrado" }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Fecha</p>
+                            <p class="fw-bold" style="color: #3b2b32;">
+                                {{ venta.fecha|date:"d/m/Y H:i:s" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Total de Venta</p>
+                            <p class="fw-bold" style="color: #ca6b86; font-size: 1.3rem;">
+                                ${{ venta.total|floatformat:2 }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles de productos -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-box"></i> Productos
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if detalles %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead style="background-color: #fbcdd9;">
+                                    <tr>
+                                        <th style="color: #3b2b32;">Producto</th>
+                                        <th style="color: #3b2b32; text-align: center;">Cantidad</th>
+                                        <th style="color: #3b2b32; text-align: center;">Precio Unit.</th>
+                                        <th style="color: #3b2b32; text-align: right;">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for detalle in detalles %}
+                                        <tr>
+                                            <td class="align-middle">
+                                                <a href="{% url 'inventario:producto_detalle' detalle.producto.id %}" class="text-decoration-none" style="color: #ca6b86;">
+                                                    {{ detalle.producto.nombre }}
+                                                </a>
+                                            </td>
+                                            <td class="align-middle text-center">
+                                                <span class="badge bg-primary">{{ detalle.cantidad }}</span>
+                                            </td>
+                                            <td class="align-middle text-center fw-bold">
+                                                ${{ detalle.precio_unitario|floatformat:2 }}
+                                            </td>
+                                            <td class="align-middle text-right fw-bold" style="color: #ca6b86;">
+                                                ${{ detalle.subtotal|floatformat:2 }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info m-3">
+                            <i class="bi bi-info-circle"></i> Esta venta no tiene productos registrados
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel lateral con estado y validaciones -->
+        <div class="col-lg-4">
+            <!-- Card de estado -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">Estado</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% if validaciones %}
+                        <div class="mb-3">
+                            {% for validacion in validaciones %}
+                                <div class="mb-2">
+                                    {% if validacion.estado == "comprado" %}
+                                        <span class="badge bg-success py-2">
+                                            <i class="bi bi-check-circle"></i> Comprado
+                                        </span>
+                                    {% elif validacion.estado == "validada" %}
+                                        <span class="badge bg-info py-2">
+                                            <i class="bi bi-check-circle"></i> Validada
+                                        </span>
+                                    {% elif validacion.estado == "pendiente" %}
+                                        <span class="badge bg-warning text-dark py-2">
+                                            <i class="bi bi-clock-history"></i> Pendiente
+                                        </span>
+                                    {% elif validacion.estado == "rechazado" %}
+                                        <span class="badge bg-danger py-2">
+                                            <i class="bi bi-x-circle"></i> Rechazado
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            Sin validaciones
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card de validaciones recientes -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-check2-square"></i> Validaciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if validaciones %}
+                        <div class="list-group list-group-flush">
+                            {% for validacion in validaciones %}
+                                <div class="list-group-item border-0 px-0 py-2">
+                                    <p class="mb-1">
+                                        <small class="text-muted">{{ validacion.fecha_validacion|date:"d/m/Y H:i" }}</small>
+                                    </p>
+                                    <p class="mb-1 small">
+                                        <strong>Método:</strong> {{ validacion.metodo_pago|default:"N/A" }}
+                                    </p>
+                                    <p class="mb-0 small">
+                                        <strong>Monto:</strong> <span style="color: #ca6b86;">${{ validacion.monto|floatformat:2 }}</span>
+                                    </p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> Sin validaciones
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de navegación -->
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <a href="{% url 'ventas:venta_editar' venta.id %}" class="btn btn-warning btn-lg">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="btn btn-primary btn-lg">
+            <i class="bi bi-check2-square"></i> Validar
+        </a>
+    </div>
+</div>
+{% endblock %}

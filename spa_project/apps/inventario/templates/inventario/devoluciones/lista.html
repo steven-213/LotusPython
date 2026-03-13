@@ -1,0 +1,117 @@
+{% extends "base_public.html" %}
+
+{% block title %}Devoluciones de Compras - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div>
+                <h1 class="mb-1">
+                    <i class="bi bi-box-seam"></i> Devoluciones de Compras
+                </h1>
+                <p class="text-muted">Gestiona las devoluciones de productos comprados</p>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-arrow-left"></i> Atrás
+                </a>
+                <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle"></i> Nueva Devolución
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Devoluciones -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0"><i class="bi bi-table"></i> Lista de Devoluciones</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center"><i class="bi bi-hash"></i> ID</th>
+                        <th><i class="bi bi-cart-check"></i> Compra</th>
+                        <th><i class="bi bi-box"></i> Producto</th>
+                        <th class="text-center"><i class="bi bi-box2"></i> Cantidad</th>
+                        <th><i class="bi bi-chat-left-text"></i> Motivo</th>
+                        <th><i class="bi bi-calendar"></i> Fecha</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for devolucion in devoluciones %}
+                    <tr class="align-middle">
+                        <td class="text-center fw-bold">{{ devolucion.id }}</td>
+                        <td>
+                            <a href="{% url 'inventario:compra_detalle' devolucion.compra.id %}" class="text-decoration-none">
+                                Compra #{{ devolucion.compra.id }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'inventario:producto_detalle' devolucion.producto.id %}" class="text-decoration-none">
+                                {{ devolucion.producto.nombre }}
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-warning text-dark">{{ devolucion.cantidad }}</span>
+                        </td>
+                        <td><small>{{ devolucion.motivo|truncatewords:5|default:"—" }}</small></td>
+                        <td><small>{{ devolucion.fecha|date:"d/m/Y H:i" }}</small></td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-outline-primary" title="Ver detalles">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarDevolucion{{ devolucion.id }}" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5">
+                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                            <p class="text-muted mt-2">No hay devoluciones registradas</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modales: Eliminar Devolución -->
+{% for devolucion in devoluciones %}
+<div class="modal fade" id="modalEliminarDevolucion{{ devolucion.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar la devolución <strong>#{{ devolucion.id }}</strong>?</p>
+                <p class="text-muted small">Esto restaurará el stock del producto. Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
