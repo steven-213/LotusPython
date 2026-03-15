@@ -45,24 +45,45 @@ def producto_comprar(request, producto_id):
         cantidad=cantidad,
         precio_unitario=producto.precio_venta,
     )
-    validacion = ValidacionVenta.objects.create(
-        venta=venta,
-        cliente=cliente,
-        metodo_pago="por_confirmar",
-        referencia_pago=f"WEB-{venta.id}",
-        monto=total,
-        estado="pendiente",
-        observaciones="Compra creada desde catalogo web, pendiente confirmacion.",
+    
+    # Crear UNA SOLA validación con estado="pendiente"
+    # No crear múltiples validaciones
+    validacion, created = ValidacionVenta.objects.get_or_create(
+        venta_id=venta.id,
+        defaults={
+            "venta": venta,
+            "cliente": cliente,
+            "metodo_pago": "por_confirmar",
+            "referencia_pago": f"WEB-{venta.id}",
+            "monto": total,
+            "estado": "pendiente",  # SOLO con estado="pendiente"
+            "observaciones": "Compra creada desde catalogo web, pendiente confirmacion.",
+        }
     )
-    sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
-    if sent:
-        messages.success(request, "Compra registrada. Quedo pendiente de confirmacion.")
+    
+    # Log: Estado al crear
+    print(f"🔍 [producto_comprar] Validacion {validacion.id} CREADA con estado: '{validacion.estado}'")
+    
+    # Solo notificar si es la PRIMERA creación
+    if created:
+        print(f"📤 [producto_comprar] Enviando notificación Telegram para validacion {validacion.id}...")
+        sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
+        
+        # Verificar estado DESPUÉS de enviar
+        validacion.refresh_from_db()
+        print(f"🔍 [producto_comprar] Estado DESPUÉS de notificar: '{validacion.estado}'")
+        
+        if sent:
+            messages.success(request, "Compra registrada. Quedo pendiente de confirmacion.")
+        else:
+            messages.warning(
+                request,
+                "Compra pendiente creada, pero no se pudo enviar la notificacion a Telegram. "
+                "Revisa TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID.",
+            )
     else:
-        messages.warning(
-            request,
-            "Compra pendiente creada, pero no se pudo enviar la notificacion a Telegram. "
-            "Revisa TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID.",
-        )
+        messages.warning(request, "Ya existe una validacion pendiente para esta venta.")
+    
     return redirect("sesiones:perfil")
 
 

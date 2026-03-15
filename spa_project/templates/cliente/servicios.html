@@ -25,7 +25,7 @@
     <button class="boton boton-primario" onclick="agendarServicio(this)">Agendar</button>
     {% else %}
     <a class="boton boton-suave" href="{% url 'sesiones:login' %}?next={% url 'citas:servicios_publicos' %}&reason=agendar">
-      Inicia sesion para agendar
+      Inicia sesión para agendar
     </a>
     {% endif %}
   </article>

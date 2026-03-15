@@ -21,7 +21,7 @@
       </a>
 
       <ul class="enlaces-nav">
-        <li><a href="{% url 'sesiones:conocenos' %}">Conocenos</a></li>
+        <li><a href="{% url 'sesiones:conocenos' %}">Conócenos</a></li>
         <li><a href="{% url 'citas:servicios_publicos' %}">Servicios</a></li>
         <li><a href="{% url 'inventario:productos_publicos' %}">Productos</a></li>
       </ul>
@@ -33,10 +33,10 @@
           {% else %}
             <a class="boton boton-suave" href="{% url 'sesiones:perfil' %}">Mi perfil</a>
           {% endif %}
-          <a class="boton boton-primario" href="{% url 'sesiones:logout' %}">Cerrar sesion</a>
+          <a class="boton boton-primario" href="{% url 'sesiones:logout' %}">Cerrar sesión</a>
         {% else %}
-          <a class="boton boton-suave" href="{% url 'sesiones:registro' %}">Registrate</a>
-          <a class="boton boton-primario" href="{% url 'sesiones:login' %}">Iniciar sesion</a>
+          <a class="boton boton-suave" href="{% url 'sesiones:registro' %}">Regístrate</a>
+          <a class="boton boton-primario" href="{% url 'sesiones:login' %}">Iniciar sesión</a>
         {% endif %}
       </div>
     </nav>

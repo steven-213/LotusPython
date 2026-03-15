@@ -17,6 +17,8 @@ def _limpiar_token(token):
 
 
 def notificar_compra_pendiente(venta, validacion):
+    logger.info(f"[INICIO] notificar_compra_pendiente - Validacion ID: {validacion.id}, Estado ANTES: '{validacion.estado}'")
+    
     token = _limpiar_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
     chat_id = getattr(settings, "TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:
@@ -43,7 +45,13 @@ def notificar_compra_pendiente(venta, validacion):
     if confirm_url and reject_url:
         text += f"\n\nConfirmar compra: {confirm_url}\nRechazar compra: {reject_url}"
 
-    payload = {"chat_id": chat_id, "text": text}
+    # Evita que Telegram haga previsualización (prefetch) de los links,
+    # lo cual puede disparar los endpoints de confirmación sin clic humano.
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "disable_web_page_preview": True,
+    }
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     req = request.Request(
         url,
@@ -60,6 +68,7 @@ def notificar_compra_pendiente(venta, validacion):
             ok = response.status == 200 and bool(data.get("ok"))
             if not ok:
                 logger.error("Telegram API returned non-ok response: %s", data)
+            logger.info(f"[FIN] notificar_compra_pendiente - Mensaje enviado: {ok}, Estado DESPUÉS: '{validacion.estado}'")
             return ok
     except error.HTTPError as exc:
         body = ""
@@ -68,7 +77,9 @@ def notificar_compra_pendiente(venta, validacion):
         except Exception:
             body = str(exc)
         logger.error("Telegram HTTPError %s: %s", exc.code, body)
+        logger.info(f"[ERROR] notificar_compra_pendiente - HTTPError, Estado DESPUÉS: '{validacion.estado}'")
         return False
     except (error.URLError, TimeoutError, json.JSONDecodeError, ssl.SSLError) as exc:
         logger.error("Telegram notify failed: %s", exc)
+        logger.info(f"[ERROR] notificar_compra_pendiente - Exception, Estado DESPUÉS: '{validacion.estado}'")
         return False

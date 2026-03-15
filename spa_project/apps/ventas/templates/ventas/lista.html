@@ -23,7 +23,7 @@
     </div>
 
     <!-- ESTADÍSTICAS PRINCIPALES -->
-    <h2 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem; f border-bottom: 2px solid var(--rose-200); padding-bottom: 0.5rem;">
+    <h2 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem; border-bottom: 2px solid var(--rose-200); padding-bottom: 0.5rem;">
         <i class="bi bi-lightning-fill"></i> Estadísticas Principales
     </h2>
     <div class="row g-3 mb-4">
@@ -161,6 +161,7 @@
                             <th>Cliente</th>
                             <th>Fecha</th>
                             <th>Total</th>
+                            <th>Estado de Pago</th>
                             <th style="text-align: right;">Acciones</th>
                         </tr>
                     </thead>
@@ -181,6 +182,31 @@
                                 <strong style="color: var(--rose-500); font-size: 1.1rem;">
                                     ${{ venta.total|floatformat:2 }}
                                 </strong>
+                            </td>
+                            <td>
+                                {% if venta.validacion_reciente %}
+                                    {% if venta.validacion_reciente.estado == 'comprado' %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-check-circle"></i> Aprobado
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'validada' %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-check-circle"></i> Aprobado
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'pendiente' %}
+                                        <span class="badge" style="background: #FFC107; color: #333;">
+                                            <i class="bi bi-clock"></i> En Espera
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'rechazada' %}
+                                        <span class="badge" style="background: #F44336; color: white;">
+                                            <i class="bi bi-x-circle"></i> Rechazado
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge" style="background: #9E9E9E; color: white;">
+                                        <i class="bi bi-question-circle"></i> Sin Validar
+                                    </span>
+                                {% endif %}
                             </td>
                             <td style="text-align: right;">
                                 <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-sm btn-primary" style="background: var(--rose-500); border: none; color: white;">

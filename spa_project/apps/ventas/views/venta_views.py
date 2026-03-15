@@ -60,24 +60,28 @@ def venta_lista(request):
     if cliente_id:
         ventas = ventas.filter(cliente_id=cliente_id)
     
-    # Filtro de estado (desde validaciones)
+    # Filtro de estado (desde validaciones) - Usar iexact para ignorar mayúsculas
     if estado_filtro:
-        venta_ids = ValidacionVenta.objects.filter(estado=estado_filtro).values_list("venta_id", flat=True)
+        venta_ids = ValidacionVenta.objects.filter(estado__iexact=estado_filtro).values_list("venta_id", flat=True)
         ventas = ventas.filter(id__in=venta_ids)
     
     # Aplicar filtro de fechas
     if filtro_fecha:
         ventas = ventas.filter(filtro_fecha)
     
+    # Enriquecer cada venta con su validación más reciente
+    for venta in ventas:
+        venta.validacion_reciente = venta.validaciones.order_by('-fecha_validacion', '-id').first()
+    
     # Estadísticas
     total_ventas = Venta.objects.count()
     monto_total = Venta.objects.aggregate(Sum("total"))["total__sum"] or Decimal(0)
     promedio_venta = Venta.objects.aggregate(Avg("total"))["total__avg"] or Decimal(0)
     
-    # Estados de validación
-    validaciones_pendientes = ValidacionVenta.objects.filter(estado="pendiente").count()
-    validaciones_comprado = ValidacionVenta.objects.filter(estado="comprado").count()
-    validaciones_rechazado = ValidacionVenta.objects.filter(estado="rechazado").count()
+    # Estados de validación - Usar iexact para ignorar mayúsculas
+    validaciones_pendientes = ValidacionVenta.objects.filter(estado__iexact="pendiente").count()
+    validaciones_comprado = ValidacionVenta.objects.filter(estado__iexact="comprado").count()
+    validaciones_rechazado = ValidacionVenta.objects.filter(estado__iexact="rechazado").count()
     
     # Clientes únicos
     clientes_unicos = Venta.objects.values("cliente").distinct().count()
@@ -126,24 +130,41 @@ def venta_validaciones(request, venta_id):
     """Gestión de validaciones de venta con filtros"""
     venta = get_object_or_404(Venta, id=venta_id)
     if request.method == "POST":
-        # Registra la validacion de pago y dispara aviso por Telegram si queda pendiente.
-        validacion = ValidacionVenta.objects.create(
-            venta=venta,
-            cliente=venta.cliente,
-            metodo_pago=request.POST.get("metodo_pago", ""),
-            referencia_pago=request.POST.get("referencia_pago", ""),
-            monto=request.POST.get("monto") or 0,
-            estado=request.POST.get("estado", "pendiente"),
-            validado_por=request.session.get("usuario_id"),
-            observaciones=request.POST.get("observaciones", ""),
-        )
-        if validacion.estado == "pendiente":
-            sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
-            if not sent:
-                messages.warning(
-                    request,
-                    "La validacion quedo pendiente, pero fallo el envio a Telegram.",
-                )
+        # Obtener la validación más reciente para actualizar (no crear una nueva)
+        validacion = venta.validaciones.order_by('-fecha_validacion').first()
+        
+        if validacion:
+            # ACTUALIZAR la validación existente
+            validacion.metodo_pago = request.POST.get("metodo_pago", "")
+            validacion.referencia_pago = request.POST.get("referencia_pago", "")
+            validacion.monto = request.POST.get("monto") or 0
+            nuevo_estado = request.POST.get("estado", "pendiente")
+            validacion.estado = nuevo_estado
+            validacion.validado_por = request.session.get("usuario_id")
+            validacion.observaciones = request.POST.get("observaciones", "")
+            validacion.save()
+            
+            # Si se cambia a pendiente, enviar notificación por Telegram
+            if nuevo_estado == "pendiente":
+                sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
+                if not sent:
+                    messages.warning(
+                        request,
+                        "La validacion quedo pendiente, pero fallo el envio a Telegram.",
+                    )
+        else:
+            # Si no existe validación previa, crearla
+            validacion = ValidacionVenta.objects.create(
+                venta=venta,
+                cliente=venta.cliente,
+                metodo_pago=request.POST.get("metodo_pago", ""),
+                referencia_pago=request.POST.get("referencia_pago", ""),
+                monto=request.POST.get("monto") or 0,
+                estado=request.POST.get("estado", "pendiente"),
+                validado_por=request.session.get("usuario_id"),
+                observaciones=request.POST.get("observaciones", ""),
+            )
+        
         messages.success(request, "Validación registrada correctamente")
         return redirect("ventas:venta_validaciones", venta_id=venta.id)
     

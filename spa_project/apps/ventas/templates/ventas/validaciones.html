@@ -1,7 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Validaciones Venta #{{ venta.id }} | Administraci?n{% endblock %}
+{% block title %}Validaciones Venta #{{ venta.id }} | Administración{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'ventas/validaciones_style.css' %}">
@@ -15,19 +15,19 @@
             <i class="bi bi-arrow-left"></i> Volver a Venta
         </a>
         <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
-            <i class="bi bi-check-circle" style="color: #ca6b86;"></i> Validaci?n de Pago - Venta #{{ venta.id }}
+            <i class="bi bi-check-circle" style="color: #ca6b86;"></i> Validación de Pago - Venta #{{ venta.id }}
         </h1>
-        <p class="text-muted">Administra las validaciones y confirmaciones de pago para esta transacci?n</p>
+        <p class="text-muted">Administra las validaciones y confirmaciones de pago para esta transacción</p>
     </div>
 
     <div class="row">
-        <!-- Columna izquierda: Informaci?n de la venta y formulario -->
+        <!-- Columna izquierda: Información de la venta y formulario -->
         <div class="col-lg-8 mb-4">
-            <!-- Card: Informaci?n de la venta -->
+            <!-- Card: Información de la venta -->
             <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
-                        <i class="bi bi-receipt"></i> Informaci?n de la Venta
+                        <i class="bi bi-receipt"></i> Información de la Venta
                     </h5>
                 </div>
                 <div class="card-body">
@@ -50,30 +50,30 @@
                 </div>
             </div>
 
-            <!-- Card: Formulario de validaci?n -->
+            <!-- Card: Formulario de validación -->
             <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
-                        <i class="bi bi-file-earmark-plus"></i> Registrar Nueva Validaci?n
+                        <i class="bi bi-file-earmark-plus"></i> Registrar Nueva Validación
                     </h5>
                 </div>
                 <div class="card-body p-4">
                     <form method="post" novalidate>
                         {% csrf_token %}
 
-                        <!-- M?todo de pago -->
+                        <!-- Método de pago -->
                         <div class="row mb-4">
                             <div class="col-md-6">
-                                <label for="metodo_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">M?todo de Pago</label>
+                                <label for="metodo_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">Método de Pago</label>
                                 <select class="form-select form-control" id="metodo_pago" name="metodo_pago" required style="border-color: #fbcdd9; border-width: 2px;">
-                                    <option value="" selected disabled>Selecciona m?todo</option>
-                                    <option value="efectivo">ðŸ’µ Efectivo</option>
-                                    <option value="transferencia">ðŸ¦ Transferencia Bancaria</option>
-                                    <option value="tarjeta">ðŸ’³ Tarjeta de Cr?dito</option>
-                                    <option value="billetera">ðŸ“± Billetera Digital</option>
-                                    <option value="otro">âž• Otro</option>
+                                    <option value="" selected disabled>Selecciona método</option>
+                                    <option value="efectivo">💵 Efectivo</option>
+                                    <option value="transferencia">🏦 Transferencia Bancaria</option>
+                                    <option value="tarjeta">💳 Tarjeta de Crédito</option>
+                                    <option value="billetera">📱 Billetera Digital</option>
+                                    <option value="otro">➕ Otro</option>
                                 </select>
-                                <small class="form-text text-muted">Selecciona c?mo se realiz? el pago</small>
+                                <small class="form-text text-muted">Selecciona cómo se realizó el pago</small>
                             </div>
                             <div class="col-md-6">
                                 <label for="monto" class="form-label" style="color: #3b2b32; font-weight: 600;">Monto Pagado</label>
@@ -87,33 +87,33 @@
 
                         <!-- Referencia de pago -->
                         <div class="mb-4">
-                            <label for="referencia_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">Referencia de Pago / N?mero de Transacci?n</label>
-                            <input type="text" class="form-control" id="referencia_pago" name="referencia_pago" placeholder="Ej: TRF123456789 o Ult. 4 d?gitos" style="border-color: #fbcdd9; border-width: 2px;">
-                            <small class="form-text text-muted">N?mero de referencia para rastrear el pago (opcional)</small>
+                            <label for="referencia_pago" class="form-label" style="color: #3b2b32; font-weight: 600;">Referencia de Pago / Número de Transacción</label>
+                            <input type="text" class="form-control" id="referencia_pago" name="referencia_pago" placeholder="Ej: TRF123456789 o Ult. 4 dígitos" style="border-color: #fbcdd9; border-width: 2px;">
+                            <small class="form-text text-muted">Número de referencia para rastrear el pago (opcional)</small>
                         </div>
 
                         <!-- Estado -->
                         <div class="mb-4">
                             <label for="estado" class="form-label" style="color: #3b2b32; font-weight: 600;">Estado del Pago</label>
                             <select class="form-select form-control" id="estado" name="estado" required style="border-color: #fbcdd9; border-width: 2px;">
-                                <option value="pendiente" selected>â³ Pendiente de Confirmaci?n</option>
-                                <option value="validada">âœ… Validada / Confirmada</option>
-                                <option value="rechazada">âŒ Rechazada</option>
+                                <option value="pendiente" selected>⏳ Pendiente de Confirmación</option>
+                                <option value="comprado">✅ Aprobado / Comprado</option>
+                                <option value="rechazada">❌ Rechazado</option>
                             </select>
-                            <small class="form-text text-muted">Si seleccionas "Pendiente", se enviar? notificaci?n por Telegram</small>
+                            <small class="form-text text-muted">Si seleccionas "Pendiente", se enviará notificación por Telegram</small>
                         </div>
 
                         <!-- Observaciones -->
                         <div class="mb-4">
                             <label for="observaciones" class="form-label" style="color: #3b2b32; font-weight: 600;">Observaciones</label>
-                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Notas adicionales sobre la validaci?n..." style="border-color: #fbcdd9; border-width: 2px; resize: vertical;"></textarea>
-                            <small class="form-text text-muted">Informaci?n adicional sobre la transacci?n</small>
+                            <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Notas adicionales sobre la validación..." style="border-color: #fbcdd9; border-width: 2px; resize: vertical;"></textarea>
+                            <small class="form-text text-muted">Información adicional sobre la transacción</small>
                         </div>
 
                         <!-- Botones -->
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600;">
-                                <i class="bi bi-check-circle"></i> Registrar Validaci?n
+                                <i class="bi bi-check-circle"></i> Registrar Validación
                             </button>
                             <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">
                                 <i class="bi bi-arrow-left"></i> Volver
@@ -145,7 +145,7 @@
                                     <small style="color: #999;">{{ validacion.fecha|date:"d/m/Y H:i" }}</small>
                                 </div>
                                 <span class="badge {% if validacion.estado == 'validada' %}bg-success{% elif validacion.estado == 'pendiente' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
-                                    {% if validacion.estado == 'validada' %}âœ…{% elif validacion.estado == 'pendiente' %}â³{% else %}âŒ{% endif %}
+                                    {% if validacion.estado == 'validada' %}✅{% elif validacion.estado == 'pendiente' %}⏳{% else %}❌{% endif %}
                                     {{ validacion.estado|title }}
                                 </span>
                             </div>
@@ -170,7 +170,7 @@
                     {% else %}
                     <div class="alert alert-info m-3" style="border-radius: 0.5rem; border-left: 4px solid #ca6b86;">
                         <i class="bi bi-info-circle"></i>
-                        <small>Sin validaciones registradas. Crea la primera validaci?n con el formulario.</small>
+                        <small>Sin validaciones registradas. Crea la primera validación con el formulario.</small>
                     </div>
                     {% endif %}
                 </div>
@@ -180,4 +180,3 @@
 </div>
 
 {% endblock %}
-
