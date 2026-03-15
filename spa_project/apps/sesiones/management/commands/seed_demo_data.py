@@ -10,6 +10,7 @@ class Command(BaseCommand):
     help = "Crea servicios y productos de prueba para el proyecto."
 
     def handle(self, *args, **options):
+        # Carga datos demo reutilizables sin duplicar registros.
         proveedor, _ = Proveedor.objects.get_or_create(
             nombre="Proveedor Demo Lotus",
             defaults={

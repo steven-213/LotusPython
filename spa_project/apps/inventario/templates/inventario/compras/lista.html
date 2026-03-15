@@ -1,9 +1,125 @@
-<h1>Compras</h1>
-<a href="{% url 'inventario:compra_nueva' %}">Nueva compra</a>
-<ul>
-{% for c in compras %}
-  <li><a href="{% url 'inventario:compra_detalle' c.id %}">Compra {{ c.id }}</a> - {{ c.total }}</li>
-{% empty %}
-  <li>Sin compras</li>
+{% extends "base_public.html" %}
+
+{% block title %}Compras - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-cart-check" style="color: #ca6b86;"></i> Gestión de Compras
+        </h1>
+        <p class="text-muted">Histórico y administración de compras a proveedores</p>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="card mb-4 shadow-sm border-0" style="border-radius: 1rem;">
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="input-group w-100">
+                    <span class="input-group-text" style="background: #fbcdd9; border: 2px solid #fbcdd9; color: #ca6b86;">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por número de factura, proveedor..." value="{{ query }}" style="border-color: #fbcdd9; border-width: 2px;">
+                    <button class="btn btn-primary" type="submit" style="background: #ca6b86; border: none;">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Compras -->
+    <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+        <div class="card-header border-0" style="background-color: #fbcdd9;">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="color: #3b2b32;"><i class="bi bi-table"></i> Lista de Compras</h5>
+                <a href="{% url 'inventario:compra_nueva' %}" class="btn btn-primary btn-sm" style="background: #ca6b86; border: none;">
+                    <i class="bi bi-plus-circle"></i> Nueva Compra
+                </a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background-color: #f8f9fa;">
+                    <tr style="border-bottom: 2px solid #fbcdd9;">
+                        <th style="color: #ca6b86; font-weight: 600;"><i class="bi bi-hash"></i> ID</th>
+                        <th style="color: #ca6b86; font-weight: 600;"><i class="bi bi-building"></i> Proveedor</th>
+                        <th style="color: #ca6b86; font-weight: 600;"><i class="bi bi-receipt"></i> Factura</th>
+                        <th style="color: #ca6b86; font-weight: 600; text-align: right;"><i class="bi bi-cash"></i> Total</th>
+                        <th style="color: #ca6b86; font-weight: 600;"><i class="bi bi-calendar"></i> Fecha</th>
+                        <th style="color: #ca6b86; font-weight: 600; text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for compra in compras %}
+                    <tr style="border-bottom: 1px solid #ecf0f1;">
+                        <td>
+                            <span class="badge" style="background: #ca6b86;">#{{ compra.id }}</span>
+                        </td>
+                        <td>
+                            <a href="{% url 'inventario:proveedor_detalle' compra.proveedor.id %}" style="color: #3b2b32; text-decoration: none;">
+                                <strong>{{ compra.proveedor.nombre }}</strong>
+                            </a>
+                        </td>
+                        <td style="color: #666;"><code>{{ compra.numero_factura|default:"—" }}</code></td>
+                        <td style="text-align: right;">
+                            <strong style="color: #ca6b86; font-size: 1.1rem;">${{ compra.total|floatformat:2 }}</strong>
+                        </td>
+                        <td style="color: #666; font-size: 0.9rem;">{{ compra.fecha|date:"d/m/Y H:i" }}</td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'inventario:compra_detalle' compra.id %}" class="btn btn-sm btn-primary" style="background: #ca6b86; border: none;" title="Ver detalles">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            <a href="{% url 'inventario:compra_editar' compra.id %}" class="btn btn-sm btn-warning" style="background: #f39c12; border: none; color: white;" title="Editar">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarCompra{{ compra.id }}" title="Eliminar">
+                                <i class="bi bi-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                            <p class="text-muted mt-2">No hay compras registradas</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modales: Eliminar Compra -->
+{% for compra in compras %}
+<div class="modal fade" id="modalEliminarCompra{{ compra.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0" style="background-color: #fbcdd9;">
+                <h5 class="modal-title" style="color: #3b2b32; font-weight: 700;">
+                    <i class="bi bi-exclamation-triangle" style="color: #ca6b86;"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" style="color: #3b2b32;">
+                <p>¿Estás seguro que deseas eliminar la compra <strong>#{{ compra.id }}</strong>?</p>
+                <p class="text-muted small">Esto también restaurará el stock de los productos. Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">Cancelar</button>
+                <form method="post" action="{% url 'inventario:compra_eliminar' compra.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" style="background: #dc3545; border: none; font-weight: 600;">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endfor %}
-</ul>
+{% endblock %}

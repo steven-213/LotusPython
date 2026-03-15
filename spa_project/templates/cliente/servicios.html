@@ -9,33 +9,33 @@
 {% endblock %}
 
 {% block content %}
-<section class="page-header">
+<section class="encabezado-pagina">
   <h1>Nuestros servicios</h1>
   <p>Elige un servicio y agenda tu cita directamente.</p>
 </section>
 
-<section class="service-grid">
+<section class="grilla-servicios">
   {% for s in servicios %}
-  <article class="service-card" data-service-id="{{ s.id }}">
+  <article class="tarjeta-servicio" data-service-id="{{ s.id }}">
     <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}">
-    <h3 class="service-name">{{ s.nombre }}</h3>
+    <h3 class="nombre-servicio">{{ s.nombre }}</h3>
     <p>{{ s.descripcion }}</p>
     <p><strong>Precio:</strong> ${{ s.precio }}</p>
     {% if request.session.usuario_id %}
-    <button class="btn btn-primary" onclick="agendarServicio(this)">Agendar</button>
+    <button class="boton boton-primario" onclick="agendarServicio(this)">Agendar</button>
     {% else %}
-    <a class="btn btn-soft" href="{% url 'sesiones:login' %}?next={% url 'citas:servicios_publicos' %}&reason=agendar">
-      Inicia sesion para agendar
+    <a class="boton boton-suave" href="{% url 'sesiones:login' %}?next={% url 'citas:servicios_publicos' %}&reason=agendar">
+      Inicia sesión para agendar
     </a>
     {% endif %}
   </article>
   {% empty %}
-  <p class="empty-message">No hay servicios disponibles en este momento.</p>
+  <p class="mensaje-vacio">No hay servicios disponibles en este momento.</p>
   {% endfor %}
 </section>
 
 {% if request.session.usuario_id %}
-<section class="calendar-shell">
+<section class="contenedor-calendario">
   <h2>Calendario de citas</h2>
   <div id="calendar" data-store-url="{% url 'citas:api_eventos' %}"></div>
 </section>
@@ -61,8 +61,8 @@ async function fetchJson(url, method, payload) {
 }
 
 async function agendarServicio(btn) {
-  const nombreServicio = btn.closest(".service-card").querySelector(".service-name").textContent;
-  const servicioId = btn.closest(".service-card").dataset.serviceId;
+  const nombreServicio = btn.closest(".tarjeta-servicio").querySelector(".nombre-servicio").textContent;
+  const servicioId = btn.closest(".tarjeta-servicio").dataset.serviceId;
   const result = await Swal.fire({
     title: "Selecciona fecha y hora",
     html: '<input id="fecha" type="date" class="swal2-input"><input id="hora" type="time" class="swal2-input">',

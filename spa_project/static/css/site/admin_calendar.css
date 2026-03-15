@@ -1,16 +1,16 @@
-﻿.calendar-header,
-.calendar-card,
-.sales-header,
-.sales-summary,
-.sales-table-wrap {
+.encabezado-calendario,
+.tarjeta-calendario,
+.encabezado-ventas,
+.resumen-ventas,
+.tabla-ventas-contenedor {
   background: #fff;
-  border: 1px solid var(--rose-100);
+  border: 1px solid #fee7ed;
   border-radius: 18px;
   padding: 1rem;
 }
 
-.calendar-card,
-.sales-summary,
-.sales-table-wrap {
+.tarjeta-calendario,
+.resumen-ventas,
+.tabla-ventas-contenedor {
   margin-top: 1rem;
 }

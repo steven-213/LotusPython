@@ -1,6 +1,108 @@
-<h1>Nuevo proveedor</h1>
-<form method="post">{% csrf_token %}
-  <input name="nombre" placeholder="Nombre">
-  <input name="empresa" placeholder="Empresa">
-  <button type="submit">Guardar</button>
-</form>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Nuevo Proveedor | Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/proveedores/nuevo_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Cancelar
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-plus-circle" style="color: #ca6b86;"></i> Registrar Nuevo Proveedor
+        </h1>
+        <p class="text-muted">Completa el formulario para agregar un nuevo proveedor a tu lista</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Card Formulario -->
+            <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-file-earmark-text"></i> Datos del Proveedor
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Sección: Información General -->
+                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
+                                <i class="bi bi-info-circle" style="color: #ca6b86;"></i> Información General
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre" class="form-label" style="color: #3b2b32; font-weight: 600;">Nombre *</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Proveedor XYZ" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">Nombre del contacto o representante</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="empresa" class="form-label" style="color: #3b2b32; font-weight: 600;">Empresa</label>
+                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ej: Empresa Comercial S.A." style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">Razón social de la empresa</small>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-0">
+                                    <label for="nit" class="form-label" style="color: #3b2b32; font-weight: 600;">NIT / Documento</label>
+                                    <input type="text" class="form-control" id="nit" name="nit" placeholder="Ej: 123456789" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">Número de identificación tributaria</small>
+                                </div>
+                                <div class="col-md-6 mb-0">
+                                    <label for="pais" class="form-label" style="color: #3b2b32; font-weight: 600;">País</label>
+                                    <input type="text" class="form-control" id="pais" name="pais" placeholder="Ej: Colombia" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">País de procedencia</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Contacto -->
+                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
+                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
+                                <i class="bi bi-telephone" style="color: #ca6b86;"></i> Información de Contacto
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="telefono" class="form-label" style="color: #3b2b32; font-weight: 600;">Teléfono</label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono" placeholder="Ej: +57 1 2345678" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">Número de teléfono de contacto</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="correo" class="form-label" style="color: #3b2b32; font-weight: 600;">Correo Electrónico</label>
+                                    <input type="email" class="form-control" id="correo" name="correo" placeholder="Ej: contacto@proveedor.com" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <small class="form-text text-muted">Email de contacto principal</small>
+                                </div>
+                            </div>
+                            <div class="mb-0">
+                                <label for="direccion" class="form-label" style="color: #3b2b32; font-weight: 600;">Dirección</label>
+                                <input type="text" class="form-control" id="direccion" name="direccion" placeholder="Ej: Calle 10 #20-30" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                <small class="form-text text-muted">Dirección física del proveedor</small>
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600; padding: 0.75rem;">
+                                <i class="bi bi-check-circle"></i> Guardar Proveedor
+                            </button>
+                            <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600; padding: 0.75rem;">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

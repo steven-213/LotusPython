@@ -1,11 +1,198 @@
-<h1>Nueva compra</h1>
-<form method="post">{% csrf_token %}
-  <select name="proveedor_id">
-    {% for p in proveedores %}
-    <option value="{{ p.id }}">{{ p.nombre }}</option>
-    {% endfor %}
-  </select>
-  <input name="numero_factura" placeholder="Factura">
-  <input name="total" type="number" step="0.01">
-  <button type="submit">Guardar</button>
-</form>
+{% extends "base_public.html" %}
+
+{% block title %}Nueva Compra - Administración{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nueva Compra</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="compra-form">
+                        {% csrf_token %}
+                        
+                        <!-- Información General -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0">Información de la Compra</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="proveedor_id" class="form-label">Proveedor *</label>
+                                        <select class="form-control" id="proveedor_id" name="proveedor_id" required>
+                                            <option value="">-- Seleccionar Proveedor --</option>
+                                            {% for proveedor in proveedores %}
+                                            <option value="{{ proveedor.id }}">{{ proveedor.nombre }} ({{ proveedor.empresa }})</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="numero_factura" class="form-label">Número de Factura</label>
+                                        <input type="text" class="form-control" id="numero_factura" name="numero_factura">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detalles de Productos -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6">
+                                        <h5 class="mb-0">Productos</h5>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <button type="button" class="btn btn-sm btn-success" onclick="agregarProducto()">
+                                            <i class="bi bi-plus"></i> Agregar Producto
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="productos-container" class="table-responsive">
+                                    <table class="table table-sm" id="productos-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Cantidad</th>
+                                                <th>Precio Unitario</th>
+                                                <th>Subtotal</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="productos-lista">
+                                            <tr class="producto-row">
+                                                <td>
+                                                    <select name="productos_ids[]" class="form-control form-control-sm producto-select">
+                                                        <option value="">-- Seleccionar Producto --</option>
+                                                        {% for producto in productos %}
+                                                        <option value="{{ producto.id }}" data-precio="{{ producto.precio_compra }}">
+                                                            {{ producto.nombre }}
+                                                        </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="cantidades[]" class="form-control form-control-sm cantidad" min="1" value="1">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="precios[]" class="form-control form-control-sm precio" step="0.01" min="0" value="0">
+                                                </td>
+                                                <td>
+                                                    <span class="subtotal">$0.00</span>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-danger" onclick="eliminarProducto(this)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 offset-md-6">
+                                        <div class="input-group mb-3">
+                                            <span class="input-group-text">Total Compra:</span>
+                                            <input type="number" class="form-control text-end" id="total" name="total" step="0.01" value="0" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'inventario:compra_lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Guardar Compra
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function agregarProducto() {
+    const container = document.getElementById('productos-lista');
+    const row = container.querySelector('.producto-row').cloneNode(true);
+    
+    // Resetear valores
+    row.querySelectorAll('input, select').forEach(el => {
+        if (el.name.includes('cantidades')) el.value = '1';
+        if (el.name.includes('precios')) el.value = '0';
+        if (el.classList.contains('producto-select')) el.value = '';
+    });
+    
+    container.appendChild(row);
+    agregarEventosProducto(row);
+}
+
+function eliminarProducto(button) {
+    button.closest('tr').remove();
+    actualizarTotal();
+}
+
+function agregarEventosProducto(row) {
+    const productoSelect = row.querySelector('.producto-select');
+    const cantidadInput = row.querySelector('.cantidad');
+    const precioInput = row.querySelector('.precio');
+    
+    productoSelect.addEventListener('change', function() {
+        const option = this.querySelector('option:checked');
+        precioInput.value = option.dataset.precio || '0';
+        actualizarSubtotal(row);
+    });
+    
+    cantidadInput.addEventListener('change', function() {
+        actualizarSubtotal(row);
+    });
+    
+    precioInput.addEventListener('change', function() {
+        actualizarSubtotal(row);
+    });
+}
+
+function actualizarSubtotal(row) {
+    const cantidad = parseFloat(row.querySelector('.cantidad').value) || 0;
+    const precio = parseFloat(row.querySelector('.precio').value) || 0;
+    const subtotal = cantidad * precio;
+    
+    row.querySelector('.subtotal').textContent = '$' + subtotal.toFixed(2);
+    actualizarTotal();
+}
+
+function actualizarTotal() {
+    let total = 0;
+    document.querySelectorAll('.producto-row .subtotal').forEach(el => {
+        const valor = parseFloat(el.textContent.replace('$', '')) || 0;
+        total += valor;
+    });
+    
+    document.getElementById('total').value = total.toFixed(2);
+}
+
+// Inicializar eventos para la primera fila
+document.addEventListener('DOMContentLoaded', function() {
+    const firstRow = document.querySelector('.producto-row');
+    if (firstRow) {
+        agregarEventosProducto(firstRow);
+    }
+});
+</script>
+{% endblock %}

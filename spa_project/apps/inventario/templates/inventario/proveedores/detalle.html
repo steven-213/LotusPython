@@ -1,0 +1,126 @@
+{% extends "base_public.html" %}
+
+{% block title %}{{ proveedor.nombre }} - Administración{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>{{ proveedor.nombre }}</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'inventario:proveedor_editar' proveedor.id %}" class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Información General</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Empresa:</dt>
+                        <dd class="col-sm-8">{{ proveedor.empresa|default:"No especificado" }}</dd>
+                        
+                        <dt class="col-sm-4">NIT:</dt>
+                        <dd class="col-sm-8">{{ proveedor.nit|default:"No especificado" }}</dd>
+                        
+                        <dt class="col-sm-4">País:</dt>
+                        <dd class="col-sm-8">{{ proveedor.pais|default:"No especificado" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Contacto</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Teléfono:</dt>
+                        <dd class="col-sm-8">
+                            {% if proveedor.telefono %}
+                                <a href="tel:{{ proveedor.telefono }}">{{ proveedor.telefono }}</a>
+                            {% else %}
+                                No especificado
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Correo:</dt>
+                        <dd class="col-sm-8">
+                            {% if proveedor.correo %}
+                                <a href="mailto:{{ proveedor.correo }}">{{ proveedor.correo }}</a>
+                            {% else %}
+                                No especificado
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Dirección:</dt>
+                        <dd class="col-sm-8">{{ proveedor.direccion|default:"No especificado" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos del Proveedor -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-cube"></i> Productos de este Proveedor</h5>
+        </div>
+        <div class="card-body">
+            {% if productos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock</th>
+                            <th>Precio Compra</th>
+                            <th>Precio Venta</th>
+                            <th>IVA</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for producto in productos %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventario:producto_detalle' producto.id %}">
+                                    {{ producto.nombre }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge {% if producto.stock > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ producto.stock }} unidades
+                                </span>
+                            </td>
+                            <td>${{ producto.precio_compra }}</td>
+                            <td>${{ producto.precio_venta }}</td>
+                            <td>{{ producto.iva }}%</td>
+                            <td>
+                                <a href="{% url 'inventario:producto_editar' producto.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No hay productos de este proveedor.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

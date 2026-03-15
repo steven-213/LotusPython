@@ -1,0 +1,144 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Devoluciones - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-arrow-return-left" style="color: #ca6b86;"></i> Gestión de Devoluciones
+        </h1>
+        <p class="text-muted">Registro y administración de devoluciones de compra</p>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4 g-2">
+        <div class="col-md-3">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h6 class="card-title text-warning"><i class="bi bi-clock"></i> Pendientes</h6>
+                    <h2 class="mb-0">{{ devoluciones_pendientes }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h6 class="card-title text-success"><i class="bi bi-check-circle"></i> Aprobadas</h6>
+                    <h2 class="mb-0">{{ devoluciones_aprobadas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h6 class="card-title text-danger"><i class="bi bi-x-circle"></i> Rechazadas</h6>
+                    <h2 class="mb-0">{{ devoluciones_rechazadas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-warning w-100 h-100 d-flex align-items-center justify-content-center">
+                <i class="bi bi-plus-circle me-2"></i> Nueva Devolución
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" name="estado">
+                        <option value="">-- Todos los estados --</option>
+                        <option value="pendiente" {% if estado_filtro == "pendiente" %}selected{% endif %}>Pendiente</option>
+                        <option value="aprobada" {% if estado_filtro == "aprobada" %}selected{% endif %}>Aprobada</option>
+                        <option value="rechazada" {% if estado_filtro == "rechazada" %}selected{% endif %}>Rechazada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Desde</label>
+                    <input type="date" class="form-control" name="fecha_inicio" value="{{ fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Hasta</label>
+                    <input type="date" class="form-control" name="fecha_fin" value="{{ fecha_fin }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de Devoluciones -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background: #f8f9fa;">
+                    <tr>
+                        <th>ID</th>
+                        <th>Compra</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for devolucion in devoluciones %}
+                    <tr>
+                        <td>
+                            <strong>#{{ devolucion.id }}</strong>
+                        </td>
+                        <td>Compra #{{ devolucion.compra.id }}</td>
+                        <td>{{ devolucion.producto.nombre }}</td>
+                        <td>
+                            <span class="badge rounded-pill" style="background: #f0f7ff; color: #0052cc;">
+                                {{ devolucion.cantidad }} unid.
+                            </span>
+                        </td>
+                        <td>
+                            {% if devolucion.estado == "pendiente" %}
+                            <span class="badge bg-warning">Pendiente</span>
+                            {% elif devolucion.estado == "aprobada" %}
+                            <span class="badge bg-success">Aprobada</span>
+                            {% else %}
+                            <span class="badge bg-danger">Rechazada</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ devolucion.fecha|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display: inline;" onsubmit="return confirm('¿Eliminar esta devolución?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            No hay devoluciones registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

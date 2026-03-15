@@ -8,15 +8,18 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def _normalize_token(token):
+def _limpiar_token(token):
+    # Quita espacios y el prefijo "bot" si llega incluido.
     token = (token or "").strip()
     if token.startswith("bot"):
         return token[3:]
     return token
 
 
-def notify_pending_purchase(venta, validacion):
-    token = _normalize_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
+def notificar_compra_pendiente(venta, validacion):
+    logger.info(f"[INICIO] notificar_compra_pendiente - Validacion ID: {validacion.id}, Estado ANTES: '{validacion.estado}'")
+    
+    token = _limpiar_token(getattr(settings, "TELEGRAM_BOT_TOKEN", ""))
     chat_id = getattr(settings, "TELEGRAM_CHAT_ID", "")
     if not token or not chat_id:
         logger.warning("Telegram notifier disabled: missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID.")
@@ -42,7 +45,13 @@ def notify_pending_purchase(venta, validacion):
     if confirm_url and reject_url:
         text += f"\n\nConfirmar compra: {confirm_url}\nRechazar compra: {reject_url}"
 
-    payload = {"chat_id": chat_id, "text": text}
+    # Evita que Telegram haga previsualización (prefetch) de los links,
+    # lo cual puede disparar los endpoints de confirmación sin clic humano.
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "disable_web_page_preview": True,
+    }
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     req = request.Request(
         url,
@@ -59,6 +68,7 @@ def notify_pending_purchase(venta, validacion):
             ok = response.status == 200 and bool(data.get("ok"))
             if not ok:
                 logger.error("Telegram API returned non-ok response: %s", data)
+            logger.info(f"[FIN] notificar_compra_pendiente - Mensaje enviado: {ok}, Estado DESPUÉS: '{validacion.estado}'")
             return ok
     except error.HTTPError as exc:
         body = ""
@@ -67,7 +77,9 @@ def notify_pending_purchase(venta, validacion):
         except Exception:
             body = str(exc)
         logger.error("Telegram HTTPError %s: %s", exc.code, body)
+        logger.info(f"[ERROR] notificar_compra_pendiente - HTTPError, Estado DESPUÉS: '{validacion.estado}'")
         return False
     except (error.URLError, TimeoutError, json.JSONDecodeError, ssl.SSLError) as exc:
         logger.error("Telegram notify failed: %s", exc)
+        logger.info(f"[ERROR] notificar_compra_pendiente - Exception, Estado DESPUÉS: '{validacion.estado}'")
         return False

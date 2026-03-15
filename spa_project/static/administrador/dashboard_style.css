@@ -1,0 +1,75 @@
+﻿:root {
+  --dash-rose-50: #fff7fb;
+  --dash-rose-100: #ffeaf2;
+  --dash-rose-200: #ffd2e3;
+  --dash-rose-400: #f5a9cb;
+  --dash-rose-600: #d476a6;
+  --dash-ink-700: #3b2b32;
+  --dash-ink-500: #6b5b62;
+}
+
+.admin-dashboard .dashboard-hero {
+  background: linear-gradient(135deg, var(--dash-rose-400), var(--dash-rose-600));
+  border-radius: 16px;
+}
+
+.admin-dashboard .section-title {
+  color: var(--dash-ink-700);
+}
+
+.admin-dashboard .module-card {
+  border: 1px solid var(--dash-rose-100);
+  border-radius: 16px;
+  background: #fff;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 6px 18px rgba(212, 118, 166, 0.12);
+}
+
+.admin-dashboard .module-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--dash-rose-200);
+  box-shadow: 0 10px 24px rgba(212, 118, 166, 0.18);
+}
+
+.admin-dashboard .module-badge {
+  background: var(--dash-rose-100);
+  color: var(--dash-rose-600);
+}
+
+.admin-dashboard .module-title {
+  color: var(--dash-ink-700);
+}
+
+.admin-dashboard .module-subtitle {
+  color: var(--dash-ink-500);
+}
+
+.admin-dashboard .btn-rose-outline {
+  border-color: var(--dash-rose-200);
+  color: var(--dash-rose-600);
+}
+
+.admin-dashboard .btn-rose-outline:hover,
+.admin-dashboard .btn-rose-outline:focus {
+  background: var(--dash-rose-400);
+  border-color: var(--dash-rose-400);
+  color: #fff;
+}
+
+.admin-dashboard .quick-action {
+  border-radius: 14px;
+  border: 1px solid var(--dash-rose-100);
+  background: #fff;
+  color: var(--dash-ink-700);
+}
+
+.admin-dashboard .quick-action:hover,
+.admin-dashboard .quick-action:focus {
+  border-color: var(--dash-rose-200);
+  box-shadow: 0 6px 16px rgba(212, 118, 166, 0.12);
+}
+
+.admin-dashboard .quick-icon {
+  background: var(--dash-rose-100);
+  color: var(--dash-rose-600);
+}

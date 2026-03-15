@@ -10,7 +10,8 @@ from apps.citas.models import Cita, Servicio
 from apps.sesiones.models import Usuario
 
 
-def _require_login(request):
+def _validar_login(request):
+    # Valida que exista una sesion activa para el API.
     if "usuario_id" not in request.session:
         return JsonResponse({"error": "autenticacion requerida"}, status=401)
     return None
@@ -18,7 +19,7 @@ def _require_login(request):
 
 @csrf_exempt
 def api_eventos(request):
-    denied = _require_login(request)
+    denied = _validar_login(request)
     if denied:
         return denied
 

@@ -8,12 +8,12 @@
 {% endblock %}
 
 {% block content %}
-<section class="calendar-header">
+<section class="encabezado-calendario">
   <h1>Calendario de citas</h1>
   <p>Gestiona citas directamente desde el calendario semanal.</p>
 </section>
 
-<section class="calendar-card">
+<section class="tarjeta-calendario">
   <div id="calendar" data-store-url="{% url 'citas:api_eventos' %}"></div>
 </section>
 

@@ -7,27 +7,27 @@
 {% endblock %}
 
 {% block content %}
-<section class="sales-header">
+<section class="encabezado-ventas">
   <h1>Ventas</h1>
   <p>Resumen del modulo de ventas y registro reciente.</p>
 </section>
 
-<section class="sales-summary" id="sales-summary">
-  <article class="summary-card">
+<section class="resumen-ventas" id="sales-summary">
+  <article class="tarjeta-resumen">
     <h2>Total ventas</h2>
     <p id="total-ventas">-</p>
   </article>
-  <article class="summary-card">
+  <article class="tarjeta-resumen">
     <h2>Monto total</h2>
     <p id="monto-total">-</p>
   </article>
 </section>
 
-<section class="sales-table-wrap">
-  <div class="sales-toolbar">
-    <a class="btn btn-primary" href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
+<section class="tabla-ventas-contenedor">
+  <div class="barra-ventas">
+    <a class="boton boton-primario" href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
   </div>
-  <table class="sales-table">
+  <table class="tabla-ventas">
     <thead>
       <tr>
         <th>ID</th>

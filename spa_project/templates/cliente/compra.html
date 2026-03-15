@@ -4,51 +4,155 @@
 {% block title %}Tienda | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}">
+<link rel="stylesheet" href="{% static 'cliente/compra_style.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="page-header">
-  <h1>Tienda</h1>
-  <p>Catalogo publico de productos disponibles en Lotus Dream Spa.</p>
-</section>
+<!-- Encabezado con gradiente -->
+<div class="encabezado-tienda">
+    <div class="container-lg">
+        <div class="row align-items-center py-5">
+            <div class="col-md-8">
+                <h1 class="titulo-tienda mb-3">
+                    <i class="bi bi-bag-heart"></i> Nuestros Productos
+                </h1>
+                <p class="subtitulo-tienda">Descubre nuestra colección de productos premium para tu bienestar</p>
+            </div>
+            <div class="col-md-4 text-end d-none d-md-block">
+                <i class="bi bi-basket" style="font-size: 4rem; color: rgba(255,255,255,0.3);"></i>
+            </div>
+        </div>
+    </div>
+</div>
 
-<section class="shop-actions" style="margin-bottom:1rem;">
-  <form method="get">
-    <input type="text" name="q" value="{{ query|default:'' }}" placeholder="Buscar producto por nombre">
-    <button type="submit" class="btn btn-primary">Buscar</button>
-  </form>
-</section>
+<div class="container-lg py-5">
+    <!-- Sección de Búsqueda -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <form method="get" class="buscador-productos">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text icono-buscar">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="q" class="form-control buscar-input" placeholder="Buscar producto..." value="{{ query }}" aria-label="Buscar producto">
+                    <button class="btn btn-buscar" type="submit">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<section class="shop-note">
-  <h2>Productos</h2>
-  {% if productos %}
-  <ul>
-    {% for p in productos %}
-    <li>
-      <strong>{{ p.nombre }}</strong> - ${{ p.precio_venta }} (stock: {{ p.stock }})
-      {% if request.session.usuario_id %}
-      <form method="post" action="{% url 'inventario:producto_comprar' p.id %}" style="display:inline-block; margin-left: .5rem;">
-        {% csrf_token %}
-        <input
-          type="number"
-          name="cantidad"
-          min="1"
-          max="{{ p.stock }}"
-          value="1"
-          style="width:70px;"
-        >
-        <button class="btn btn-primary" type="submit">Comprar</button>
-      </form>
-      {% else %}
-      <a class="btn btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
-        Inicia sesion para comprar
-      </a>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <p>No hay productos disponibles.</p>
-  {% endif %}
-</section>
+    <!-- Filtro de Resultados -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <h2 class="titulo-seccion">
+                    <i class="bi bi-grid-3x2"></i> Catálogo Disponible
+                </h2>
+                {% if query %}
+                    <span class="badge bg-light text-dark fs-6">
+                        Resultados para: <strong>"{{ query }}"</strong>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de Productos -->
+    {% if productos %}
+        <div class="row g-4 mb-5">
+            {% for p in productos %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                <div class="tarjeta-producto h-100">
+                    <!-- Contenedor de Imagen -->
+                    <div class="imagen-producto-contenedor position-relative overflow-hidden">
+                        {% if p.imagen %}
+                            <img src="{{ p.imagen }}" class="img-producto" alt="Imagen de {{ p.nombre }}" loading="lazy">
+                        {% else %}
+                            <div class="img-placeholder d-flex align-items-center justify-content-center">
+                                <i class="bi bi-image"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Badge de Stock -->
+                        {% if p.stock == 0 %}
+                            <span class="badge-estado badge-agotado">
+                                <i class="bi bi-lock-fill"></i> Agotado
+                            </span>
+                        {% elif p.stock > 0 and p.stock <= 5 %}
+                            <span class="badge-estado badge-bajo">
+                                <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
+                            </span>
+                        {% else %}
+                            <span class="badge-estado badge-disponible">
+                                <i class="bi bi-check-circle-fill"></i> Disponible
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cuerpo de la Tarjeta -->
+                    <div class="cuerpo-producto">
+                        <h5 class="nombre-producto">{{ p.nombre }}</h5>
+                        
+                        <p class="descripcion-producto">{{ p.descripcion|truncatewords:12 }}</p>
+                        
+                        <!-- Precio -->
+                        <div class="precio-contenedor mb-3">
+                            <span class="precio-producto">
+                                <i class="bi bi-currency-dollar"></i> {{ p.precio_venta|floatformat:2 }}
+                            </span>
+                        </div>
+
+                        <!-- Stock -->
+                        <div class="stock-info mb-3">
+                            <small class="text-muted">
+                                <i class="bi bi-box-seam"></i> Stock: <strong>{{ p.stock }} unidades</strong>
+                            </small>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="acciones-producto">
+                            {% if request.session.usuario_id and p.stock > 0 %}
+                                <form method="post" action="{% url 'inventario:producto_comprar' p.id %}" class="compra-formulario">
+                                    {% csrf_token %}
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <input type="number" name="cantidad" min="1" max="{{ p.stock }}" value="1" class="form-control cantidad-input" aria-label="Cantidad">
+                                        <button class="btn btn-comprar" type="submit">
+                                            <i class="bi bi-cart-plus"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            {% elif not request.session.usuario_id and p.stock > 0 %}
+                                <a class="btn btn-login w-100" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
+                                    <i class="bi bi-person-circle"></i> Inicia sesión para comprar
+                                </a>
+                            {% else %}
+                                <button class="btn btn-agotado w-100" disabled>
+                                    <i class="bi bi-lock"></i> Producto Agotado
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Mensaje Vacío -->
+        <div class="row">
+            <div class="col-12">
+                <div class="estado-vacio">
+                    <div class="icono-vacio">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <h3>No hay productos disponibles</h3>
+                    <p class="text-muted">Vuelve pronto para descubrir nuestras nuevas colecciones</p>
+                    <a href="{% url 'sesiones:home' %}" class="btn btn-primario">Volver al inicio</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
 {% endblock %}

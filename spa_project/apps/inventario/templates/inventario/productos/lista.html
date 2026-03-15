@@ -1,17 +1,231 @@
-<h1>Productos</h1>
-<a href="{% url 'inventario:producto_nuevo' %}">Nuevo</a>
-<ul>
-{% for p in productos %}
-  <li>
-    {{ p.nombre }} - {{ p.stock }}
-    <a href="{% url 'inventario:producto_detalle' p.id %}">Detalle</a>
-    <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
-    <form method="post" action="{% url 'inventario:producto_eliminar' p.id %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit">Eliminar</button>
-    </form>
-  </li>
-{% empty %}
-  <li>Sin productos</li>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Productos - Administración{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Encabezado con estadísticas -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-box-seam" style="color: #ca6b86; font-size: 2rem;"></i> Gestión de Productos
+        </h1>
+    </div>
+
+    <!-- Card de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Productos</h6>
+                    <h3 class="mb-0" style="color: #ca6b86;">{% if productos %}{{ productos|length }}{% else %}0{% endif %}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Sin Stock</h6>
+                    <h3 class="mb-0" style="color: #d32f2f;">{{ sin_stock }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Stock Bajo</h6>
+                    <h3 class="mb-0" style="color: #ff9800;">{{ stock_bajo }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda y Filtros Avanzados -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="get" class="row g-3">
+                <!-- Búsqueda por nombre/descripción -->
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="q" class="form-control" placeholder="Buscar por nombre o descripción..." value="{{ query }}" style="border-color: #ca6b86;">
+                    </div>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div class="col-md-3">
+                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">Estado</label>
+                    <select name="estado" class="form-select" style="border-color: #ca6b86;">
+                        <option value="">-- Todos --</option>
+                        <option value="activo" {% if estado_filtro == "activo" %}selected{% endif %}>Activos</option>
+                        <option value="inactivo" {% if estado_filtro == "inactivo" %}selected{% endif %}>Inactivos</option>
+                        <option value="bajo_stock" {% if estado_filtro == "bajo_stock" %}selected{% endif %}>Bajo Stock</option>
+                        <option value="sin_stock" {% if estado_filtro == "sin_stock" %}selected{% endif %}>Sin Stock</option>
+                    </select>
+                </div>
+
+                <!-- Filtro por Proveedor -->
+                <div class="col-md-3">
+                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">Proveedor</label>
+                    <select name="proveedor_id" class="form-select" style="border-color: #ca6b86;">
+                        <option value="">-- Todos --</option>
+                        {% for proveedor in proveedores %}
+                        <option value="{{ proveedor.id }}" {% if proveedor.id|stringformat:"s" == proveedor_id %}selected{% endif %}>
+                            {{ proveedor.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Botones de Búsqueda -->
+                <div class="col-12">
+                    <button class="btn btn-primary" style="background: #ca6b86; border: none;" type="submit">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle"></i> Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grid de Productos -->
+    <div class="row">
+        {% for item in productos %}
+        {% with p=item.producto margen=item.margen necesita_reorden=item.necesita_reorden %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-lg border-0" style="border-radius: 1rem; transition: all 0.3s ease; position: relative;">
+                <!-- Indicador de Stock -->
+                {% if necesita_reorden %}
+                <div style="position: absolute; top: 10px; right: 10px; background: #ff9800; color: white; padding: 0.5rem 0.75rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 700; z-index: 10;">
+                    <i class="bi bi-exclamation-triangle"></i> Reorden
+                </div>
+                {% endif %}
+                
+                {% if p.imagen %}
+                <img src="{{ p.imagen }}" class="card-img-top" alt="Imagen de {{ p.nombre }}" style="height: 220px; object-fit: cover; border-radius: 1rem 1rem 0 0;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 220px; border-radius: 1rem 1rem 0 0; background: linear-gradient(120deg, #fbcdd9 60%, #fff 100%);">
+                    <i class="bi bi-box-seam" style="font-size: 3rem; color: #ca6b86;"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title mb-2" style="color:#3b2b32; font-weight:700; font-size:1.15rem;">
+                        <i class="bi bi-capsule-pill" style="color:#ca6b86;"></i> {{ p.nombre }}
+                    </h5>
+                    <p class="card-text text-muted small mb-3">{{ p.descripcion|truncatewords:12|default:"Sin descripción" }}</p>
+
+                    <div class="mb-3">
+                        <!-- Stock -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-box2"></i> Stock:</small>
+                            <span class="badge {% if p.stock > 10 %}bg-success{% elif p.stock > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ p.stock }} unid.
+                            </span>
+                        </div>
+                        
+                        <!-- Stock Mínimo -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-exclamation-lg"></i> Mín:</small>
+                            <small>{{ p.stock_minimo }} unidades</small>
+                        </div>
+
+                        <!-- Precios -->
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-cash-coin"></i> Venta:</small>
+                            <strong style="color: #ca6b86; font-size: 1.1rem;">${{ p.precio_venta|floatformat:2 }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <small class="text-muted"><i class="bi bi-box2-heart"></i> Compra:</small>
+                            <small>${{ p.precio_compra|floatformat:2 }}</small>
+                        </div>
+
+                        <!-- Margen de Ganancia -->
+                        <div class="d-flex justify-content-between mb-2 p-2" style="background: #fff6f8; border-radius: 0.5rem;">
+                            <small class="text-muted"><i class="bi bi-percent"></i> Margen:</small>
+                            <small style="color: #ca6b86; font-weight: 700;">{{ margen }}%</small>
+                        </div>
+
+                        <!-- Proveedor -->
+                        {% if p.proveedor %}
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted"><i class="bi bi-building"></i> Proveedor:</small>
+                            <small style="color: #ca6b86;">{{ p.proveedor.nombre }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light border-top" style="border-color: #fbcdd9; border-radius: 0 0 1rem 1rem;">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'inventario:producto_detalle' p.id %}" class="btn btn-sm btn-primary flex-grow-1" style="background: #ca6b86; border: none; font-weight:600;">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                        <a href="{% url 'inventario:producto_editar' p.id %}" class="btn btn-sm btn-warning flex-grow-1" style="font-weight:600;">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <button type="button" class="btn btn-sm btn-danger flex-grow-1" data-bs-toggle="modal" data-bs-target="#modalEliminarProducto{{ p.id }}" style="font-weight:600;">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox" style="font-size: 2.5rem; color: #ca6b86;"></i>
+                    <p class="text-muted mt-3">No hay productos que coincidan con los filtros</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Botones de navegación -->
+    <div class="d-flex gap-2 justify-content-end mt-4">
+        <a href="{% url 'inventario:dashboard' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <a href="{% url 'inventario:producto_nuevo' %}" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none;">
+            <i class="bi bi-plus-circle"></i> Nuevo Producto
+        </a>
+    </div>
+</div>
+
+<!-- Modales: Eliminar Producto -->
+{% for item in productos %}
+{% with p=item.producto %}
+<div class="modal fade" id="modalEliminarProducto{{ p.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro que deseas eliminar el producto <strong>{{ p.nombre }}</strong>?</p>
+                <p class="text-muted small">Esta acción es irreversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'inventario:producto_eliminar' p.id %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
 {% endfor %}
-</ul>
+{% endblock %}
+

@@ -1,0 +1,6 @@
+﻿.form-select:focus,
+    .form-control:focus,
+    textarea:focus {
+        border-color: #ca6b86 !important;
+        box-shadow: 0 0 0 0.2rem rgba(202, 107, 134, 0.25) !important;
+    }

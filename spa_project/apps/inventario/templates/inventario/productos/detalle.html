@@ -1,6 +1,137 @@
-<h1>Detalle producto</h1>
-<p>{{ producto.nombre }}</p>
-<p>{{ producto.descripcion }}</p>
-<p>Stock: {{ producto.stock }}</p>
-<p>Precio venta: {{ producto.precio_venta }}</p>
-<p><a href="{% url 'inventario:producto_lista' %}">Volver al listado</a></p>
+{% extends "base_public.html" %}
+
+{% block title %}{{ producto.nombre }} - Detalle{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-box-seam" style="color: #ca6b86; font-size: 2rem;"></i> {{ producto.nombre }}
+        </h1>
+    </div>
+
+    <div class="row mb-4">
+        <!-- Imagen y información principal -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-lg" style="border-radius: 1rem;">
+                {% if producto.imagen %}
+                    <img src="{{ producto.imagen }}" class="card-img-top" alt="Imagen de {{ producto.nombre }}" style="height: 300px; object-fit: cover; border-radius: 1rem 1rem 0 0;">
+                {% else %}
+                    <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 300px; background: linear-gradient(120deg, #fbcdd9 60%, #fff 100%); border-radius: 1rem 1rem 0 0;">
+                        <i class="bi bi-box-seam" style="font-size: 4rem; color: #ca6b86;"></i>
+                    </div>
+                {% endif %}
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-3" style="color:#ca6b86; font-weight:700; font-size:1.5rem;">
+                        ${{ producto.precio_venta|floatformat:2 }}
+                    </h5>
+                    <div class="badge bg-success py-2 px-3" style="font-size:1rem;">
+                        <i class="bi bi-check-circle"></i> Stock: {{ producto.stock }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información detallada -->
+        <div class="col-lg-8">
+            <!-- Card de información general -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">Información General</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Descripción</p>
+                            <p class="fw-bold" style="color: #3b2b32;">
+                                {{ producto.descripcion|default:"Sin descripción" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Proveedor</p>
+                            <p class="fw-bold" style="color: #3b2b32;">
+                                {% if producto.proveedor %}
+                                    {{ producto.proveedor.nombre }}
+                                {% else %}
+                                    <span class="badge bg-secondary">Sin asignar</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de precios -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-cash-coin"></i> Información de Precios
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Precio de Compra</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.3rem;">
+                                ${{ producto.precio_compra|floatformat:2 }}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Precio de Venta</p>
+                            <p class="fw-bold" style="color: #ca6b86; font-size: 1.3rem;">
+                                ${{ producto.precio_venta|floatformat:2 }}
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="text-muted mb-1">Margen de Ganancia</p>
+                            <p class="fw-bold" style="color: #8b3d56; font-size: 1.3rem;">
+                                {% if producto.precio_compra > 0 %}
+                                    {{ margen|floatformat:1 }}%
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de inventario -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-box2"></i> Inventario
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Stock Actual</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.5rem;">
+                                {{ producto.stock }} unidades
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">IVA</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.5rem;">
+                                {{ producto.iva }}%
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de navegación -->
+    <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary btn-lg">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <a href="{% url 'inventario:producto_editar' producto.id %}" class="btn btn-warning btn-lg">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+    </div>
+</div>
+{% endblock %}

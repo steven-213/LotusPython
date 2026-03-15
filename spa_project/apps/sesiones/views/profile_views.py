@@ -14,9 +14,11 @@ def perfil(request):
         .filter(cliente_id=request.session.get("usuario_id"))
         .order_by("-fecha_validacion")
     )
-    compras_pendientes = validaciones.filter(estado="pendiente")
-    compras_compradas = validaciones.filter(estado__in=["comprado", "validada"])
-    compras_rechazadas = validaciones.filter(estado="rechazado")
+    # Filtrar SOLO los estados que realmente importan, ignorar valores incorrectos
+    compras_pendientes = validaciones.filter(estado__iexact="pendiente")
+    compras_compradas = validaciones.filter(estado__iexact="comprado")
+    compras_rechazadas = validaciones.filter(estado__iexact="rechazado")
+    
     return render(
         request,
         "sesiones/perfil.html",

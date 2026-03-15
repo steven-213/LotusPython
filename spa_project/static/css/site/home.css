@@ -1,8 +1,8 @@
-﻿.hero {
-  background: var(--surface);
-  border: 1px solid var(--rose-100);
+.portada {
+  background: #ffffff;
+  border: 1px solid #fee7ed;
   border-radius: 22px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
   padding: 1.5rem;
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -10,108 +10,108 @@
   align-items: center;
 }
 
-.hero-copy h1 {
+.texto-portada h1 {
   margin: 0.4rem 0;
   font-size: 2rem;
   line-height: 1.2;
 }
 
-.eyebrow {
-  color: var(--rose-700);
+.etiqueta-superior {
+  color: #8b3d56;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin: 0;
 }
 
-.hero img {
+.portada img {
   width: 100%;
   height: 320px;
   object-fit: cover;
   border-radius: 16px;
 }
 
-.hero-actions {
+.acciones-portada {
   margin-top: 1rem;
   display: flex;
   gap: 0.7rem;
 }
 
-.highlight-grid {
+.grilla-destacados {
   margin-top: 1.4rem;
   display: grid;
   gap: 1rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.highlight-card {
-  background: var(--surface);
-  border: 1px solid var(--rose-100);
+.tarjeta-destacado {
+  background: #ffffff;
+  border: 1px solid #fee7ed;
   border-radius: 18px;
   overflow: hidden;
 }
 
-.highlight-card img {
+.tarjeta-destacado img {
   width: 100%;
   height: 190px;
   object-fit: cover;
 }
 
-.highlight-card h2,
-.highlight-card p {
+.tarjeta-destacado h2,
+.tarjeta-destacado p {
   margin: 0;
   padding: 0 1rem;
 }
 
-.highlight-card h2 {
+.tarjeta-destacado h2 {
   padding-top: 0.9rem;
   font-size: 1.2rem;
 }
 
-.highlight-card p {
+.tarjeta-destacado p {
   padding-bottom: 1rem;
-  color: var(--ink-500);
+  color: #5a4950;
 }
 
-.schedule-card {
+.tarjeta-horario {
   margin-top: 1.4rem;
-  background: var(--surface);
-  border: 1px solid var(--rose-100);
+  background: #ffffff;
+  border: 1px solid #fee7ed;
   border-radius: 18px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
   padding: 1rem;
 }
 
-.schedule-card h2 {
+.tarjeta-horario h2 {
   margin-top: 0;
 }
 
-.schedule-table {
+.tabla-horario {
   width: 100%;
   border-collapse: collapse;
 }
 
-.schedule-table th,
-.schedule-table td {
-  border: 1px solid var(--rose-100);
+.tabla-horario th,
+.tabla-horario td {
+  border: 1px solid #fee7ed;
   padding: 0.7rem;
   text-align: left;
 }
 
-.schedule-table th {
-  background: var(--rose-50);
+.tabla-horario th {
+  background: #fff6f8;
 }
 
 @media (max-width: 900px) {
-  .hero {
+  .portada {
     grid-template-columns: 1fr;
   }
 
-  .hero img {
+  .portada img {
     height: 220px;
   }
 
-  .highlight-grid {
+  .grilla-destacados {
     grid-template-columns: 1fr;
   }
 }

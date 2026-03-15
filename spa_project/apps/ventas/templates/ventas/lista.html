@@ -1,9 +1,243 @@
-<h1>Ventas</h1>
-<a href="{% url 'ventas:venta_nueva' %}">Nueva venta</a>
-<ul>
-{% for v in ventas %}
-  <li><a href="{% url 'ventas:venta_detalle' v.id %}">Venta {{ v.id }}</a> - {{ v.total }}</li>
-{% empty %}
-  <li>Sin ventas</li>
-{% endfor %}
-</ul>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Ventas | Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/lista_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <!-- Encabezado -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2"><i class="bi bi-receipt"></i> Administración de Ventas</h1>
+                <p class="mb-0 opacity-75">Historial, seguimiento y validación de transacciones</p>
+            </div>
+            <div class="d-none d-lg-block">
+                <i class="bi bi-graph-up" style="font-size: 3rem; opacity: 0.2;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTADÍSTICAS PRINCIPALES -->
+    <h2 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem; border-bottom: 2px solid var(--rose-200); padding-bottom: 0.5rem;">
+        <i class="bi bi-lightning-fill"></i> Estadísticas Principales
+    </h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <p class="stat-label"><i class="bi bi-receipt"></i> Total de Ventas</p>
+                <h2 class="stat-value">{{ total_ventas }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <p class="stat-label"><i class="bi bi-currency-dollar"></i> Ingresos Totales</p>
+                <h2 class="stat-value">{{ monto_total }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <p class="stat-label"><i class="bi bi-percent"></i> Promedio por Venta</p>
+                <h2 class="stat-value">{{ promedio_venta }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <div class="stat-card">
+                <p class="stat-label"><i class="bi bi-person"></i> Clientes Únicos</p>
+                <h2 class="stat-value">{{ clientes_unicos }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTADO DE VALIDACIONES -->
+    <h2 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem; border-bottom: 2px solid var(--rose-200); padding-bottom: 0.5rem;">
+        <i class="bi bi-check-circle"></i> Estado de Validaciones
+    </h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #FFC107;">
+                <p class="stat-label">Pendientes</p>
+                <h2 class="stat-value" style="color: #FFC107;">{{ validaciones_pendientes }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #4CAF50;">
+                <p class="stat-label">Comprados</p>
+                <h2 class="stat-value" style="color: #4CAF50;">{{ validaciones_comprado }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #F44336;">
+                <p class="stat-label">Rechazados</p>
+                <h2 class="stat-value" style="color: #F44336;">{{ validaciones_rechazado }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- BÚSQUEDA Y FILTROS AVANZADOS -->
+    {% if clientes %}
+    <div class="filter-card">
+        <h5 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem;"><i class="bi bi-funnel"></i> Filtros Avanzados</h5>
+        <form method="get" class="row g-2">
+            <div class="col-md-3">
+                <label class="form-label" style="color: var(--ink-700); font-weight: 600;">Búsqueda por Cliente</label>
+                <input type="text" name="q" class="form-control" placeholder="Nombre del cliente..." value="{{ query }}">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label" style="color: var(--ink-700); font-weight: 600;">Cliente</label>
+                <select name="cliente_id" class="form-select">
+                    <option value="">-- Todos los clientes --</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}" {% if cliente.id|stringformat:"s" == cliente_id %}selected{% endif %}>
+                        {{ cliente.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label" style="color: var(--ink-700); font-weight: 600;">Desde</label>
+                <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label" style="color: var(--ink-700); font-weight: 600;">Hasta</label>
+                <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label" style="color: var(--ink-700); font-weight: 600;">Estado</label>
+                <select name="estado" class="form-select">
+                    <option value="">-- Todos --</option>
+                    <option value="pendiente" {% if estado_filtro == "pendiente" %}selected{% endif %}>Pendiente</option>
+                    <option value="comprado" {% if estado_filtro == "comprado" %}selected{% endif %}>Comprado</option>
+                    <option value="rechazado" {% if estado_filtro == "rechazado" %}selected{% endif %}>Rechazado</option>
+                </select>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Filtrar
+                </button>
+                <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+                <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-primary ms-auto">
+                    <i class="bi bi-plus-circle"></i> Nueva Venta
+                </a>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="mb-4">
+        <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Venta
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- TABLA DE VENTAS -->
+    <div class="card shadow-lg border-0" style="border-radius: 1rem;">
+        <div class="card-header border-0" style="background-color: var(--rose-200); padding: 1.5rem;">
+            <h5 class="mb-0" style="color: var(--ink-700);"><i class="bi bi-list-ul"></i> Listado de Ventas</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if ventas %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Estado de Pago</th>
+                            <th style="text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas %}
+                        <tr>
+                            <td>
+                                <span class="badge" style="background: var(--rose-500); color: white;">
+                                    #{{ venta.id }}
+                                </span>
+                            </td>
+                            <td>
+                                <i class="bi bi-person-circle" style="color: var(--rose-500);"></i>
+                                <strong style="color: var(--ink-700);">{{ venta.cliente.nombre }}</strong>
+                            </td>
+                            <td style="color: var(--ink-500);">{{ venta.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <strong style="color: var(--rose-500); font-size: 1.1rem;">
+                                    ${{ venta.total|floatformat:2 }}
+                                </strong>
+                            </td>
+                            <td>
+                                {% if venta.validacion_reciente %}
+                                    {% if venta.validacion_reciente.estado == 'comprado' %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-check-circle"></i> Aprobado
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'validada' %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-check-circle"></i> Aprobado
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'pendiente' %}
+                                        <span class="badge" style="background: #FFC107; color: #333;">
+                                            <i class="bi bi-clock"></i> En Espera
+                                        </span>
+                                    {% elif venta.validacion_reciente.estado == 'rechazada' %}
+                                        <span class="badge" style="background: #F44336; color: white;">
+                                            <i class="bi bi-x-circle"></i> Rechazado
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge" style="background: #9E9E9E; color: white;">
+                                        <i class="bi bi-question-circle"></i> Sin Validar
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-sm btn-primary" style="background: var(--rose-500); border: none; color: white;">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="btn btn-sm btn-warning" style="background: #FFC107; border: none; color: #333;">
+                                    <i class="bi bi-check-circle"></i> Validar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center;">
+                <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--rose-500); margin-bottom: 1rem;"></i>
+                <p style="color: var(--ink-500); margin-top: 1rem;">No hay ventas que coincidan con los filtros</p>
+                <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-primary mt-3">
+                    <i class="bi bi-plus-circle"></i> Crear primera venta
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Botón atrás -->
+    <div class="mt-4">
+        <a href="{% url 'inventario:dashboard' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

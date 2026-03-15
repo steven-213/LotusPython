@@ -1,0 +1,85 @@
+﻿:root {
+      --brand-50: #fff7fb;
+      --brand-100: #ffeaf2;
+      --brand-200: #ffd2e3;
+      --brand-300: #f9b6d3;
+      --brand-500: #e98fbe;
+      --brand-700: #cc6fa0;
+      --brand-900: #9b4b73;
+      --brand-radius: 12px;
+      --brand-radius-soft: 18px;
+    }
+
+    body {
+      background-color: var(--brand-50);
+    }
+
+    .btn,
+    .boton {
+      border-radius: var(--brand-radius);
+      font-weight: 600;
+    }
+
+    .btn-primary,
+    .boton-primario {
+      background-color: var(--brand-500);
+      border-color: var(--brand-500);
+      color: #fff;
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .boton-primario:hover,
+    .boton-primario:focus {
+      background-color: var(--brand-700);
+      border-color: var(--brand-700);
+    }
+
+    .btn-outline-primary {
+      border-color: var(--brand-500);
+      color: var(--brand-700);
+    }
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:focus {
+      background-color: var(--brand-500);
+      border-color: var(--brand-500);
+      color: #fff;
+    }
+
+    .btn-light {
+      background-color: #fff;
+      border-color: var(--brand-200);
+    }
+
+    .badge.text-bg-primary {
+      background-color: var(--brand-500);
+    }
+
+    .text-primary {
+      color: var(--brand-700);
+    }
+
+    .bg-primary {
+      background-color: var(--brand-500);
+    }
+
+    .card,
+    .badge,
+    .alert,
+    .form-control,
+    .form-select {
+      border-radius: var(--brand-radius-soft);
+    }
+
+    .acciones-nav .boton-primario {
+      background-color: var(--brand-500);
+      border-color: var(--brand-500);
+      color: #fff;
+    }
+
+    .acciones-nav .boton-suave {
+      background-color: #fff;
+      border: 2px solid var(--brand-300);
+      color: var(--brand-700);
+    }

@@ -8,45 +8,45 @@
 {% endblock %}
 
 {% block content %}
-<section class="hero">
-  <div class="hero-copy">
-    <p class="eyebrow">Bienestar y belleza</p>
+<section class="portada">
+  <div class="texto-portada">
+    <p class="etiqueta-superior">Bienestar y belleza</p>
     <h1>Bienvenido a Lotus Dream Spa</h1>
-    <p>Descubre una experiencia unica de relajacion y cuidado personal.</p>
-    <div class="hero-actions">
-      <a class="btn btn-primary" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
-      <a class="btn btn-soft" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
+    <p>Descubre una experiencia única de relajación y cuidado personal.</p>
+    <div class="acciones-portada">
+      <a class="boton boton-primario" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
+      <a class="boton boton-suave" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
     </div>
   </div>
   <img src="{% static 'img/index/local.webp' %}" alt="Sede Lotus Dream Spa">
 </section>
 
-<section class="highlight-grid">
-  <article class="highlight-card">
+<section class="grilla-destacados">
+  <article class="tarjeta-destacado">
     <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales">
     <h2>Masajes corporales</h2>
-    <p>Sesiones enfocadas en liberar tension y mejorar tu descanso.</p>
+    <p>Sesiones enfocadas en liberar tensión y mejorar tu descanso.</p>
   </article>
 
-  <article class="highlight-card">
+  <article class="tarjeta-destacado">
     <img src="{% static 'img/index/faciales.png' %}" alt="Faciales">
     <h2>Faciales</h2>
     <p>Rituales para hidratar, revitalizar y cuidar la piel.</p>
   </article>
 
-  <article class="highlight-card">
+  <article class="tarjeta-destacado">
     <img src="{% static 'img/index/pestañas.jpg' %}" alt="Pestanas">
-    <h2>Pestanas</h2>
-    <p>Disenos personalizados para una mirada definida y natural.</p>
+    <h2>Pestañas</h2>
+    <p>Diseños personalizados para una mirada definida y natural.</p>
   </article>
 </section>
 
-<section class="schedule-card">
-  <h2>Horarios de atencion</h2>
-  <table class="schedule-table">
+<section class="tarjeta-horario">
+  <h2>Horarios de atención</h2>
+  <table class="tabla-horario">
     <thead>
       <tr>
-        <th>Dia</th>
+        <th>Día</th>
         <th>Horario</th>
       </tr>
     </thead>
@@ -56,7 +56,7 @@
         <td>10:00 AM - 6:00 PM</td>
       </tr>
       <tr>
-        <td>Sabados</td>
+        <td>Sábados</td>
         <td>10:00 AM - 8:00 PM</td>
       </tr>
       <tr>
