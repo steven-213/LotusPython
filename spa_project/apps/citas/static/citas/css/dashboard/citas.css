@@ -1,0 +1,188 @@
+/* DASHBOARD CALENDARIO STYLES */
+
+.reservas-hero {
+    background: linear-gradient(135deg, #d946aa 0%, #ec4899 100%);
+    border-radius: 12px;
+    color: white;
+    padding: 40px 20px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.reservas-hero h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.reservas-hero p {
+    margin: 10px 0 0 0;
+    font-size: 1.1rem;
+    opacity: 0.95;
+}
+
+/* FULLCALENDAR CUSTOMIZATION */
+.fc {
+    font-family: inherit;
+}
+
+.fc .fc-button-primary {
+    background: #d946aa;
+    border-color: #d946aa;
+}
+
+.fc .fc-button-primary:hover {
+    background: #be185d;
+    border-color: #be185d;
+}
+
+.fc .fc-button-primary.fc-button-active {
+    background: #be185d;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(217, 70, 170, 0.1);
+}
+
+.fc .fc-daygrid-day-frame {
+    min-height: 100px;
+}
+
+.calendar-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.reserva-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.reserva-item:hover {
+    box-shadow: 0 8px 16px rgba(217, 70, 170, 0.15);
+}
+
+.reserva-hora {
+    font-weight: 600;
+    color: #d946aa;
+    font-size: 1rem;
+}
+
+.reserva-cliente {
+    font-weight: 500;
+    color: #1f2937;
+    margin-top: 4px;
+}
+
+.reserva-servicio {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 4px;
+}
+
+.reserva-estado {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #fce7f3;
+    color: #be185d;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.stats-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border-left: 4px solid #d946aa;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.stats-label {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.stats-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #d946aa;
+}
+
+.filtros-section {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.filtros-section label {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.filtros-section select {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.filtros-section select:focus {
+    outline: none;
+    border-color: #d946aa;
+    box-shadow: 0 0 0 3px rgba(217, 70, 170, 0.1);
+}
+
+.btn-refresh {
+    background: #f3f4f6;
+    color: #4b5563;
+    padding: 8px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+    background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+    .reservas-hero h1 {
+        font-size: 1.8rem;
+    }
+
+    .stats-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filtros-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .calendar-section {
+        padding: 12px;
+    }
+}

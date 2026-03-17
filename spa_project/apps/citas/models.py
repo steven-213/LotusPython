@@ -11,7 +11,7 @@ class Servicio(models.Model):
         return self.nombre
 
 
-class Cita(models.Model):
+class Reserva(models.Model):
     ESTADOS = [
         ("programada", "Programada"),
         ("confirmada", "Confirmada"),
@@ -28,3 +28,6 @@ class Cita(models.Model):
 
     def __str__(self):
         return f"{self.cliente.nombre} - {self.servicio.nombre}"
+
+    class Meta:
+        db_table = "citas_reserva"

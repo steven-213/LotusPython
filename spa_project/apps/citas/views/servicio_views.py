@@ -12,7 +12,7 @@ def servicios_publicos(request):
 @admin_required_session
 def servicio_lista(request):
     servicios = Servicio.objects.all().order_by("nombre")
-    return render(request, "citas/servicios/lista.html", {"servicios": servicios})
+    return render(request, "citas/dashboard/servicios/lista.html", {"servicios": servicios})
 
 
 @admin_required_session
@@ -25,7 +25,7 @@ def servicio_nuevo(request):
             persona_servicio=request.POST.get("persona_servicio", ""),
         )
         return redirect("citas:servicio_lista")
-    return render(request, "citas/servicios/form.html")
+    return render(request, "citas/dashboard/servicios/form.html")
 
 
 @admin_required_session
@@ -38,7 +38,7 @@ def servicio_editar(request, servicio_id):
         servicio.persona_servicio = request.POST.get("persona_servicio", "")
         servicio.save()
         return redirect("citas:servicio_lista")
-    return render(request, "citas/servicios/form.html", {"servicio": servicio})
+    return render(request, "citas/dashboard/servicios/form.html", {"servicio": servicio})
 
 
 @admin_required_session

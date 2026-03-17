@@ -105,7 +105,7 @@ def venta_lista(request):
         "validaciones_comprado": validaciones_comprado,
         "validaciones_rechazado": validaciones_rechazado,
     }
-    return render(request, "ventas/lista.html", context)
+    return render(request, "ventas/dashboard/lista.html", context)
 
 
 @admin_required_session
@@ -116,13 +116,13 @@ def venta_nueva(request):
         venta = Venta.objects.create(cliente=cliente, total=total)
         return redirect("ventas:venta_detalle", venta_id=venta.id)
     clientes = Usuario.objects.all()
-    return render(request, "ventas/nueva.html", {"clientes": clientes})
+    return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
 
 
 @admin_required_session
 def venta_detalle(request, venta_id):
     venta = get_object_or_404(Venta.objects.select_related("cliente"), id=venta_id)
-    return render(request, "ventas/detalle.html", {"venta": venta})
+    return render(request, "ventas/dashboard/detalle.html", {"venta": venta})
 
 
 @admin_required_session
@@ -182,7 +182,7 @@ def venta_validaciones(request, venta_id):
         "validaciones_comprado": validaciones_comprado,
         "validaciones_rechazado": validaciones_rechazado,
     }
-    return render(request, "ventas/validaciones.html", context)
+    return render(request, "ventas/dashboard/validaciones.html", context)
 
 
 def confirmar_compra_telegram(request, validacion_id):

@@ -10,7 +10,7 @@ def proveedor_lista(request):
     proveedores = Proveedor.objects.all()
     if query:
         proveedores = proveedores.filter(nombre__icontains=query)
-    return render(request, "inventario/proveedores/lista.html", {"proveedores": proveedores, "query": query})
+    return render(request, "inventario/dashboard/proveedores/lista.html", {"proveedores": proveedores, "query": query})
 
 
 @admin_required_session
@@ -26,7 +26,7 @@ def proveedor_nuevo(request):
             pais=request.POST.get("pais", ""),
         )
         return redirect("inventario:proveedor_lista")
-    return render(request, "inventario/proveedores/nuevo.html")
+    return render(request, "inventario/dashboard/proveedores/nuevo.html")
 
 
 @admin_required_session
@@ -35,7 +35,7 @@ def proveedor_detalle(request, proveedor_id):
     productos = proveedor.producto_set.all()
     return render(
         request,
-        "inventario/proveedores/detalle.html",
+        "inventario/dashboard/proveedores/detalle.html",
         {"proveedor": proveedor, "productos": productos},
     )
 
@@ -53,7 +53,7 @@ def proveedor_editar(request, proveedor_id):
         proveedor.pais = request.POST.get("pais", "")
         proveedor.save()
         return redirect("inventario:proveedor_lista")
-    return render(request, "inventario/proveedores/editar.html", {"proveedor": proveedor})
+    return render(request, "inventario/dashboard/proveedores/editar.html", {"proveedor": proveedor})
 
 
 @admin_required_session

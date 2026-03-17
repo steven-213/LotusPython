@@ -161,4 +161,4 @@ def inventario_dashboard(request):
         "estado_compra": estado_compra,
     }
     
-    return render(request, "inventario/dashboard.html", context)
+    return render(request, "inventario/dashboard/dashboard.html", context)

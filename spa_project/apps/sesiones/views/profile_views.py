@@ -21,7 +21,7 @@ def perfil(request):
     
     return render(
         request,
-        "sesiones/perfil.html",
+        "sesiones/public/perfil.html",
         {
             "usuario": usuario,
             "compras_pendientes": compras_pendientes,

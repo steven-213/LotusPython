@@ -131,7 +131,7 @@ def producto_lista(request):
             "necesita_reorden": producto.necesita_reorden
         })
     
-    return render(request, "inventario/productos/lista.html", {
+    return render(request, "inventario/dashboard/productos/lista.html", {
         "productos": productos_list,
         "query": query,
         "sin_stock": sin_stock,
@@ -160,7 +160,7 @@ def producto_nuevo(request):
         )
         return redirect("inventario:producto_lista")
     proveedores = Proveedor.objects.all()
-    return render(request, "inventario/productos/form.html", {"proveedores": proveedores})
+    return render(request, "inventario/dashboard/productos/form.html", {"proveedores": proveedores})
 
 
 @admin_required_session
@@ -183,7 +183,7 @@ def producto_editar(request, producto_id):
     proveedores = Proveedor.objects.all()
     return render(
         request,
-        "inventario/productos/form.html",
+        "inventario/dashboard/productos/form.html",
         {"producto": producto, "proveedores": proveedores},
     )
 
@@ -194,7 +194,7 @@ def producto_detalle(request, producto_id):
     margen = 0
     if producto.precio_compra > 0:
         margen = ((producto.precio_venta - producto.precio_compra) / producto.precio_compra) * 100
-    return render(request, "inventario/productos/detalle.html", {"producto": producto, "margen": margen})
+    return render(request, "inventario/dashboard/productos/detalle.html", {"producto": producto, "margen": margen})
 
 
 @admin_required_session

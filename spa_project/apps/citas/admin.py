@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.citas.models import Cita, Servicio
+from apps.citas.models import Reserva, Servicio
 
 admin.site.register(Servicio)
-admin.site.register(Cita)
+admin.site.register(Reserva)

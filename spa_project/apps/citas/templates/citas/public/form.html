@@ -1,0 +1,128 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}{% if cita %}Editar{% else %}Nueva{% endif %} Cita | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <!-- ENCABEZADO HERO -->
+    <div class="form-hero">
+        <h1 class="h2 mb-1">
+            <i class="bi {% if cita %}bi-pencil-square{% else %}bi-plus-circle{% endif %} me-2"></i>
+            {% if cita %}Editar Cita{% else %}Nueva Cita{% endif %}
+        </h1>
+        <p class="mb-0 text-white text-opacity-90">Reserva tu servicio con nosotros</p>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="form-container">
+        <div class="form-card">
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                <!-- CLIENTE -->
+                {% if not cita %}
+                <div class="form-group">
+                    <label class="form-label" for="cliente">Tu Nombre (opcional)</label>
+                    <input type="text" class="form-control" id="cliente" name="cliente_id" 
+                           placeholder="Solo necesario si no estás logueado">
+                    <small class="form-text">Si estás logueado, los datos se asociarán automáticamente</small>
+                </div>
+                {% endif %}
+
+                <!-- SERVICIO -->
+                <div class="form-group">
+                    <label class="form-label" for="servicio">Servicio <span style="color: #d946aa;">*</span></label>
+                    <select name="servicio_id" id="servicio" class="form-select" required>
+                        <option value="">-- Selecciona un servicio --</option>
+                        {% for s in servicios %}
+                            <option value="{{ s.id }}" 
+                                    data-precio="{{ s.precio }}" 
+                                    data-persona="{{ s.persona_servicio }}"
+                                    {% if cita.servicio_id == s.id %}selected{% endif %}>
+                                {{ s.nombre }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="servicio-info" id="servicio-details" style="display: none;">
+                        <p class="mb-1"><strong>Precio:</strong> $<span id="servicio-precio">0</span></p>
+                        <p class="mb-0"><strong>Profesional:</strong> <span id="servicio-persona">-</span></p>
+                    </div>
+                </div>
+
+                <!-- FECHAS Y HORARIOS -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_inicio">Fecha y Hora Inicio <span style="color: #d946aa;">*</span></label>
+                        <input type="datetime-local" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                               value="{{ cita.fecha_inicio|date:'Y-m-d\TH:i' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_fin">Fecha y Hora Fin <span style="color: #d946aa;">*</span></label>
+                        <input type="datetime-local" class="form-control" id="fecha_fin" name="fecha_fin" 
+                               value="{{ cita.fecha_fin|date:'Y-m-d\TH:i' }}" required>
+                    </div>
+                </div>
+
+                <!-- NOTAS -->
+                <div class="form-group">
+                    <label class="form-label" for="notas">Notas Adicionales</label>
+                    <textarea class="form-control" id="notas" name="notas" rows="4" 
+                              placeholder="Información adicional o preferencias especiales..."
+                              style="resize: vertical;">{% if cita %}{{ cita.notas }}{% endif %}</textarea>
+                    <small class="form-text">Cuéntanos si tienes alguna preferencia especial o limitación</small>
+                </div>
+
+                <!-- ESTADO (SOLO PARA EDICIÓN) -->
+                {% if cita %}
+                <div class="form-group">
+                    <label class="form-label" for="estado">Estado</label>
+                    <select name="estado" id="estado" class="form-select">
+                        {% for estado in "programada,completada,cancelada"|split:"," %}
+                            <option value="{{ estado }}" {% if cita.estado == estado %}selected{% endif %}>
+                                {{ estado|title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <!-- BOTONES -->
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-circle me-2"></i>
+                    {% if cita %}Guardar Cambios{% else %}Agendar Cita{% endif %}
+                </button>
+                <a href="{% if cita %}{% url 'citas:agenda' %}{% else %}{% url 'citas:cita_nueva' %}{% endif %}" class="btn-cancel">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT: Mostrar detalles del servicio -->
+<script>
+    document.getElementById('servicio').addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        const precio = selected.dataset.precio;
+        const persona = selected.dataset.persona;
+
+        if (precio || persona) {
+            document.getElementById('servicio-precio').textContent = precio || '0';
+            document.getElementById('servicio-persona').textContent = persona || '-';
+            document.getElementById('servicio-details').style.display = 'block';
+        } else {
+            document.getElementById('servicio-details').style.display = 'none';
+        }
+    });
+
+    // Mostrar detalles si ya hay servicio seleccionado
+    if (document.getElementById('servicio').value) {
+        document.getElementById('servicio').dispatchEvent(new Event('change'));
+    }
+</script>
+{% endblock %}

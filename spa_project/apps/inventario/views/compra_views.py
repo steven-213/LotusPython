@@ -58,7 +58,7 @@ def compra_lista(request):
     # Obtener proveedores para el filtro
     proveedores = Proveedor.objects.all()
     
-    return render(request, "inventario/compras/lista.html", {
+    return render(request, "inventario/dashboard/compras/lista.html", {
         "compras": compras,
         "query": query,
         "estado_filtro": estado_filtro,
@@ -110,7 +110,7 @@ def compra_nueva(request):
     productos = Producto.objects.all()
     return render(
         request,
-        "inventario/compras/nueva.html",
+        "inventario/dashboard/compras/nueva.html",
         {"proveedores": proveedores, "productos": productos},
     )
 
@@ -122,7 +122,7 @@ def compra_detalle(request, compra_id):
     devoluciones = compra.devoluciones.select_related("producto")
     return render(
         request,
-        "inventario/compras/detalle.html",
+        "inventario/dashboard/compras/detalle.html",
         {"compra": compra, "detalles": detalles, "devoluciones": devoluciones},
     )
 
@@ -141,7 +141,7 @@ def compra_editar(request, compra_id):
     proveedores = Proveedor.objects.all()
     return render(
         request,
-        "inventario/compras/editar.html",
+        "inventario/dashboard/compras/editar.html",
         {"compra": compra, "proveedores": proveedores},
     )
 
@@ -192,7 +192,7 @@ def devolucion_lista(request):
     devoluciones_aprobadas = DevolucionCompra.objects.filter(estado="aprobada").count()
     devoluciones_rechazadas = DevolucionCompra.objects.filter(estado="rechazada").count()
     
-    return render(request, "inventario/devoluciones/lista.html", {
+    return render(request, "inventario/dashboard/devoluciones/lista.html", {
         "devoluciones": devoluciones,
         "estado_filtro": estado_filtro,
         "fecha_inicio": fecha_inicio,
@@ -228,7 +228,7 @@ def devolucion_nueva(request):
         return redirect("inventario:devolucion_lista")
     
     compras = Compra.objects.select_related("proveedor").all()
-    return render(request, "inventario/devoluciones/nueva.html", {"compras": compras})
+    return render(request, "inventario/dashboard/devoluciones/nueva.html", {"compras": compras})
 
 
 @admin_required_session
@@ -236,7 +236,7 @@ def devolucion_detalle(request, devolucion_id):
     devolucion = get_object_or_404(
         DevolucionCompra.objects.select_related("compra", "producto"), id=devolucion_id
     )
-    return render(request, "inventario/devoluciones/detalle.html", {"devolucion": devolucion})
+    return render(request, "inventario/dashboard/devoluciones/detalle.html", {"devolucion": devolucion})
 
 
 @admin_required_session

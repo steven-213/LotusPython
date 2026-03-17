@@ -1,0 +1,124 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Mis Citas | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4">
+    <!-- ENCABEZADO HERO -->
+    <div class="agenda-hero">
+        <h1 class="h2 mb-2"><i class="bi bi-calendar-check me-2"></i>Mis Citas</h1>
+        <p class="mb-0 text-white text-opacity-90">Gestiona tus reservas y servicios</p>
+    </div>
+
+    <!-- FILTROS -->
+    {% if citas %}
+    <div class="filtros-citas">
+        <select class="form-select" style="max-width: 250px;" id="filtro-estado">
+            <option value="">Todos los estados</option>
+            <option value="programada">Programada</option>
+            <option value="completada">Completada</option>
+            <option value="cancelada">Cancelada</option>
+        </select>
+        <button class="btn btn-outline-secondary" onclick="location.reload();">
+            <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- CITAS O ESTADO VACÍO -->
+    {% if citas %}
+        <div class="citas-container">
+            {% for cita in citas %}
+                <div class="cita-card">
+                    <div class="cita-card-header">
+                        <div class="row g-0 align-items-center">
+                            <div class="col-auto">
+                                <p class="cita-fecha mb-0">{{ cita.fecha_inicio|date:"d" }}</p>
+                                <p class="cita-hora">{{ cita.fecha_inicio|date:"M" }}</p>
+                            </div>
+                            <div class="col ps-3">
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar-event me-1"></i>
+                                    {{ cita.fecha_inicio|date:"l, j \d\e F" }}
+                                </small>
+                            </div>
+                            <div class="col-auto text-end">
+                                <span class="estado-badge estado-{{ cita.estado|lower }}">
+                                    {{ cita.estado|title }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cita-card-body">
+                        <div class="row align-items-start">
+                            <div class="col">
+                                <p class="cita-cliente">
+                                    <i class="bi bi-person-circle me-1" style="color: #d946aa;"></i>
+                                    {% if request.session.usuario_rol == "admin" %}
+                                        {{ cita.cliente.nombre }}
+                                    {% else %}
+                                        Tu cita
+                                    {% endif %}
+                                </p>
+
+                                <div class="cita-servicio">
+                                    <i class="bi bi-stars me-1"></i>
+                                    {{ cita.servicio.nombre }}
+                                </div>
+
+                                {% if cita.servicio.precio %}
+                                    <p class="mb-0" style="color: #6b7280; font-size: 0.9rem;">
+                                        <i class="bi bi-cash me-1"></i>
+                                        <strong>${{ cita.servicio.precio }}</strong>
+                                    </p>
+                                {% endif %}
+
+                                <p class="mb-0 mt-2" style="color: #6b7280; font-size: 0.9rem;">
+                                    <i class="bi bi-clock me-1"></i>
+                                    <strong>{{ cita.fecha_inicio|time:"H:i" }}</strong> - 
+                                    <strong>{{ cita.fecha_fin|time:"H:i" }}</strong>
+                                </p>
+
+                                {% if cita.notas %}
+                                    <p class="mb-0 mt-2" style="color: #6b7280; font-size: 0.85rem; font-style: italic;">
+                                        📝 {{ cita.notas }}
+                                    </p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ACCIONES -->
+                        <div class="cita-acciones">
+                            <a href="{% url 'citas:cita_editar' cita.id %}" class="btn-cita btn-editar">
+                                <i class="bi bi-pencil me-1"></i>Editar
+                            </a>
+                            {% if cita.estado|lower != "cancelada" %}
+                                <button class="btn-cita btn-cancelar" onclick="if(confirm('¿Estás seguro?')) { window.location.href='#'; }">
+                                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="bi bi-calendar-x"></i>
+            </div>
+            <h3>No tienes citas programadas</h3>
+            <p>¡Reserva un servicio hoy y disfruta de nuestros tratamientos!</p>
+            <a href="{% url 'citas:cita_nueva' %}" class="btn-nueva-cita">
+                <i class="bi bi-plus-lg me-2"></i>Agendar una Cita
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
