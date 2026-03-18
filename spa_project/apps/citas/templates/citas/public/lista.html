@@ -16,7 +16,7 @@
     </div>
 
     <!-- FILTROS -->
-    {% if citas %}
+    {% if reservas %}
     <div class="filtros-citas">
         <select class="form-select" style="max-width: 250px;" id="filtro-estado">
             <option value="">Todos los estados</option>
@@ -31,25 +31,25 @@
     {% endif %}
 
     <!-- CITAS O ESTADO VACÍO -->
-    {% if citas %}
+    {% if reservas %}
         <div class="citas-container">
-            {% for cita in citas %}
+            {% for reserva in reservas %}
                 <div class="cita-card">
                     <div class="cita-card-header">
                         <div class="row g-0 align-items-center">
                             <div class="col-auto">
-                                <p class="cita-fecha mb-0">{{ cita.fecha_inicio|date:"d" }}</p>
-                                <p class="cita-hora">{{ cita.fecha_inicio|date:"M" }}</p>
+                                <p class="cita-fecha mb-0">{{ reserva.fecha_inicio|date:"d" }}</p>
+                                <p class="cita-hora">{{ reserva.fecha_inicio|date:"M" }}</p>
                             </div>
                             <div class="col ps-3">
                                 <small class="text-muted">
                                     <i class="bi bi-calendar-event me-1"></i>
-                                    {{ cita.fecha_inicio|date:"l, j \d\e F" }}
+                                    {{ reserva.fecha_inicio|date:"l, j \d\e F" }}
                                 </small>
                             </div>
                             <div class="col-auto text-end">
-                                <span class="estado-badge estado-{{ cita.estado|lower }}">
-                                    {{ cita.estado|title }}
+                                <span class="estado-badge estado-{{ reserva.estado|lower }}">
+                                    {{ reserva.estado|title }}
                                 </span>
                             </div>
                         </div>
@@ -61,7 +61,7 @@
                                 <p class="cita-cliente">
                                     <i class="bi bi-person-circle me-1" style="color: #d946aa;"></i>
                                     {% if request.session.usuario_rol == "admin" %}
-                                        {{ cita.cliente.nombre }}
+                                        {{ reserva.cliente.nombre }}
                                     {% else %}
                                         Tu cita
                                     {% endif %}
@@ -69,25 +69,25 @@
 
                                 <div class="cita-servicio">
                                     <i class="bi bi-stars me-1"></i>
-                                    {{ cita.servicio.nombre }}
+                                    {{ reserva.servicio.nombre }}
                                 </div>
 
-                                {% if cita.servicio.precio %}
+                                {% if reserva.servicio.precio %}
                                     <p class="mb-0" style="color: #6b7280; font-size: 0.9rem;">
                                         <i class="bi bi-cash me-1"></i>
-                                        <strong>${{ cita.servicio.precio }}</strong>
+                                        <strong>${{ reserva.servicio.precio }}</strong>
                                     </p>
                                 {% endif %}
 
                                 <p class="mb-0 mt-2" style="color: #6b7280; font-size: 0.9rem;">
                                     <i class="bi bi-clock me-1"></i>
-                                    <strong>{{ cita.fecha_inicio|time:"H:i" }}</strong> - 
-                                    <strong>{{ cita.fecha_fin|time:"H:i" }}</strong>
+                                    <strong>{{ reserva.fecha_inicio|time:"H:i" }}</strong> - 
+                                    <strong>{{ reserva.fecha_fin|time:"H:i" }}</strong>
                                 </p>
 
-                                {% if cita.notas %}
+                                {% if reserva.notas %}
                                     <p class="mb-0 mt-2" style="color: #6b7280; font-size: 0.85rem; font-style: italic;">
-                                        📝 {{ cita.notas }}
+                                        📝 {{ reserva.notas }}
                                     </p>
                                 {% endif %}
                             </div>
@@ -95,10 +95,10 @@
 
                         <!-- ACCIONES -->
                         <div class="cita-acciones">
-                            <a href="{% url 'citas:cita_editar' cita.id %}" class="btn-cita btn-editar">
+                            <a href="{% url 'citas:reserva_editar' reserva.id %}" class="btn-cita btn-editar">
                                 <i class="bi bi-pencil me-1"></i>Editar
                             </a>
-                            {% if cita.estado|lower != "cancelada" %}
+                            {% if reserva.estado|lower != "cancelada" %}
                                 <button class="btn-cita btn-cancelar" onclick="if(confirm('¿Estás seguro?')) { window.location.href='#'; }">
                                     <i class="bi bi-x-lg me-1"></i>Cancelar
                                 </button>
@@ -115,10 +115,11 @@
             </div>
             <h3>No tienes citas programadas</h3>
             <p>¡Reserva un servicio hoy y disfruta de nuestros tratamientos!</p>
-            <a href="{% url 'citas:cita_nueva' %}" class="btn-nueva-cita">
+            <a href="{% url 'citas:reserva_nueva' %}" class="btn-nueva-cita">
                 <i class="bi bi-plus-lg me-2"></i>Agendar una Cita
             </a>
         </div>
     {% endif %}
 </div>
 {% endblock %}
+

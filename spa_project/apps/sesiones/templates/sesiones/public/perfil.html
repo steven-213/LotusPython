@@ -3,156 +3,190 @@
 
 {% block title %}Perfil | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
 <link rel="stylesheet" href="{% static 'css/site/perfil.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="encabezado-pagina">
-  <h1>Perfil</h1>
-  {% if usuario %}
-  <p>{{ usuario.nombre }} {{ usuario.apellido }} - {{ usuario.rol }}</p>
-  {% else %}
-  <p>Sin sesion activa.</p>
-  {% endif %}
-</section>
+<section class="perfil-shell">
+  <header class="perfil-hero">
+    {% if usuario %}
+    <div>
+      <p class="perfil-tag">Mi cuenta</p>
+      <h1>{{ usuario.nombre }} {{ usuario.apellido }}</h1>
+      <p class="perfil-copy">Revisa tu agenda y tus compras en un solo lugar.</p>
+      <div class="perfil-meta">
+        <span>{{ usuario.correo }}</span>
+        <span class="chip chip-rol">{{ usuario.rol|capfirst }}</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a class="boton boton-suave" href="{% url 'citas:agenda' %}">Ver agenda completa</a>
+      <a class="boton boton-primario" href="{% url 'inventario:productos_publicos' %}">Comprar productos</a>
+    </div>
+    {% else %}
+    <div>
+      <h1>Perfil</h1>
+      <p class="perfil-copy">No hay sesion activa en este momento.</p>
+    </div>
+    {% endif %}
+  </header>
 
-<section class="panel-tienda">
-  <h2>Compras pendientes</h2>
-  {% if compras_pendientes %}
-  <div class="lista-compras">
-    {% for c in compras_pendientes %}
-    <article class="tarjeta-compra">
-      <header class="cabecera-compra">
-        <div>
-          <strong>Venta #{{ c.venta.id }}</strong>
-          <span class="fecha-compra">{{ c.fecha_validacion|date:"d/m/Y H:i" }}</span>
-        </div>
-        <span class="estado-compra estado-{{ c.estado }}">{{ c.estado }}</span>
-      </header>
-      <div class="meta-compra">
-        <span>Monto: ${{ c.monto }}</span>
-        {% if c.metodo_pago %}<span>Metodo: {{ c.metodo_pago }}</span>{% endif %}
-        {% if c.referencia_pago %}<span>Ref: {{ c.referencia_pago }}</span>{% endif %}
-      </div>
-      <div class="lista-items">
-        {% for d in c.venta.detalles.all %}
-        <div class="item-compra">
-          <div class="foto-producto">
-            {% if d.producto.imagen %}
-              <img src="{{ d.producto.imagen }}" alt="Imagen de {{ d.producto.nombre }}" loading="lazy">
-            {% else %}
-              <img src="{% static 'img/productos.png' %}" alt="Sin imagen de {{ d.producto.nombre }}" loading="lazy">
-            {% endif %}
-          </div>
-          <div class="info-producto">
-            <strong>{{ d.producto.nombre }}</strong>
-            <div>Cantidad: {{ d.cantidad }}</div>
-            <div>Precio unitario: ${{ d.precio_unitario }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% if c.observaciones %}
-      <p class="nota-compra">{{ c.observaciones }}</p>
+  <section class="resumen-grid" aria-label="Resumen de tu cuenta">
+    <article class="resumen-card">
+      <p class="resumen-label">Agendas registradas</p>
+      <p class="resumen-value">{{ total_agendas }}</p>
+    </article>
+    <article class="resumen-card">
+      <p class="resumen-label">Proxima agenda</p>
+      {% if proxima_reserva %}
+      <p class="resumen-value resumen-value-sm">{{ proxima_reserva.fecha_inicio|date:"d/m/Y" }}</p>
+      <p class="resumen-sub">{{ proxima_reserva.fecha_inicio|time:"H:i" }} - {{ proxima_reserva.servicio.nombre }}</p>
+      {% else %}
+      <p class="resumen-value resumen-value-sm">Sin agenda proxima</p>
       {% endif %}
     </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p>No tienes compras pendientes.</p>
-  {% endif %}
-</section>
+    <article class="resumen-card">
+      <p class="resumen-label">Compras confirmadas</p>
+      <p class="resumen-value">{{ compras_compradas|length }}</p>
+    </article>
+    <article class="resumen-card">
+      <p class="resumen-label">Productos comprados</p>
+      <p class="resumen-value">{{ total_items_comprados }}</p>
+      <p class="resumen-sub">{{ total_productos_comprados }} productos diferentes</p>
+    </article>
+  </section>
 
-<section class="panel-tienda">
-  <h2>Compras confirmadas</h2>
-  {% if compras_compradas %}
-  <div class="lista-compras">
-    {% for c in compras_compradas %}
-    <article class="tarjeta-compra">
-      <header class="cabecera-compra">
-        <div>
-          <strong>Venta #{{ c.venta.id }}</strong>
-          <span class="fecha-compra">{{ c.fecha_validacion|date:"d/m/Y H:i" }}</span>
-        </div>
-        <span class="estado-compra estado-{{ c.estado }}">{{ c.estado }}</span>
+  <section class="perfil-grid">
+    <article class="panel-perfil">
+      <header class="panel-head">
+        <h2>Mis agendas</h2>
+        <a class="texto-link" href="{% url 'citas:reserva_nueva' %}">Agendar nueva cita</a>
       </header>
-      <div class="meta-compra">
-        <span>Monto: ${{ c.monto }}</span>
-        {% if c.metodo_pago %}<span>Metodo: {{ c.metodo_pago }}</span>{% endif %}
-        {% if c.referencia_pago %}<span>Ref: {{ c.referencia_pago }}</span>{% endif %}
+
+      <div class="panel-block">
+        <h3>Proximas citas</h3>
+        {% if agendas_proximas %}
+        <div class="agenda-lista">
+          {% for reserva in agendas_proximas %}
+          <article class="agenda-card">
+            <div class="agenda-top">
+              <strong>{{ reserva.servicio.nombre }}</strong>
+              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.estado|capfirst }}</span>
+            </div>
+            <p class="agenda-date">{{ reserva.fecha_inicio|date:"l d \d\e F, Y" }}</p>
+            <p class="agenda-time">{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+            {% if reserva.notas %}
+            <p class="agenda-note">{{ reserva.notas }}</p>
+            {% endif %}
+            {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+            <a class="texto-link" href="{% url 'citas:reserva_editar' reserva.id %}">Editar reserva</a>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="empty-card">
+          <p>No tienes citas activas. Agenda una para comenzar.</p>
+        </article>
+        {% endif %}
       </div>
-      <div class="lista-items">
-        {% for d in c.venta.detalles.all %}
-        <div class="item-compra">
-          <div class="foto-producto">
-            {% if d.producto.imagen %}
-              <img src="{{ d.producto.imagen }}" alt="Imagen de {{ d.producto.nombre }}" loading="lazy">
+
+      <div class="panel-block">
+        <h3>Historial de agendas</h3>
+        {% if agendas_historial %}
+        <div class="agenda-lista agenda-historial">
+          {% for reserva in agendas_historial|slice:":6" %}
+          <article class="agenda-card agenda-card-lite">
+            <div class="agenda-top">
+              <strong>{{ reserva.servicio.nombre }}</strong>
+              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.estado|capfirst }}</span>
+            </div>
+            <p class="agenda-time">{{ reserva.fecha_inicio|date:"d/m/Y H:i" }}</p>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="empty-card">
+          <p>Todavia no tienes historial de citas.</p>
+        </article>
+        {% endif %}
+      </div>
+    </article>
+
+    <article class="panel-perfil">
+      <header class="panel-head">
+        <h2>Productos comprados</h2>
+        <a class="texto-link" href="{% url 'inventario:productos_publicos' %}">Ver catalogo</a>
+      </header>
+
+      {% if productos_comprados %}
+      <div class="productos-grid">
+        {% for item in productos_comprados %}
+        <article class="producto-card-perfil">
+          <div class="producto-media">
+            {% if item.producto.imagen %}
+            <img src="{{ item.producto.imagen }}" alt="Imagen de {{ item.producto.nombre }}" loading="lazy">
             {% else %}
-              <img src="{% static 'img/productos.png' %}" alt="Sin imagen de {{ d.producto.nombre }}" loading="lazy">
+            <div class="producto-placeholder">{{ item.producto.nombre|slice:":1"|upper }}</div>
             {% endif %}
           </div>
-          <div class="info-producto">
-            <strong>{{ d.producto.nombre }}</strong>
-            <div>Cantidad: {{ d.cantidad }}</div>
-            <div>Precio unitario: ${{ d.precio_unitario }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% if c.observaciones %}
-      <p class="nota-compra">{{ c.observaciones }}</p>
-      {% endif %}
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <p>No tienes compras confirmadas.</p>
-  {% endif %}
-</section>
-
-{% if compras_rechazadas %}
-<section class="panel-tienda">
-  <h2>Compras rechazadas</h2>
-  <div class="lista-compras">
-    {% for c in compras_rechazadas %}
-    <article class="tarjeta-compra">
-      <header class="cabecera-compra">
-        <div>
-          <strong>Venta #{{ c.venta.id }}</strong>
-          <span class="fecha-compra">{{ c.fecha_validacion|date:"d/m/Y H:i" }}</span>
-        </div>
-        <span class="estado-compra estado-{{ c.estado }}">{{ c.estado }}</span>
-      </header>
-      <div class="meta-compra">
-        <span>Monto: ${{ c.monto }}</span>
-        {% if c.metodo_pago %}<span>Metodo: {{ c.metodo_pago }}</span>{% endif %}
-        {% if c.referencia_pago %}<span>Ref: {{ c.referencia_pago }}</span>{% endif %}
-      </div>
-      <div class="lista-items">
-        {% for d in c.venta.detalles.all %}
-        <div class="item-compra">
-          <div class="foto-producto">
-            {% if d.producto.imagen %}
-              <img src="{{ d.producto.imagen }}" alt="Imagen de {{ d.producto.nombre }}" loading="lazy">
-            {% else %}
-              <img src="{% static 'img/productos.png' %}" alt="Sin imagen de {{ d.producto.nombre }}" loading="lazy">
+          <div class="producto-info">
+            <h3>{{ item.producto.nombre }}</h3>
+            {% if item.producto.descripcion %}
+            <p>{{ item.producto.descripcion|truncatechars:95 }}</p>
             {% endif %}
+            <div class="producto-metas">
+              <span>{{ item.cantidad_total }} unidades</span>
+              <span>{{ item.ordenes }} compras</span>
+              <span>${{ item.total_gastado }}</span>
+              <span>Ultima: {{ item.ultima_compra|date:"d/m/Y" }}</span>
+            </div>
           </div>
-          <div class="info-producto">
-            <strong>{{ d.producto.nombre }}</strong>
-            <div>Cantidad: {{ d.cantidad }}</div>
-            <div>Precio unitario: ${{ d.precio_unitario }}</div>
-          </div>
-        </div>
+        </article>
         {% endfor %}
       </div>
-      {% if c.observaciones %}
-      <p class="nota-compra">{{ c.observaciones }}</p>
+      {% else %}
+      <article class="empty-card">
+        <p>Aun no tienes compras confirmadas de productos.</p>
+      </article>
       {% endif %}
     </article>
-    {% endfor %}
-  </div>
+  </section>
+
+  <section class="panel-perfil panel-validaciones">
+    <header class="panel-head">
+      <h2>Estado de compras recientes</h2>
+    </header>
+
+    <div class="chips-row">
+      <span class="chip chip-pendiente">Pendientes: {{ compras_pendientes|length }}</span>
+      <span class="chip chip-comprado">Confirmadas: {{ compras_compradas|length }}</span>
+      <span class="chip chip-rechazado">Rechazadas: {{ compras_rechazadas|length }}</span>
+    </div>
+
+    {% if validaciones_recientes %}
+    <div class="validaciones-lista">
+      {% for compra in validaciones_recientes %}
+      <article class="validacion-item">
+        <div>
+          <strong>Venta #{{ compra.venta.id }}</strong>
+          <p>{{ compra.fecha_validacion|date:"d/m/Y H:i" }}</p>
+        </div>
+        <div class="validacion-meta">
+          <span class="estado-pill estado-{{ compra.estado }}">{{ compra.estado|capfirst }}</span>
+          <span>${{ compra.monto }}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <article class="empty-card">
+      <p>No hay validaciones de compra registradas.</p>
+    </article>
+    {% endif %}
+  </section>
 </section>
-{% endif %}
 {% endblock %}

@@ -1,0 +1,16 @@
+.encabezado-calendario,
+.tarjeta-calendario,
+.encabezado-ventas,
+.resumen-ventas,
+.tabla-ventas-contenedor {
+  background: #fff;
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.tarjeta-calendario,
+.resumen-ventas,
+.tabla-ventas-contenedor {
+  margin-top: 1rem;
+}

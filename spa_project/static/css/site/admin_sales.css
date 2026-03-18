@@ -1,0 +1,53 @@
+.encabezado-ventas,
+.resumen-ventas,
+.tabla-ventas-contenedor {
+  background: #fff;
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.resumen-ventas,
+.tabla-ventas-contenedor {
+  margin-top: 1rem;
+}
+
+.resumen-ventas {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tarjeta-resumen {
+  border: 1px solid #fee7ed;
+  border-radius: 12px;
+  padding: 0.7rem;
+}
+
+.tarjeta-resumen p {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tabla-ventas {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-ventas th,
+.tabla-ventas td {
+  border: 1px solid #fee7ed;
+  padding: 0.7rem;
+  text-align: left;
+}
+
+.barra-ventas {
+  margin-bottom: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .resumen-ventas {
+    grid-template-columns: 1fr;
+  }
+}

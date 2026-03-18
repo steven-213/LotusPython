@@ -35,11 +35,13 @@ def api_eventos(request):
             {
                 "id": reserva.id,
                 "title": f"{reserva.cliente.nombre} - {reserva.servicio.nombre}",
-                "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
-                "servicio": reserva.servicio.nombre,
-                "startDate": reserva.fecha_inicio.isoformat(),
-                "endDate": reserva.fecha_fin.isoformat(),
-                "estado": reserva.estado,
+                "start": reserva.fecha_inicio.isoformat(),
+                "end": reserva.fecha_fin.isoformat(),
+                "extendedProps": {
+                    "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
+                    "servicio": reserva.servicio.nombre,
+                    "estado": reserva.estado,
+                },
             }
             for reserva in reservas
         ]
@@ -49,8 +51,8 @@ def api_eventos(request):
         body = json.loads(request.body or "{}")
         cliente_id = body.get("cliente_id")
         servicio_id = body.get("servicio_id")
-        inicio = parse_datetime(body.get("startDate")) or timezone.now()
-        fin = parse_datetime(body.get("endDate")) or (inicio + timedelta(hours=1))
+        inicio = parse_datetime(body.get("start")) or timezone.now()
+        fin = parse_datetime(body.get("end")) or (inicio + timedelta(hours=1))
 
         if usuario_rol != Usuario.ROL_ADMIN:
             cliente_id = usuario_id
@@ -74,11 +76,13 @@ def api_eventos(request):
             {
                 "id": reserva.id,
                 "title": f"{reserva.cliente.nombre} - {reserva.servicio.nombre}",
-                "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
-                "servicio": reserva.servicio.nombre,
-                "startDate": reserva.fecha_inicio.isoformat(),
-                "endDate": reserva.fecha_fin.isoformat(),
-                "estado": reserva.estado,
+                "start": reserva.fecha_inicio.isoformat(),
+                "end": reserva.fecha_fin.isoformat(),
+                "extendedProps": {
+                    "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
+                    "servicio": reserva.servicio.nombre,
+                    "estado": reserva.estado,
+                },
             },
             status=201,
         )

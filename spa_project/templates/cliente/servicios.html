@@ -87,8 +87,8 @@ async function agendarServicio(btn) {
       title: nombreServicio,
       cliente_id: {{ request.session.usuario_id|default:"null" }},
       servicio_id: servicioId || null,
-      startDate: formatForAPI(start),
-      endDate: formatForAPI(end),
+      start: formatForAPI(start),
+      end: formatForAPI(end),
     });
     await Swal.fire("Listo", "La cita fue creada", "success");
     location.reload();
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     initialView: "timeGridWeek",
     locale: "es",
     height: 700,
-    events: events.map(e => ({ id: e.id, title: e.title, start: e.startDate, end: e.endDate }))
+    events: events.map(e => ({ id: e.id, title: e.title, start: e.start, end: e.end }))
   });
   calendar.render();
 });

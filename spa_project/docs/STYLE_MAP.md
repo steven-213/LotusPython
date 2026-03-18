@@ -6,10 +6,8 @@
 - `static/css/site/conocenos.css`: about page sections (`templates/conocenos.html`).
 - `static/css/site/auth.css`: login/registro forms (`templates/login.html`, `templates/registro.html`).
 - `static/css/site/admin_dashboard.css`: admin dashboard (`templates/administrador/dashboard.html`).
-- `static/css/site/admin_calendar.css`: admin calendar page (`templates/administrador/calendar.html`).
-- `static/css/site/admin_sales.css`: admin sales page (`templates/administrador/ventas.html`).
 - `static/css/site/services_page.css`: client services page (`templates/cliente/servicios.html`).
-- `static/css/site/shop_page.css`: client shop/result pages (`templates/cliente/compra.html`, `templates/cliente/resultado.html`, `templates/sesiones/perfil.html`).
+- `static/css/site/shop_page.css`: client shop/profile pages (`templates/cliente/compra.html`, `templates/sesiones/perfil.html`).
 - `static/css/site/perfil.css`: user profile purchases (`templates/sesiones/perfil.html`).
 
 ## Shared Base Templates

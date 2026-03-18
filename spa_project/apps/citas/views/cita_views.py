@@ -40,7 +40,7 @@ def reserva_nueva(request):
         )
         return redirect("citas:agenda")
     servicios = Servicio.objects.all()
-    return render(request, "citas/public/form.html", {"servicios": servicios})
+    return render(request, "citas/public/form.html", {"servicios": servicios, "reserva": None})
 
 
 @login_required_session

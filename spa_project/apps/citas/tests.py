@@ -26,6 +26,9 @@ class CitasViewsAndApiTest(TestCase):
         session.save()
 
     def test_calendario_ok(self):
+        session = self.client.session
+        session["usuario_rol"] = "admin"
+        session.save()
         response = self.client.get(reverse("citas:calendario"))
         self.assertEqual(response.status_code, 200)
 
@@ -36,8 +39,8 @@ class CitasViewsAndApiTest(TestCase):
                 {
                     "cliente_id": self.usuario.id,
                     "servicio_id": self.servicio.id,
-                    "startDate": "2026-03-09T10:00:00Z",
-                    "endDate": "2026-03-09T11:00:00Z",
+                    "start": "2026-03-09T10:00:00Z",
+                    "end": "2026-03-09T11:00:00Z",
                 }
             ),
             content_type="application/json",

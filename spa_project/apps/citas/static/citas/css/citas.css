@@ -3,7 +3,7 @@
    =========================== */
 
 .agenda-hero {
-    background: linear-gradient(135deg, #d946aa 0%, #ec4899 100%);
+    background: linear-gradient(120deg, #fff6fd 0%, #ffe6f6 60%, #ffd0eb 100%);
     border-radius: 12px;
     color: white;
     padding: 40px 20px;
@@ -212,7 +212,7 @@
    =========================== */
 
 .form-hero {
-    background: linear-gradient(135deg, #d946aa 0%, #ec4899 100%);
+     background: linear-gradient(120deg, #fff6fd 0%, #ffe6f6 60%, #ffd0eb 100%);
     border-radius: 12px;
     color: white;
     padding: 40px 20px;
