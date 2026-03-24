@@ -77,11 +77,11 @@
                                         <span class="badge bg-light text-dark">{{ detalle.cantidad }}</span>
                                     </td>
                                     <td style="text-align: right; color: #666;">
-                                        ${{ detalle.precio_unitario|floatformat:2 }}
+                                        {{ detalle.precio_unitario|currency }}
                                     </td>
                                     <td style="text-align: right;">
                                         <strong style="color: #ca6b86;">
-                                            ${{ detalle.subtotal|floatformat:2 }}
+                                            {{ detalle.subtotal|currency }}
                                         </strong>
                                     </td>
                                 </tr>
@@ -111,15 +111,15 @@
                     {% with detalles=venta.detalles.all %}
                     <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid #ecf0f1;">
                         <span style="color: #666;">Subtotal:</span>
-                        <strong style="color: #3b2b32;">${{ detalles|dictsort:"subtotal"|first|default:"0" }}</strong>
+                        <strong style="color: #3b2b32;">{{ venta.total|currency }}</strong>
                     </div>
                     <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid #ecf0f1;">
                         <span style="color: #666;">Impuesto (IVA):</span>
-                        <strong style="color: #3b2b32;">$0.00</strong>
+                        <strong style="color: #3b2b32;">{{ 0|currency }}</strong>
                     </div>
                     <div class="d-flex justify-content-between" style="background-color: #fbcdd9; padding: 1rem; border-radius: 0.5rem;">
                         <span style="font-weight: 700; color: #3b2b32;">Total:</span>
-                        <strong style="color: #ca6b86; font-size: 1.3rem;">${{ venta.total|floatformat:2 }}</strong>
+                        <strong style="color: #ca6b86; font-size: 1.3rem;">{{ venta.total|currency }}</strong>
                     </div>
                     {% endwith %}
                 </div>

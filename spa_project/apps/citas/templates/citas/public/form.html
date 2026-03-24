@@ -1,127 +1,278 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}{% if reserva %}Editar{% else %}Nueva{% endif %} Cita | Lotus Dream Spa{% endblock %}
+{% block title %}{% if reserva %}Editar cita{% else %}Agendar cita{% endif %} | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="container-lg py-4">
-    <!-- ENCABEZADO HERO -->
-    <div class="form-hero">
-        <h1 class="h2 mb-1">
-            <i class="bi {% if reserva %}bi-pencil-square{% else %}bi-plus-circle{% endif %} me-2"></i>
-            {% if reserva %}Editar Cita{% else %}Nueva Cita{% endif %}
-        </h1>
-        <p class="mb-0 text-white text-opacity-90">Reserva tu servicio con nosotros</p>
+<section class="citas-page-shell">
+  <header class="citas-hero">
+    <div>
+      <p class="eyebrow">Modulo de citas</p>
+      <h1>{% if reserva %}Editar cita{% else %}Agenda tu cita{% endif %}</h1>
+      {% if reserva %}
+      <p>Actualiza el servicio, la fecha o las notas de la reserva sin perder el seguimiento del proceso.</p>
+      {% elif usuario %}
+      <p>Reserva tu espacio y decide si quieres pagar ahora o hacerlo de manera presencial el dia de la atencion.</p>
+      {% else %}
+      <p>Puedes reservar sin cuenta. En ese caso el pago se registra en este mismo paso para dejar tu cita confirmada.</p>
+      {% endif %}
     </div>
+    <div class="hero-actions hero-actions-stacked">
+      {% if usuario %}
+      <span class="mode-pill mode-pill-auth"><i class="bi bi-person-check"></i> Cliente autenticado</span>
+      {% else %}
+      <span class="mode-pill mode-pill-guest"><i class="bi bi-person-bounding-box"></i> Reserva sin iniciar sesion</span>
+      {% endif %}
+      <a class="btn-secondary-soft" href="{% url 'citas:servicios_publicos' %}">Ver catalogo de servicios</a>
+    </div>
+  </header>
+  <section class="info-grid">
+    <article class="info-card">
+      <h2><i class="bi bi-shield-check"></i> Agenda protegida</h2>
+      <p>Los horarios se validan contra la profesional asignada para evitar que dos clientes tomen el mismo espacio.</p>
+    </article>
+    <article class="info-card">
+      <h2><i class="bi bi-receipt-cutoff"></i> Pago y comprobante</h2>
+      <p>Si registras pago en este paso, la cita queda confirmada y el comprobante podra descargarse mas adelante.</p>
+    </article>
+  </section>
 
-    <!-- FORMULARIO -->
-    <div class="form-container">
-        <div class="form-card">
-            <form method="post" novalidate>
-                {% csrf_token %}
+  <div class="citas-form-layout">
+    <article class="form-surface">
+      <form method="post" class="citas-form" novalidate>
+        {% csrf_token %}
 
-                <!-- CLIENTE -->
-                {% if not reserva %}
-                <div class="form-group">
-                    <label class="form-label" for="cliente">Tu Nombre (opcional)</label>
-                    <input type="text" class="form-control" id="cliente" name="cliente_id" 
-                           placeholder="Solo necesario si no estás logueado">
-                    <small class="form-text">Si estás logueado, los datos se asociarán automáticamente</small>
-                </div>
-                {% endif %}
+        {% if not reserva and not usuario %}
+        <section class="form-section">
+          <div class="section-heading">
+            <h2>Datos del cliente</h2>
+            <p>Usaremos esta informacion para crear o reutilizar tu registro como cliente y asociar la reserva.</p>
+          </div>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Documento</span>
+              <input class="form-control" type="number" name="documento" min="1" value="{{ request.POST.documento|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Fecha de nacimiento</span>
+              <input class="form-control" type="date" name="fecha_nacimiento" value="{{ request.POST.fecha_nacimiento|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Nombre</span>
+              <input class="form-control" type="text" name="nombre" value="{{ request.POST.nombre|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Apellido</span>
+              <input class="form-control" type="text" name="apellido" value="{{ request.POST.apellido|default:'' }}" required>
+            </label>
+            <label class="field field-full">
+              <span>Correo</span>
+              <input class="form-control" type="email" name="correo" value="{{ request.POST.correo|default:'' }}" required>
+            </label>
+          </div>
+        </section>
+        {% endif %}
 
-                <!-- SERVICIO -->
-                <div class="form-group">
-                    <label class="form-label" for="servicio">Servicio <span style="color: #d946aa;">*</span></label>
-                    <select name="servicio_id" id="servicio" class="form-select" required>
-                        <option value="">-- Selecciona un servicio --</option>
-                        {% for s in servicios %}
-                            <option value="{{ s.id }}" 
-                                    data-precio="{{ s.precio }}" 
-                                    data-persona="{{ s.persona_servicio }}"
-                                    {% if reserva.servicio_id == s.id %}selected{% endif %}>
-                                {{ s.nombre }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <div class="servicio-info" id="servicio-details" style="display: none;">
-                        <p class="mb-1"><strong>Precio:</strong> $<span id="servicio-precio">0</span></p>
-                        <p class="mb-0"><strong>Profesional:</strong> <span id="servicio-persona">-</span></p>
-                    </div>
-                </div>
+        <section class="form-section">
+          <div class="section-heading">
+            <h2>Datos de la cita</h2>
+            <p>Selecciona el servicio y el momento en el que quieres ser atendido.</p>
+          </div>
+          <div class="form-grid two-up">
+            <label class="field field-full">
+              <span>Servicio</span>
+              <select class="form-select" name="servicio_id" id="servicio" required>
+                <option value="">Selecciona un servicio</option>
+                {% for s in servicios %}
+                <option
+                  value="{{ s.id }}"
+                  data-precio="{{ s.precio }}"
+                  data-profesional="{{ s.profesional.nombre|default:'Sin asignar' }}"
+                  data-duracion="{{ s.duracion_minutos }}"
+                  {% if reserva and reserva.servicio_id == s.id %}selected{% elif not reserva and servicio_preseleccionado == s.id|stringformat:"s" %}selected{% elif request.POST.servicio_id == s.id|stringformat:"s" %}selected{% endif %}
+                >
+                  {{ s.nombre }}
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Fecha y hora de inicio</span>
+              <input
+                class="form-control"
+                type="datetime-local"
+                id="fecha_inicio"
+                name="fecha_inicio"
+                value="{% if request.POST.fecha_inicio %}{{ request.POST.fecha_inicio }}{% elif reserva %}{{ reserva.fecha_inicio|date:'Y-m-d\\TH:i' }}{% endif %}"
+                required
+              >
+            </label>
+            <label class="field">
+              <span>Notas</span>
+              <textarea class="form-control" name="notas" rows="4" placeholder="Comentarios, preferencias o informacion adicional.">{% if request.POST.notas %}{{ request.POST.notas }}{% elif reserva %}{{ reserva.notas }}{% endif %}</textarea>
+            </label>
+          </div>
 
-                <!-- FECHAS Y HORARIOS -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label" for="fecha_inicio">Fecha y Hora Inicio <span style="color: #d946aa;">*</span></label>
-                        <input type="datetime-local" class="form-control" id="fecha_inicio" name="fecha_inicio" 
-                               value="{{ reserva.fecha_inicio|date:'Y-m-d\TH:i' }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="fecha_fin">Fecha y Hora Fin <span style="color: #d946aa;">*</span></label>
-                        <input type="datetime-local" class="form-control" id="fecha_fin" name="fecha_fin" 
-                               value="{{ reserva.fecha_fin|date:'Y-m-d\TH:i' }}" required>
-                    </div>
-                </div>
+          <aside class="service-summary" id="servicio-details">
+            <div>
+              <span class="summary-label">Precio</span>
+              <strong id="servicio-precio">{{ 0|currency }}</strong>
+            </div>
+            <div>
+              <span class="summary-label">Profesional</span>
+              <strong id="servicio-profesional">Sin asignar</strong>
+            </div>
+            <div>
+              <span class="summary-label">Duracion</span>
+              <strong><span id="servicio-duracion">0</span> min</strong>
+            </div>
+          </aside>
+        </section>
 
-                <!-- NOTAS -->
-                <div class="form-group">
-                    <label class="form-label" for="notas">Notas Adicionales</label>
-                    <textarea class="form-control" id="notas" name="notas" rows="4" 
-                              placeholder="Información adicional o preferencias especiales..."
-                              style="resize: vertical;">{% if reserva %}{{ reserva.notas }}{% endif %}</textarea>
-                    <small class="form-text">Cuéntanos si tienes alguna preferencia especial o limitación</small>
-                </div>
+        {% if not reserva %}
+        <section class="form-section payment-section" id="payment-section">
+          <div class="section-heading">
+            <h2>Pago</h2>
+            {% if usuario %}
+            <p>Si prefieres, puedes dejar esta cita programada y pagarla mas tarde de forma presencial.</p>
+            {% else %}
+            <p>Para reservar sin iniciar sesion necesitamos registrar el pago en este mismo flujo.</p>
+            {% endif %}
+          </div>
 
-                <!-- ESTADO (SOLO PARA EDICIÓN) -->
-                {% if reserva %}
-                <div class="form-group">
-                    <label class="form-label" for="estado">Estado</label>
-                    <select name="estado" id="estado" class="form-select">
-                        <option value="programada" {% if reserva.estado == "programada" %}selected{% endif %}>Programada</option>
-                        <option value="confirmada" {% if reserva.estado == "confirmada" %}selected{% endif %}>Confirmada</option>
-                        <option value="cancelada" {% if reserva.estado == "cancelada" %}selected{% endif %}>Cancelada</option>
-                        <option value="finalizada" {% if reserva.estado == "finalizada" %}selected{% endif %}>Finalizada</option>
-                    </select>
-                </div>
-                {% endif %}
+          {% if usuario %}
+          <label class="toggle-payment">
+            <input type="checkbox" id="pagar_ahora" name="pagar_ahora" value="1" {% if request.POST.pagar_ahora == '1' %}checked{% endif %}>
+            <span>Registrar el pago ahora para dejar la cita confirmada</span>
+          </label>
+          {% else %}
+          <div class="payment-callout required">
+            <i class="bi bi-exclamation-circle"></i>
+            <div>
+              <strong>Pago obligatorio en reserva publica</strong>
+              <p>Tu cita quedara confirmada apenas registremos el pago en este paso.</p>
+            </div>
+          </div>
+          {% endif %}
 
-                <!-- BOTONES -->
-                <button type="submit" class="btn-submit">
-                    <i class="bi bi-check-circle me-2"></i>
-                    {% if reserva %}Guardar Cambios{% else %}Agendar Cita{% endif %}
-                </button>
-                <a href="{% if reserva %}{% url 'citas:agenda' %}{% else %}{% url 'citas:reserva_nueva' %}{% endif %}" class="btn-cancel">
-                    <i class="bi bi-x-circle me-2"></i>Cancelar
-                </a>
-            </form>
+          <div class="form-grid two-up" id="payment-fields">
+            <label class="field">
+              <span>Metodo de pago</span>
+              <select class="form-select" name="metodo_pago" id="metodo_pago">
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}" {% if request.POST.metodo_pago == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" value="{{ request.POST.referencia_pago|default:'' }}" placeholder="Opcional si aplica">
+            </label>
+          </div>
+        </section>
+        {% endif %}
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary-strong">
+            {% if reserva %}<i class="bi bi-check2-circle"></i> Guardar cambios{% else %}<i class="bi bi-calendar-plus"></i> Confirmar solicitud{% endif %}
+          </button>
+          <a class="btn-secondary-soft" href="{% if reserva %}{% url 'citas:reserva_detalle' reserva.id %}{% else %}{% url 'citas:servicios_publicos' %}{% endif %}">
+            Volver
+          </a>
         </div>
-    </div>
-</div>
+      </form>
+    </article>
 
-<!-- SCRIPT: Mostrar detalles del servicio -->
+    <aside class="side-surface">
+      <div class="side-panel">
+        <h2>Como funcionara esta reserva</h2>
+        <ol class="flow-list">
+          <li>Seleccionas el servicio y la fecha de inicio.</li>
+          {% if usuario %}
+          <li>Decides si pagas ahora o si la dejas para pago presencial.</li>
+          <li>La cita quedara programada o confirmada segun esa decision.</li>
+          {% else %}
+          <li>Se registra tu pago y la cita queda confirmada de inmediato.</li>
+          <li>Al final veras el resumen y podras descargar el comprobante.</li>
+          {% endif %}
+        </ol>
+      </div>
+      <div class="side-panel subtle">
+        <h2>Estados del proceso</h2>
+        <div class="status-stack">
+          <span class="estado-badge estado-programada">Programada</span>
+          <span class="estado-badge estado-confirmada">Confirmada</span>
+          <span class="estado-badge estado-en_proceso">En proceso</span>
+          <span class="estado-badge estado-finalizada">Finalizada</span>
+          <span class="estado-badge estado-cancelada">Cancelada</span>
+          <span class="estado-badge estado-no_asistio">No asistio</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
 <script>
-    document.getElementById('servicio').addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const precio = selected.dataset.precio;
-        const persona = selected.dataset.persona;
+  document.addEventListener("DOMContentLoaded", function () {
+    const serviceSelect = document.getElementById("servicio");
+    const details = document.getElementById("servicio-details");
+    const price = document.getElementById("servicio-precio");
+    const professional = document.getElementById("servicio-profesional");
+    const duration = document.getElementById("servicio-duracion");
+    const paymentCheckbox = document.getElementById("pagar_ahora");
+    const paymentFields = document.getElementById("payment-fields");
+    const paymentRequired = {{ usuario|yesno:"false,true" }};
+    const paymentMethod = document.getElementById("metodo_pago");
+    const dateInput = document.getElementById("fecha_inicio");
 
-        if (precio || persona) {
-            document.getElementById('servicio-precio').textContent = precio || '0';
-            document.getElementById('servicio-persona').textContent = persona || '-';
-            document.getElementById('servicio-details').style.display = 'block';
-        } else {
-            document.getElementById('servicio-details').style.display = 'none';
-        }
-    });
-
-    // Mostrar detalles si ya hay servicio seleccionado
-    if (document.getElementById('servicio').value) {
-        document.getElementById('servicio').dispatchEvent(new Event('change'));
+    function updateServiceDetails() {
+      const selected = serviceSelect.options[serviceSelect.selectedIndex];
+      if (!selected || !selected.value) {
+        details.classList.remove("is-visible");
+        price.textContent = window.CopMoney ? window.CopMoney.formatDisplay(0) : "{{ 0|currency }}";
+        professional.textContent = "Sin asignar";
+        duration.textContent = "0";
+        return;
+      }
+      price.textContent = window.CopMoney
+        ? window.CopMoney.formatDisplay(selected.dataset.precio || "0")
+        : "{{ 0|currency }}";
+      professional.textContent = selected.dataset.profesional || "Sin asignar";
+      duration.textContent = selected.dataset.duracion || "0";
+      details.classList.add("is-visible");
     }
+
+    function togglePaymentFields() {
+      if (!paymentFields) {
+        return;
+      }
+      const visible = paymentRequired || (paymentCheckbox && paymentCheckbox.checked);
+      paymentFields.classList.toggle("is-visible", visible);
+      if (paymentMethod) {
+        paymentMethod.required = visible;
+      }
+    }
+
+    if (serviceSelect) {
+      serviceSelect.addEventListener("change", updateServiceDetails);
+      updateServiceDetails();
+    }
+
+    if (paymentCheckbox) {
+      paymentCheckbox.addEventListener("change", togglePaymentFields);
+    }
+    togglePaymentFields();
+
+    if (dateInput && !dateInput.value) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      dateInput.min = now.toISOString().slice(0, 16);
+    }
+  });
 </script>
 {% endblock %}

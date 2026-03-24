@@ -1,7 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Reservas | Dashboard{% endblock %}
+{% block title %}Dashboard de citas | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
@@ -9,234 +9,250 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-lg py-4">
-    <!-- ENCABEZADO -->
-    <div class="reservas-hero text-white mb-4">
-        <div class="p-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-1"><i class="bi bi-calendar-event me-2"></i>Gestor de Reservas</h1>
-                    <p class="mb-0 text-white text-opacity-80">Administra las citas y servicios de los clientes</p>
-                </div>
-                <a href="{% url 'citas:reserva_nueva' %}" class="btn btn-light">
-                    <i class="bi bi-plus-lg me-2"></i>Nueva Reserva
-                </a>
-            </div>
-        </div>
+<section class="dashboard-shell">
+  <header class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Dashboard admin</p>
+      <h1>Gestion de citas</h1>
+      <p>Controla horarios, seguimiento operativo, pagos y asistencia desde un solo panel.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Gestionar servicios</a>
+    </div>
+  </header>
+
+  <section class="stats-grid">
+    <article class="stats-card">
+      <span class="stats-label">Reservas hoy</span>
+      <strong>{{ reservas_hoy }}</strong>
+    </article>
+    <article class="stats-card">
+      <span class="stats-label">Semana actual</span>
+      <strong>{{ reservas_semana }}</strong>
+    </article>
+    <article class="stats-card">
+      <span class="stats-label">Mes actual</span>
+      <strong>{{ reservas_mes }}</strong>
+    </article>
+    <article class="stats-card">
+      <span class="stats-label">Pendientes de atencion</span>
+      <strong>{{ pendientes }}</strong>
+    </article>
+  </section>
+
+  <form method="get" class="filter-panel">
+    <label class="field">
+      <span>Buscar</span>
+      <input class="form-control" type="text" name="q" value="{{ query }}" placeholder="Cliente, documento o servicio">
+    </label>
+    <label class="field">
+      <span>Estado</span>
+      <select class="form-select" name="estado">
+        <option value="">Todos</option>
+        {% for value, label in estados_reserva %}
+        <option value="{{ value }}" {% if estado_filtro == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Profesional</span>
+      <select class="form-select" name="profesional_id">
+        <option value="">Todas</option>
+        {% for profesional in profesionales %}
+        <option value="{{ profesional.id }}" {% if profesional_id == profesional.id|stringformat:"s" %}selected{% endif %}>{{ profesional.nombre }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Asistencia</span>
+      <select class="form-select" name="asistencia">
+        <option value="">Cualquiera</option>
+        <option value="asistio" {% if asistencia == "asistio" %}selected{% endif %}>Asistio</option>
+        <option value="no_asistio" {% if asistencia == "no_asistio" %}selected{% endif %}>No asistio</option>
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button type="submit" class="btn-primary-strong">Aplicar filtros</button>
+      <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Limpiar</a>
+    </div>
+  </form>
+
+  <section class="calendar-panel">
+    <div class="panel-heading">
+      <h2>Calendario operativo</h2>
+      <p>Haz clic en una reserva para abrir su detalle y operar el flujo completo.</p>
+    </div>
+    <div id="calendar"></div>
+  </section>
+
+  <section class="list-panel">
+    <div class="panel-heading">
+      <h2>Reservas filtradas</h2>
+      <p>{{ reservas|length }} resultado{{ reservas|length|pluralize }} encontrado{{ reservas|length|pluralize }}</p>
     </div>
 
-    <!-- ESTADÍSTICAS RÁPIDAS -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <i class="bi bi-calendar-check text-primary" style="font-size: 1.5rem;"></i>
-                <div class="stats-number" id="total-hoy">0</div>
-                <div class="stats-label">Reservas Hoy</div>
-            </div>
+    {% if reservas %}
+    <div class="reservas-grid">
+      {% for reserva in reservas %}
+      <article class="admin-reserva-card">
+        <div class="admin-reserva-top">
+          <div>
+            <p class="admin-reserva-date">{{ reserva.fecha_inicio|date:"d/m/Y" }} · {{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+            <h3>{{ reserva.cliente_nombre_completo }}</h3>
+            <p class="admin-reserva-meta">{{ reserva.servicio.nombre }} · {{ reserva.servicio.profesional.nombre|default:"Sin profesional" }}</p>
+          </div>
+          <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <i class="bi bi-calendar-range text-success" style="font-size: 1.5rem;"></i>
-                <div class="stats-number" id="total-semana">0</div>
-                <div class="stats-label">Esta Semana</div>
-            </div>
+
+        <div class="admin-reserva-grid">
+          <div>
+            <span class="summary-label">Documento</span>
+            <strong>{{ reserva.cliente_documento }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Origen</span>
+            <strong>{{ reserva.get_origen_reserva_display }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Pago</span>
+            <strong>{{ reserva.total_pagado|currency }}</strong>
+            <p>Saldo: {{ reserva.saldo_pendiente|currency }}</p>
+          </div>
+          <div>
+            <span class="summary-label">Atencion real</span>
+            {% if reserva.fecha_inicio_real %}
+            <strong>{{ reserva.fecha_inicio_real|date:"d/m H:i" }}</strong>
+            {% else %}
+            <strong>Sin inicio</strong>
+            {% endif %}
+            {% if reserva.fecha_fin_real %}
+            <p>Fin: {{ reserva.fecha_fin_real|date:"d/m H:i" }}</p>
+            {% endif %}
+          </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <i class="bi bi-calendar-month text-warning" style="font-size: 1.5rem;"></i>
-                <div class="stats-number" id="total-mes">0</div>
-                <div class="stats-label">Este Mes</div>
-            </div>
+
+        <div class="admin-actions-row">
+          <a class="btn-secondary-soft" href="{% url 'citas:reserva_detalle' reserva.id %}"><i class="bi bi-eye"></i> Ver detalle</a>
+          {% if reserva.estado == "programada" %}
+          <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-secondary-soft"><i class="bi bi-patch-check"></i> Confirmar</button>
+          </form>
+          {% endif %}
+          {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+          <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary-strong"><i class="bi bi-play-circle"></i> Iniciar</button>
+          </form>
+          <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-warning-soft"><i class="bi bi-person-x"></i> No asistio</button>
+          </form>
+          {% endif %}
+          {% if reserva.estado == "en_proceso" %}
+          <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-primary-strong"><i class="bi bi-check2-square"></i> Finalizar</button>
+          </form>
+          {% endif %}
         </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card">
-                <i class="bi bi-hourglass-split text-info" style="font-size: 1.5rem;"></i>
-                <div class="stats-number" id="pendientes">0</div>
-                <div class="stats-label">Pendientes</div>
-            </div>
-        </div>
+
+        {% if reserva.estado != "cancelada" and reserva.estado != "no_asistio" %}
+        <details class="admin-detail-toggle">
+          <summary>Registrar pago o cancelar</summary>
+          <div class="detail-toggle-grid">
+            <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form compact">
+              {% csrf_token %}
+              <h4>Registrar pago</h4>
+              <div class="form-grid two-up">
+                <label class="field">
+                  <span>Monto</span>
+                  <input class="form-control" type="text" name="monto" inputmode="numeric" data-money="cop" value="{{ reserva.saldo_pendiente|money_input }}">
+                </label>
+                <label class="field">
+                  <span>Tipo</span>
+                  <select class="form-select" name="tipo_pago">
+                    {% for value, label in tipos_pago %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Metodo</span>
+                  <select class="form-select" name="metodo_pago" required>
+                    <option value="">Selecciona</option>
+                    {% for value, label in metodos_pago %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Referencia</span>
+                  <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
+                </label>
+              </div>
+              <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-cash-coin"></i> Guardar pago</button>
+            </form>
+
+            <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact danger-surface">
+              {% csrf_token %}
+              <h4>Cancelar cita</h4>
+              <label class="field">
+                <span>Motivo</span>
+                <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Explica la cancelacion">
+              </label>
+              <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar reserva</button>
+            </form>
+          </div>
+        </details>
+        {% endif %}
+      </article>
+      {% endfor %}
     </div>
+    {% else %}
+    <article class="empty-state-panel">
+      <div class="empty-state-icon"><i class="bi bi-calendar2-x"></i></div>
+      <h2>No hay reservas para esos filtros</h2>
+      <p>Ajusta la busqueda o crea una nueva reserva para empezar a gestionar la agenda.</p>
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}">Crear reserva</a>
+    </article>
+    {% endif %}
+  </section>
+</section>
 
-    <!-- CONTENEDOR PRINCIPAL TABS -->
-    <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item">
-            <button class="nav-link active" id="calendario-tab" data-bs-toggle="tab" data-bs-target="#calendario" type="button">
-                <i class="bi bi-calendar2 me-2"></i>Calendario
-            </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="lista-tab" data-bs-toggle="tab" data-bs-target="#lista" type="button">
-                <i class="bi bi-list-ul me-2"></i>Lista de Reservas
-            </button>
-        </li>
-    </ul>
-
-    <div class="tab-content">
-        <!-- TAB: CALENDARIO -->
-        <div class="tab-pane fade show active" id="calendario" role="tabpanel">
-            <div class="calendar-section">
-                <div id="calendar"></div>
-            </div>
-        </div>
-
-        <!-- TAB: LISTA -->
-        <div class="tab-pane fade" id="lista" role="tabpanel">
-            <!-- FILTROS -->
-            <div class="filtros-section">
-                <input type="text" class="form-control" placeholder="Buscar cliente..." id="buscar-cliente" style="max-width: 250px;">
-                <select class="form-select" id="filtro-estado" style="max-width: 200px;">
-                    <option value="">Todos los estados</option>
-                    <option value="programada">Programada</option>
-                    <option value="completada">Completada</option>
-                    <option value="cancelada">Cancelada</option>
-                </select>
-                <button class="btn btn-outline-secondary" onclick="location.reload();">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
-                </button>
-            </div>
-
-            <!-- LISTA DE RESERVAS -->
-            <div class="calendar-section" id="reservas-list">
-                <div class="empty-state">
-                    <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
-                    <h6>No hay reservas</h6>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- SCRIPT: FullCalendar y datos -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // CARGAR DATOS DE CITAS
-        fetch('/citas/api/eventos/')
-            .then(response => response.json())
-            .then(function(data) {
-                const eventos = Array.isArray(data) ? data : [];
-                initCalendar(eventos);
-                loadReservasList(eventos);
-                updateStats(eventos);
-            })
-            .catch(error => console.error('Error:', error));
+  document.addEventListener("DOMContentLoaded", function () {
+    const calendarEl = document.getElementById("calendar");
+    const events = [
+      {% for reserva in reservas %}
+      {
+        id: "{{ reserva.id }}",
+        title: "{{ reserva.cliente_nombre_completo|escapejs }} - {{ reserva.servicio.nombre|escapejs }}",
+        start: "{{ reserva.fecha_inicio|date:'c' }}",
+        end: "{{ reserva.fecha_fin|date:'c' }}",
+        classNames: ["fc-estado-{{ reserva.estado }}"]
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
 
-        // INICIALIZAR CALENDARIO
-        function initCalendar(events) {
-            var calendarEl = document.getElementById('calendar');
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'es',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                events: events.map(event => ({
-                    id: event.id,
-                    title: event.title,
-                    start: event.start,
-                    end: event.end,
-                    extendedProps: {
-                        cliente: event.extendedProps?.cliente || 'Cliente',
-                        estado: event.extendedProps?.estado || 'programada'
-                    }
-                })),
-                eventClick: function(info) {
-                    // Todo: Mostrar modal con detalles
-                    console.log('Cita:', info.event.title);
-                }
-            });
-            calendar.render();
-        }
-
-        // CARGAR LISTA DE RESERVAS
-        function loadReservasList(events) {
-            const list = document.getElementById('reservas-list');
-            
-            if (events.length === 0) {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
-                        <h6>No hay reservas</h6>
-                        <p class="mb-0"><a href="{% url 'citas:reserva_nueva' %}" class="text-decoration-none">Crear una nueva</a></p>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            events.forEach(event => {
-                const fecha = new Date(event.start);
-                const hora = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-                const fechaFormato = fecha.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                
-                const estado = event.extendedProps?.estado || 'programada';
-                const cliente = event.extendedProps?.cliente || 'Cliente';
-
-                html += `
-                    <div class="reserva-item">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <span class="reserva-time">
-                                    <i class="bi bi-clock me-1"></i>${hora} - ${fechaFormato}
-                                </span>
-                                <div class="reserva-cliente">${event.title}</div>
-                                <div class="reserva-servicio">
-                                    <i class="bi bi-person-check"></i>${cliente}
-                                </div>
-                            </div>
-                            <span class="estado-badge estado-${estado}">${estado.charAt(0).toUpperCase() + estado.slice(1)}</span>
-                        </div>
-                        <div class="acciones-reserva">
-                            <a href="/citas/${event.id}/editar/" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-pencil me-1"></i>Editar
-                            </a>
-                            <button class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash me-1"></i>Cancelar
-                            </button>
-                            <button class="btn btn-sm btn-outline-success">
-                                <i class="bi bi-check-lg me-1"></i>Completar
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            list.innerHTML = html;
-        }
-
-        // ACTUALIZAR ESTADÍSTICAS
-        function updateStats(events) {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            
-            const maniana = new Date(hoy);
-            maniana.setDate(maniana.getDate() + 1);
-            
-            const proximaSemana = new Date(hoy);
-            proximaSemana.setDate(proximaSemana.getDate() + 7);
-            
-            const proximoMes = new Date(hoy);
-            proximoMes.setMonth(proximoMes.getMonth() + 1);
-
-            let hoyCount = 0, semanaCount = 0, mesCount = 0, pendientesCount = 0;
-
-            events.forEach(event => {
-                const fecha = new Date(event.start);
-                fecha.setHours(0, 0, 0, 0);
-                
-                if (fecha.getTime() === hoy.getTime()) hoyCount++;
-                if (fecha >= hoy && fecha < proximaSemana) semanaCount++;
-                if (fecha >= hoy && fecha < proximoMes) mesCount++;
-                if (event.extendedProps?.estado === 'programada') pendientesCount++;
-            });
-
-            document.getElementById('total-hoy').textContent = hoyCount;
-            document.getElementById('total-semana').textContent = semanaCount;
-            document.getElementById('total-mes').textContent = mesCount;
-            document.getElementById('pendientes').textContent = pendientesCount;
-        }
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: "dayGridMonth",
+      locale: "es",
+      height: "auto",
+      headerToolbar: {
+        left: "prev,next today",
+        center: "title",
+        right: "dayGridMonth,timeGridWeek,timeGridDay"
+      },
+      events: events,
+      eventClick: function (info) {
+        window.location.href = "/citas/" + info.event.id + "/detalle/";
+      }
     });
+
+    calendar.render();
+  });
 </script>
 {% endblock %}

@@ -1,12 +1,15 @@
 from decimal import Decimal
+
 from django import template
+
+from apps.common.currency import format_money
 
 register = template.Library()
 
 
 @register.filter
 def multiply(value, arg):
-    """Multiplica dos números"""
+    """Multiplica dos numeros."""
     try:
         return Decimal(value) * Decimal(arg)
     except (TypeError, ValueError):
@@ -15,16 +18,13 @@ def multiply(value, arg):
 
 @register.filter
 def currency(value):
-    """Formatea un número como moneda"""
-    try:
-        return f"${float(value):,.2f}"
-    except (TypeError, ValueError):
-        return "$0.00"
+    """Formatea un numero como moneda COP."""
+    return format_money(value)
 
 
 @register.filter
 def percent(value):
-    """Formatea un número como porcentaje"""
+    """Formatea un numero como porcentaje."""
     try:
         return f"{float(value):.2f}%"
     except (TypeError, ValueError):
@@ -33,7 +33,7 @@ def percent(value):
 
 @register.simple_tag
 def total_compras(compras):
-    """Calcula el total de todas las compras"""
+    """Calcula el total de todas las compras."""
     try:
         return sum(Decimal(c.total) for c in compras)
     except (TypeError, ValueError):
@@ -42,7 +42,7 @@ def total_compras(compras):
 
 @register.simple_tag
 def total_stock(productos):
-    """Calcula el stock total de productos"""
+    """Calcula el stock total de productos."""
     try:
         return sum(p.stock for p in productos)
     except (TypeError, ValueError):
@@ -51,9 +51,9 @@ def total_stock(productos):
 
 @register.simple_tag
 def valor_stock_total(productos):
-    """Calcula el valor total del stock"""
+    """Calcula el valor total del stock."""
     try:
         total = sum(Decimal(p.precio_compra) * p.stock for p in productos)
-        return f"${float(total):,.2f}"
+        return format_money(total)
     except (TypeError, ValueError):
-        return "$0.00"
+        return format_money(0)

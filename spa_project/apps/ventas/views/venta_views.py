@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
 
+from apps.common.currency import format_money, parse_money
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.telegram_notifier import notificar_compra_pendiente
@@ -98,8 +99,8 @@ def venta_lista(request):
         "cliente_id": cliente_id,
         "clientes": clientes,
         "total_ventas": total_ventas,
-        "monto_total": f"${float(monto_total):,.2f}",
-        "promedio_venta": f"${float(promedio_venta):,.2f}",
+        "monto_total": format_money(monto_total),
+        "promedio_venta": format_money(promedio_venta),
         "clientes_unicos": clientes_unicos,
         "validaciones_pendientes": validaciones_pendientes,
         "validaciones_comprado": validaciones_comprado,
@@ -112,7 +113,7 @@ def venta_lista(request):
 def venta_nueva(request):
     if request.method == "POST":
         cliente = get_object_or_404(Usuario, id=request.POST.get("cliente_id"))
-        total = Decimal(request.POST.get("total") or "0")
+        total = parse_money(request.POST.get("total"))
         venta = Venta.objects.create(cliente=cliente, total=total)
         return redirect("ventas:venta_detalle", venta_id=venta.id)
     clientes = Usuario.objects.all()
@@ -137,7 +138,7 @@ def venta_validaciones(request, venta_id):
             # ACTUALIZAR la validación existente
             validacion.metodo_pago = request.POST.get("metodo_pago", "")
             validacion.referencia_pago = request.POST.get("referencia_pago", "")
-            validacion.monto = request.POST.get("monto") or 0
+            validacion.monto = parse_money(request.POST.get("monto"))
             nuevo_estado = request.POST.get("estado", "pendiente")
             validacion.estado = nuevo_estado
             validacion.validado_por = request.session.get("usuario_id")
@@ -159,7 +160,7 @@ def venta_validaciones(request, venta_id):
                 cliente=venta.cliente,
                 metodo_pago=request.POST.get("metodo_pago", ""),
                 referencia_pago=request.POST.get("referencia_pago", ""),
-                monto=request.POST.get("monto") or 0,
+                monto=parse_money(request.POST.get("monto")),
                 estado=request.POST.get("estado", "pendiente"),
                 validado_por=request.session.get("usuario_id"),
                 observaciones=request.POST.get("observaciones", ""),

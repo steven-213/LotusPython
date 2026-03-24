@@ -119,7 +119,7 @@
 
                         <dt class="col-sm-5">Total:</dt>
 
-                        <dd class="col-sm-7"><strong class="text-success" style="font-size: 1.2em;">${{ compra.total }}</strong></dd>
+                        <dd class="col-sm-7"><strong class="text-success" style="font-size: 1.2em;">{{ compra.total|currency }}</strong></dd>
 
                     </dl>
 
@@ -185,9 +185,9 @@
 
                             <td>{{ detalle.cantidad }}</td>
 
-                            <td>${{ detalle.precio_compra }}</td>
+                            <td>{{ detalle.precio_compra|currency }}</td>
 
-                            <td><strong>${{ detalle.cantidad|multiply:detalle.precio_compra }}</strong></td>
+                            <td><strong>{{ detalle.cantidad|multiply:detalle.precio_compra|currency }}</strong></td>
 
                         </tr>
 

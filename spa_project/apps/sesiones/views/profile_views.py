@@ -37,7 +37,7 @@ def perfil(request):
 
     for reserva in reservas:
         estado = (reserva.estado or "").strip().lower()
-        if reserva.fecha_inicio >= ahora and estado not in {"cancelada", "finalizada"}:
+        if reserva.fecha_inicio >= ahora and estado not in {"cancelada", "finalizada", "no_asistio"}:
             agendas_proximas.append(reserva)
         else:
             agendas_historial.append(reserva)

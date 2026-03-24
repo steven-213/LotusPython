@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Q, Sum
 from datetime import datetime, timedelta
 
+from apps.common.currency import parse_money
 from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
 from apps.sesiones.decorators import admin_required_session
 
@@ -78,7 +79,7 @@ def compra_nueva(request):
         proveedor_id = request.POST.get("proveedor_id")
         proveedor = get_object_or_404(Proveedor, id=proveedor_id)
         numero_factura = request.POST.get("numero_factura", "")
-        total = request.POST.get("total") or 0
+        total = parse_money(request.POST.get("total"))
         
         compra = Compra.objects.create(
             proveedor=proveedor,
@@ -98,7 +99,7 @@ def compra_nueva(request):
                     compra=compra,
                     producto=producto,
                     cantidad=int(cantidad),
-                    precio_compra=float(precio),
+                    precio_compra=parse_money(precio),
                 )
                 # Actualizar stock del producto
                 producto.stock += int(cantidad)
@@ -134,7 +135,7 @@ def compra_editar(request, compra_id):
         proveedor_id = request.POST.get("proveedor_id")
         compra.proveedor = get_object_or_404(Proveedor, id=proveedor_id)
         compra.numero_factura = request.POST.get("numero_factura", "")
-        compra.total = request.POST.get("total") or 0
+        compra.total = parse_money(request.POST.get("total"))
         compra.save()
         return redirect("inventario:compra_detalle", compra_id=compra.id)
     

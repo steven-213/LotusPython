@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+from apps.common.currency import parse_money
 from apps.sesiones.models import Usuario
 from apps.ventas.models import Venta
 
@@ -39,7 +40,7 @@ def api_ventas(request):
     if request.method == "POST":
         payload = json.loads(request.body or "{}")
         cliente_id = payload.get("cliente_id")
-        total = Decimal(str(payload.get("total", "0")))
+        total = parse_money(payload.get("total"))
         cliente = Usuario.objects.filter(id=cliente_id).first()
         if not cliente:
             return JsonResponse({"error": "cliente_id inválido"}, status=400)

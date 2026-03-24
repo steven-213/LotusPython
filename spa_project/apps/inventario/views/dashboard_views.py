@@ -4,6 +4,7 @@ from django.db.models.functions import Cast
 from decimal import Decimal
 from datetime import datetime, timedelta
 
+from apps.common.currency import format_money
 from apps.inventario.models import Producto, Proveedor, Compra, DevolucionCompra
 from apps.sesiones.decorators import admin_required_session
 
@@ -129,8 +130,8 @@ def inventario_dashboard(request):
         "productos_necesitan_reorden": productos_necesitan_reorden,
         
         # Valor inventario
-        "valor_inventario": f"${float(valor_inventario):,.2f}",
-        "valor_total_ventas_potencial": f"${float(valor_total_ventas_potencial):,.2f}",
+        "valor_inventario": format_money(valor_inventario),
+        "valor_total_ventas_potencial": format_money(valor_total_ventas_potencial),
         
         # Márgenes
         "margen_promedio": f"{float(margen_promedio):.2f}%",
@@ -141,8 +142,8 @@ def inventario_dashboard(request):
         "compras_completadas": compras_completadas,
         "compras_pendientes": compras_pendientes,
         "compras_canceladas": compras_canceladas,
-        "total_invertido": f"${float(total_invertido):,.2f}",
-        "compras_completadas_monto": f"${float(compras_completadas_monto):,.2f}",
+        "total_invertido": format_money(total_invertido),
+        "compras_completadas_monto": format_money(compras_completadas_monto),
         
         # Devoluciones
         "devoluciones_recientes": devoluciones_recientes,

@@ -74,16 +74,18 @@
           <article class="agenda-card">
             <div class="agenda-top">
               <strong>{{ reserva.servicio.nombre }}</strong>
-              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.estado|capfirst }}</span>
+              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
             </div>
             <p class="agenda-date">{{ reserva.fecha_inicio|date:"l d \d\e F, Y" }}</p>
             <p class="agenda-time">{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
             {% if reserva.notas %}
             <p class="agenda-note">{{ reserva.notas }}</p>
             {% endif %}
-            {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
-            <a class="texto-link" href="{% url 'citas:reserva_editar' reserva.id %}">Editar reserva</a>
-            {% endif %}
+            <div class="chips-row">
+              <span class="chip chip-comprado">Pagado: {{ reserva.total_pagado|currency }}</span>
+              <span class="chip chip-pendiente">Saldo: {{ reserva.saldo_pendiente|currency }}</span>
+            </div>
+            <a class="texto-link" href="{% url 'citas:reserva_detalle' reserva.id %}">Ver seguimiento</a>
           </article>
           {% endfor %}
         </div>
@@ -102,7 +104,7 @@
           <article class="agenda-card agenda-card-lite">
             <div class="agenda-top">
               <strong>{{ reserva.servicio.nombre }}</strong>
-              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.estado|capfirst }}</span>
+              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
             </div>
             <p class="agenda-time">{{ reserva.fecha_inicio|date:"d/m/Y H:i" }}</p>
           </article>
@@ -141,7 +143,7 @@
             <div class="producto-metas">
               <span>{{ item.cantidad_total }} unidades</span>
               <span>{{ item.ordenes }} compras</span>
-              <span>${{ item.total_gastado }}</span>
+              <span>{{ item.total_gastado|currency }}</span>
               <span>Ultima: {{ item.ultima_compra|date:"d/m/Y" }}</span>
             </div>
           </div>
@@ -177,7 +179,7 @@
         </div>
         <div class="validacion-meta">
           <span class="estado-pill estado-{{ compra.estado }}">{{ compra.estado|capfirst }}</span>
-          <span>${{ compra.monto }}</span>
+          <span>{{ compra.monto|currency }}</span>
         </div>
       </article>
       {% endfor %}

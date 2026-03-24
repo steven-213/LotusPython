@@ -248,7 +248,7 @@
 
                                     <input 
 
-                                        type="number" 
+                                        type="text" 
 
                                         id="precio_compra" 
 
@@ -256,11 +256,13 @@
 
                                         class="form-control" 
 
-                                        step="0.01" 
+                                        inputmode="numeric"
 
-                                        min="0" 
+                                        data-money="cop"
 
-                                        value="{{ producto.precio_compra|default:0 }}"
+                                        value="{% if producto %}{{ producto.precio_compra|money_input }}{% else %}0{% endif %}"
+
+                                        placeholder="20.000"
 
                                         style="border-color: #ca6b86;"
 
@@ -288,7 +290,7 @@
 
                                     <input 
 
-                                        type="number" 
+                                        type="text" 
 
                                         id="precio_venta" 
 
@@ -296,11 +298,13 @@
 
                                         class="form-control" 
 
-                                        step="0.01" 
+                                        inputmode="numeric"
 
-                                        min="0" 
+                                        data-money="cop"
 
-                                        value="{{ producto.precio_venta|default:0 }}"
+                                        value="{% if producto %}{{ producto.precio_venta|money_input }}{% else %}0{% endif %}"
+
+                                        placeholder="35.000"
 
                                         style="border-color: #ca6b86;"
 

@@ -5,6 +5,8 @@ from urllib import error, parse, request
 
 from django.conf import settings
 
+from apps.common.currency import format_money
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +39,7 @@ def notificar_compra_pendiente(venta, validacion):
         "Nueva compra pendiente de confirmacion\n"
         f"Venta: #{venta.id}\n"
         f"Cliente: {venta.cliente.nombre} {venta.cliente.apellido}\n"
-        f"Monto: {validacion.monto}\n"
+        f"Monto: {format_money(validacion.monto)}\n"
         f"Metodo: {validacion.metodo_pago or 'N/A'}\n"
         f"Referencia: {validacion.referencia_pago or 'N/A'}\n"
         f"Estado: {validacion.estado}"

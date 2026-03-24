@@ -1,119 +1,122 @@
-﻿{% extends "base_public.html" %}
+{% extends "base_public.html" %}
 {% load static %}
 
 {% block title %}Servicios | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}">
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260324a">
 {% endblock %}
 
 {% block content %}
-<section class="encabezado-pagina">
-  <h1>Nuestros servicios</h1>
-  <p>Elige un servicio y agenda tu cita directamente.</p>
-</section>
+<section class="services-shell">
+  <header class="services-hero">
+    <div class="services-hero-copy">
+      <p class="services-eyebrow">Catalogo Lotus</p>
+      <h1>Nuestros servicios</h1>
+      <p class="services-copy">
+        Vive una experiencia pensada para relajarte, cuidarte y salir con una energia renovada.
+        Agenda con cuenta o como invitado y confirma tu espacio de la forma que prefieras.
+      </p>
 
-<section class="grilla-servicios">
-  {% for s in servicios %}
-  <article class="tarjeta-servicio" data-service-id="{{ s.id }}">
-    <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}">
-    <h3 class="nombre-servicio">{{ s.nombre }}</h3>
-    <p>{{ s.descripcion }}</p>
-    <p><strong>Precio:</strong> ${{ s.precio }}</p>
-    {% if request.session.usuario_id %}
-    <button class="boton boton-primario" onclick="agendarServicio(this)">Agendar</button>
-    {% else %}
-    <a class="boton boton-suave" href="{% url 'sesiones:login' %}?next={% url 'citas:servicios_publicos' %}&reason=agendar">
-      Inicia sesión para agendar
-    </a>
-    {% endif %}
+      <div class="services-chip-row">
+        <span class="services-chip"><i class="bi bi-stars"></i> {{ servicios|length }} experiencias disponibles</span>
+        <span class="services-chip"><i class="bi bi-calendar2-heart"></i> Agenda flexible</span>
+        <span class="services-chip"><i class="bi bi-credit-card-2-front"></i> Pago al momento o despues</span>
+      </div>
+    </div>
+
+    <aside class="services-hero-panel">
+      <p class="services-panel-label">Como funciona</p>
+      <div class="services-steps">
+        <article class="services-step">
+          <span>1</span>
+          <div>
+            <strong>Elige tu ritual</strong>
+            <p>Compara precios, duracion y profesional para encontrar el servicio ideal.</p>
+          </div>
+        </article>
+        <article class="services-step">
+          <span>2</span>
+          <div>
+            <strong>Agenda a tu ritmo</strong>
+            <p>Reserva con cuenta o sin cuenta, segun la experiencia que prefieras.</p>
+          </div>
+        </article>
+        <article class="services-step">
+          <span>3</span>
+          <div>
+            <strong>Sigue tu cita</strong>
+            <p>Consulta el estado, pagos y detalles desde tu agenda o con ayuda del equipo.</p>
+          </div>
+        </article>
+      </div>
+    </aside>
+  </header>
+
+  {% if servicios %}
+  <section class="services-grid">
+    {% for s in servicios %}
+    <article class="service-card">
+      <div class="service-media">
+        {% if s.imagen %}
+        <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" loading="lazy">
+        {% else %}
+        <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}">
+        {% endif %}
+        <span class="service-badge">
+          <i class="bi bi-person-heart"></i>
+          {{ s.profesional.nombre|default:"Profesional por definir" }}
+        </span>
+      </div>
+
+      <div class="service-body">
+        <div class="service-head">
+          <h3>{{ s.nombre }}</h3>
+          <div class="service-price">
+            <small>Desde</small>
+            <strong>{{ s.precio|currency }}</strong>
+          </div>
+        </div>
+
+        <p class="service-description">{{ s.descripcion|default:"Servicio disponible en el spa." }}</p>
+
+        <div class="service-meta">
+          <span><i class="bi bi-hourglass-split"></i> {{ s.duracion_minutos }} minutos</span>
+          <span><i class="bi bi-flower1"></i> Atencion personalizada</span>
+          <span><i class="bi bi-shield-check"></i> Reserva segura</span>
+        </div>
+
+        {% if request.session.usuario_id %}
+        <div class="service-actions">
+          <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
+            <i class="bi bi-calendar-plus"></i> Agendar y decidir pago
+          </a>
+          <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:agenda' %}">
+            <i class="bi bi-journal-check"></i> Ver mis citas
+          </a>
+        </div>
+        {% else %}
+        <div class="service-actions">
+          <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
+            <i class="bi bi-calendar-heart"></i> Agendar sin cuenta
+          </a>
+          <a class="catalog-btn catalog-btn-secondary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}%3Fservicio%3D{{ s.id }}">
+            <i class="bi bi-person-circle"></i> Iniciar sesion y agendar
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <article class="services-empty">
+    <div class="services-empty-icon"><i class="bi bi-stars"></i></div>
+    <h2>No hay servicios disponibles en este momento</h2>
+    <p>Estamos actualizando el catalogo. Vuelve pronto para descubrir nuevas experiencias.</p>
   </article>
-  {% empty %}
-  <p class="mensaje-vacio">No hay servicios disponibles en este momento.</p>
-  {% endfor %}
+  {% endif %}
 </section>
-
-{% if request.session.usuario_id %}
-<section class="contenedor-calendario">
-  <h2>Calendario de citas</h2>
-  <div id="calendar" data-store-url="{% url 'citas:api_eventos' %}"></div>
-</section>
-{% endif %}
-
-{% if request.session.usuario_id %}
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script>
-function formatForAPI(date) {
-  if (!date) return null;
-  const d = new Date(date);
-  return d.toISOString();
-}
-
-async function fetchJson(url, method, payload) {
-  const response = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: payload ? JSON.stringify(payload) : null,
-  });
-  if (!response.ok) throw new Error("request error");
-  return await response.json();
-}
-
-async function agendarServicio(btn) {
-  const nombreServicio = btn.closest(".tarjeta-servicio").querySelector(".nombre-servicio").textContent;
-  const servicioId = btn.closest(".tarjeta-servicio").dataset.serviceId;
-  const result = await Swal.fire({
-    title: "Selecciona fecha y hora",
-    html: '<input id="fecha" type="date" class="swal2-input"><input id="hora" type="time" class="swal2-input">',
-    showCancelButton: true,
-    preConfirm: () => {
-      const fecha = document.getElementById("fecha").value;
-      const hora = document.getElementById("hora").value;
-      if (!fecha || !hora) {
-        Swal.showValidationMessage("Debes seleccionar fecha y hora");
-        return false;
-      }
-      return { fecha, hora };
-    }
-  });
-
-  if (!result.value) return;
-
-  const start = new Date(result.value.fecha + "T" + result.value.hora);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
-  try {
-    await fetchJson("{% url 'citas:api_eventos' %}", "POST", {
-      title: nombreServicio,
-      cliente_id: {{ request.session.usuario_id|default:"null" }},
-      servicio_id: servicioId || null,
-      start: formatForAPI(start),
-      end: formatForAPI(end),
-    });
-    await Swal.fire("Listo", "La cita fue creada", "success");
-    location.reload();
-  } catch {
-    Swal.fire("Error", "No fue posible crear la cita", "error");
-  }
-}
-
-document.addEventListener("DOMContentLoaded", async function () {
-  const calendarEl = document.getElementById("calendar");
-  if (!calendarEl) return;
-  const url = calendarEl.dataset.storeUrl;
-  let events = [];
-  try {
-    events = await fetchJson(url, "GET");
-  } catch (_) {}
-
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "timeGridWeek",
-    locale: "es",
-    height: 700,
-    events: events.map(e => ({ id: e.id, title: e.title, start: e.start, end: e.end }))
-  });
-  calendar.render();
-});
-</script>
-{% endif %}
 {% endblock %}

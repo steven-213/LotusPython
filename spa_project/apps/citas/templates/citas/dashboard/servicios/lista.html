@@ -1,16 +1,79 @@
-<h1>Servicios</h1>
-<a href="{% url 'citas:servicio_nuevo' %}">Nuevo servicio</a>
-<ul>
-{% for s in servicios %}
-  <li>
-    {{ s.nombre }} - {{ s.precio }}
-    <a href="{% url 'citas:servicio_editar' s.id %}">Editar</a>
-    <form method="post" action="{% url 'citas:servicio_eliminar' s.id %}" style="display:inline;">
-      {% csrf_token %}
-      <button type="submit">Eliminar</button>
-    </form>
-  </li>
-{% empty %}
-  <li>Sin servicios</li>
-{% endfor %}
-</ul>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Servicios de citas | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <header class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Catalogo interno</p>
+      <h1>Servicios del modulo de citas</h1>
+      <p>Administra precios, duracion y profesional asignada de cada servicio disponible en agenda.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-primary-strong" href="{% url 'citas:servicio_nuevo' %}"><i class="bi bi-plus-lg"></i> Nuevo servicio</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Volver al dashboard</a>
+    </div>
+  </header>
+
+  {% if servicios %}
+  <div class="service-grid">
+    {% for s in servicios %}
+    <article class="service-admin-card">
+      {% if s.imagen %}
+      <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 1.25rem 1.25rem 0 0; margin-bottom: 1.5rem;">
+      {% else %}
+      <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 1.25rem 1.25rem 0 0; margin-bottom: 1.5rem; opacity: 0.82;">
+      {% endif %}
+      <div class="admin-reserva-top">
+        <div>
+          <h2>{{ s.nombre }}</h2>
+          <p class="admin-reserva-meta">{{ s.profesional.nombre|default:"Sin profesional" }}</p>
+        </div>
+        <span class="estado-badge {% if s.activo %}estado-confirmada{% else %}estado-cancelada{% endif %}">
+          {% if s.activo %}Activo{% else %}Inactivo{% endif %}
+        </span>
+      </div>
+
+      <div class="admin-reserva-grid">
+        <div>
+          <span class="summary-label">Precio</span>
+          <strong>{{ s.precio|currency }}</strong>
+        </div>
+        <div>
+          <span class="summary-label">Duracion</span>
+          <strong>{{ s.duracion_minutos }} min</strong>
+        </div>
+      </div>
+
+      {% if s.descripcion %}
+      <p class="tracking-note">{{ s.descripcion }}</p>
+      {% endif %}
+
+      <div class="admin-actions-row">
+        <a class="btn-secondary-soft" href="{% url 'citas:servicio_editar' s.id %}"><i class="bi bi-pencil-square"></i> Editar</a>
+        {% if s.activo %}
+        <form method="post" action="{% url 'citas:servicio_eliminar' s.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-danger-soft"><i class="bi bi-pause-circle"></i> Desactivar</button>
+        </form>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <article class="empty-state-panel">
+    <div class="empty-state-icon"><i class="bi bi-stars"></i></div>
+    <h2>No hay servicios creados</h2>
+    <p>Crea el primer servicio para que el formulario de citas tenga opciones disponibles.</p>
+    <a class="btn-primary-strong" href="{% url 'citas:servicio_nuevo' %}">Crear servicio</a>
+  </article>
+  {% endif %}
+</section>
+{% endblock %}

@@ -80,10 +80,10 @@
                                                     <input type="number" name="cantidades[]" class="form-control form-control-sm cantidad" min="1" value="1">
                                                 </td>
                                                 <td>
-                                                    <input type="number" name="precios[]" class="form-control form-control-sm precio" step="0.01" min="0" value="0">
+                                                    <input type="text" name="precios[]" class="form-control form-control-sm precio" inputmode="numeric" data-money="cop" value="0">
                                                 </td>
                                                 <td>
-                                                    <span class="subtotal">$0.00</span>
+                                                    <span class="subtotal">{{ 0|currency }}</span>
                                                 </td>
                                                 <td>
                                                     <button type="button" class="btn btn-sm btn-danger" onclick="eliminarProducto(this)">
@@ -104,7 +104,7 @@
                                     <div class="col-md-6 offset-md-6">
                                         <div class="input-group mb-3">
                                             <span class="input-group-text">Total Compra:</span>
-                                            <input type="number" class="form-control text-end" id="total" name="total" step="0.01" value="0" readonly>
+                                            <input type="text" class="form-control text-end" id="total" name="total" data-money="cop" value="0" readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -138,9 +138,15 @@ function agregarProducto() {
         if (el.name.includes('precios')) el.value = '0';
         if (el.classList.contains('producto-select')) el.value = '';
     });
+    row.querySelector('.subtotal').textContent = "{{ 0|currency }}";
     
     container.appendChild(row);
     agregarEventosProducto(row);
+    row.querySelectorAll("[data-money='cop']").forEach(function (input) {
+        if (window.CopMoney) {
+            window.CopMoney.bind(input);
+        }
+    });
 }
 
 function eliminarProducto(button) {
@@ -156,6 +162,9 @@ function agregarEventosProducto(row) {
     productoSelect.addEventListener('change', function() {
         const option = this.querySelector('option:checked');
         precioInput.value = option.dataset.precio || '0';
+        if (window.CopMoney) {
+            precioInput.value = window.CopMoney.formatInput(precioInput.value);
+        }
         actualizarSubtotal(row);
     });
     
@@ -170,21 +179,29 @@ function agregarEventosProducto(row) {
 
 function actualizarSubtotal(row) {
     const cantidad = parseFloat(row.querySelector('.cantidad').value) || 0;
-    const precio = parseFloat(row.querySelector('.precio').value) || 0;
+    const precio = window.CopMoney
+        ? parseFloat(window.CopMoney.normalize(row.querySelector('.precio').value)) || 0
+        : parseFloat(row.querySelector('.precio').value) || 0;
     const subtotal = cantidad * precio;
     
-    row.querySelector('.subtotal').textContent = '$' + subtotal.toFixed(2);
+    row.querySelector('.subtotal').textContent = window.CopMoney
+        ? window.CopMoney.formatDisplay(subtotal)
+        : subtotal;
     actualizarTotal();
 }
 
 function actualizarTotal() {
     let total = 0;
     document.querySelectorAll('.producto-row .subtotal').forEach(el => {
-        const valor = parseFloat(el.textContent.replace('$', '')) || 0;
+        const valor = window.CopMoney
+            ? parseFloat(window.CopMoney.normalize(el.textContent)) || 0
+            : parseFloat(el.textContent.replace('$', '')) || 0;
         total += valor;
     });
     
-    document.getElementById('total').value = total.toFixed(2);
+    document.getElementById('total').value = window.CopMoney
+        ? window.CopMoney.formatInput(total)
+        : total;
 }
 
 // Inicializar eventos para la primera fila
@@ -193,6 +210,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (firstRow) {
         agregarEventosProducto(firstRow);
     }
+    document.querySelectorAll("[data-money='cop']").forEach(function (input) {
+        if (window.CopMoney) {
+            window.CopMoney.bind(input);
+        }
+    });
 });
 </script>
 {% endblock %}

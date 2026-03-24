@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import F, Q
 
+from apps.common.currency import parse_money
 from apps.inventario.models import Producto, Proveedor
 from apps.inventario.storage import subir_imagen_producto
 from apps.sesiones.decorators import admin_required_session, login_required_session
@@ -154,8 +155,8 @@ def producto_nuevo(request):
             imagen=imagen_url,
             stock=request.POST.get("stock") or 0,
             proveedor=proveedor,
-            precio_compra=request.POST.get("precio_compra") or 0,
-            precio_venta=request.POST.get("precio_venta") or 0,
+            precio_compra=parse_money(request.POST.get("precio_compra")),
+            precio_venta=parse_money(request.POST.get("precio_venta")),
             iva=request.POST.get("iva") or 0,
         )
         return redirect("inventario:producto_lista")
@@ -171,8 +172,8 @@ def producto_editar(request, producto_id):
         producto.nombre = request.POST.get("nombre")
         producto.descripcion = request.POST.get("descripcion", "")
         producto.stock = request.POST.get("stock") or 0
-        producto.precio_compra = request.POST.get("precio_compra") or 0
-        producto.precio_venta = request.POST.get("precio_venta") or 0
+        producto.precio_compra = parse_money(request.POST.get("precio_compra"))
+        producto.precio_venta = parse_money(request.POST.get("precio_venta"))
         producto.iva = request.POST.get("iva") or 0
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
         if imagen_url:

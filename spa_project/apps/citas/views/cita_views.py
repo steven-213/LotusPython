@@ -1,61 +1,531 @@
 from datetime import datetime
-from django.shortcuts import get_object_or_404, redirect, render
+from decimal import Decimal, InvalidOperation
+from io import BytesIO
 
-from apps.citas.models import Reserva, Servicio
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.http import Http404, HttpResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+from apps.common.currency import format_money, parse_money
+from apps.citas.models import PagoReserva, Profesional, Reserva, Servicio
+from apps.citas.services import (
+    actualizar_reserva,
+    cambiar_estado_reserva,
+    construir_token_comprobante,
+    crear_o_reutilizar_cliente_invitado,
+    crear_reserva,
+    pagos_reserva_por_validos,
+    puede_editar_reserva,
+    reservas_visibles_para_usuario,
+    resolver_token_comprobante,
+    resumen_dashboard_admin,
+)
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
 
 
+def _usuario_actual(request):
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
+        return None
+    return Usuario.objects.filter(id=usuario_id).first()
+
+
+def _usuario_admin(request):
+    usuario = _usuario_actual(request)
+    return usuario if usuario and usuario.rol == Usuario.ROL_ADMIN else None
+
+
+def _parse_datetime_local(value: str):
+    if not value:
+        raise ValidationError("Debes seleccionar una fecha y hora.")
+    fecha = datetime.fromisoformat(value)
+    if timezone.is_naive(fecha):
+        fecha = timezone.make_aware(fecha, timezone.get_current_timezone())
+    return fecha
+
+
+def _extraer_pago_publico(request, servicio, requerido=False):
+    quiere_pagar = requerido or request.POST.get("pagar_ahora") == "1"
+    if not quiere_pagar:
+        return None
+
+    metodo_pago = (request.POST.get("metodo_pago") or "").strip()
+    referencia = (request.POST.get("referencia_pago") or "").strip()
+    if not metodo_pago:
+        raise ValidationError("Debes seleccionar un metodo de pago.")
+
+    return {
+        "monto": servicio.precio,
+        "metodo_pago": metodo_pago,
+        "referencia": referencia,
+        "tipo": PagoReserva.TIPO_TOTAL,
+    }
+
+
+def _extraer_pago_admin(request, reserva):
+    metodo_pago = (request.POST.get("metodo_pago") or "").strip()
+    if not metodo_pago:
+        raise ValidationError("Debes seleccionar un metodo de pago.")
+
+    monto_raw = (request.POST.get("monto") or "").strip() or str(reserva.servicio.precio)
+    try:
+        monto = parse_money(monto_raw, default=None)
+    except InvalidOperation as exc:
+        raise ValidationError("El monto del pago no es valido.") from exc
+
+    return {
+        "monto": monto,
+        "metodo_pago": metodo_pago,
+        "referencia": (request.POST.get("referencia_pago") or "").strip(),
+        "tipo": (request.POST.get("tipo_pago") or PagoReserva.TIPO_TOTAL).strip() or PagoReserva.TIPO_TOTAL,
+    }
+
+
+def _asegurar_propiedad_reserva(request, reserva):
+    usuario = _usuario_actual(request)
+    if not usuario:
+        raise Http404()
+    if usuario.rol == Usuario.ROL_ADMIN or reserva.cliente_id == usuario.id:
+        return usuario
+    raise Http404()
+
+
+def _estado_puede_pasar_a(reserva, nuevo_estado):
+    from apps.citas.services import TRANSICIONES_VALIDAS
+
+    return nuevo_estado in TRANSICIONES_VALIDAS.get(reserva.estado, set())
+
+
 @admin_required_session
 def calendario(request):
-    return render(request, "citas/dashboard/calendario.html")
+    reservas = Reserva.objects.select_related(
+        "cliente", "cliente_invitado", "servicio", "servicio__profesional"
+    ).prefetch_related("pagos", "historial_estados")
+
+    estado = (request.GET.get("estado") or "").strip()
+    profesional_id = (request.GET.get("profesional_id") or "").strip()
+    asistencia = (request.GET.get("asistencia") or "").strip()
+    q = (request.GET.get("q") or "").strip()
+
+    if estado:
+        reservas = reservas.filter(estado=estado)
+    if profesional_id:
+        reservas = reservas.filter(servicio__profesional_id=profesional_id)
+    if asistencia == "asistio":
+        reservas = reservas.filter(estado__in=[Reserva.ESTADO_EN_PROCESO, Reserva.ESTADO_FINALIZADA])
+    elif asistencia == "no_asistio":
+        reservas = reservas.filter(estado=Reserva.ESTADO_NO_ASISTIO)
+    if q:
+        filtros = (
+            Q(cliente__nombre__icontains=q)
+            | Q(cliente__apellido__icontains=q)
+            | Q(cliente_invitado__nombre__icontains=q)
+            | Q(cliente_invitado__apellido__icontains=q)
+            | Q(servicio__nombre__icontains=q)
+        )
+        if q.isdigit():
+            filtros |= Q(cliente__documento=int(q)) | Q(cliente_invitado__documento=int(q))
+        reservas = reservas.filter(filtros)
+
+    reservas = reservas.order_by("fecha_inicio")
+    resumen = resumen_dashboard_admin()
+
+    return render(
+        request,
+        "citas/dashboard/calendario.html",
+        {
+            "reservas": reservas,
+            "profesionales": Profesional.objects.filter(activo=True),
+            "estado_filtro": estado,
+            "profesional_id": profesional_id,
+            "asistencia": asistencia,
+            "query": q,
+            "estados_reserva": Reserva.ESTADOS,
+            "metodos_pago": PagoReserva.METODOS,
+            "tipos_pago": PagoReserva.TIPOS,
+            **resumen,
+        },
+    )
 
 
 @login_required_session
 def agenda(request):
-    reservas = Reserva.objects.select_related("cliente", "servicio").order_by("fecha_inicio")
-    if request.session.get("usuario_rol") != Usuario.ROL_ADMIN:
-        reservas = reservas.filter(cliente_id=request.session.get("usuario_id"))
-    return render(request, "citas/public/lista.html", {"reservas": reservas})
+    usuario = _usuario_actual(request)
+    reservas = reservas_visibles_para_usuario(usuario)
+    estado = (request.GET.get("estado") or "").strip()
+    if estado:
+        reservas = reservas.filter(estado=estado)
+
+    return render(
+        request,
+        "citas/public/lista.html",
+        {
+            "usuario": usuario,
+            "reservas": reservas.order_by("-fecha_inicio"),
+            "estado_filtro": estado,
+            "estados_reserva": Reserva.ESTADOS,
+        },
+    )
 
 
-@login_required_session
 def reserva_nueva(request):
+    usuario = _usuario_actual(request)
+    servicios = Servicio.objects.select_related("profesional").filter(activo=True).order_by("nombre")
+    servicio_preseleccionado = (request.GET.get("servicio") or "").strip()
+
     if request.method == "POST":
-        cliente_id = request.POST.get("cliente_id") or request.session.get("usuario_id")
-        servicio = get_object_or_404(Servicio, id=request.POST.get("servicio_id"))
-        cliente = get_object_or_404(Usuario, id=cliente_id)
-        # Convertir las fechas desde formato datetime-local (ISO format)
-        fecha_inicio_str = request.POST.get("fecha_inicio")
-        fecha_fin_str = request.POST.get("fecha_fin")
-        fecha_inicio = datetime.fromisoformat(fecha_inicio_str) if fecha_inicio_str else None
-        fecha_fin = datetime.fromisoformat(fecha_fin_str) if fecha_fin_str else None
-        Reserva.objects.create(
-            cliente=cliente,
-            servicio=servicio,
-            fecha_inicio=fecha_inicio,
-            fecha_fin=fecha_fin,
-            estado=request.POST.get("estado", "programada"),
-            notas=request.POST.get("notas", ""),
-        )
-        return redirect("citas:agenda")
-    servicios = Servicio.objects.all()
-    return render(request, "citas/public/form.html", {"servicios": servicios, "reserva": None})
+        try:
+            servicio = get_object_or_404(Servicio.objects.select_related("profesional"), id=request.POST.get("servicio_id"), activo=True)
+            fecha_inicio = _parse_datetime_local(request.POST.get("fecha_inicio"))
+            notas = request.POST.get("notas", "")
+
+            if usuario:
+                pago_data = _extraer_pago_publico(request, servicio, requerido=False)
+                reserva, pago = crear_reserva(
+                    cliente=usuario,
+                    servicio=servicio,
+                    fecha_inicio=fecha_inicio,
+                    notas=notas,
+                    origen=Reserva.ORIGEN_AUTENTICADO,
+                    actor=usuario,
+                    pago_data=pago_data,
+                )
+                messages.success(request, "La cita fue registrada correctamente.")
+                if pago:
+                    messages.info(request, "El pago quedo registrado y la cita fue confirmada.")
+                return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+            pago_data = _extraer_pago_publico(request, servicio, requerido=True)
+            cliente_invitado = crear_o_reutilizar_cliente_invitado(
+                documento=request.POST.get("documento"),
+                nombre=(request.POST.get("nombre") or "").strip(),
+                apellido=(request.POST.get("apellido") or "").strip(),
+                correo=(request.POST.get("correo") or "").strip(),
+                fecha_nacimiento=request.POST.get("fecha_nacimiento"),
+            )
+            reserva, pago = crear_reserva(
+                cliente_invitado=cliente_invitado,
+                servicio=servicio,
+                fecha_inicio=fecha_inicio,
+                notas=notas,
+                origen=Reserva.ORIGEN_INVITADO,
+                actor=None,
+                pago_data=pago_data,
+            )
+            request.session["reserva_confirmada_id"] = reserva.id
+            request.session["reserva_confirmada_token"] = construir_token_comprobante(pago) if pago else ""
+            messages.success(request, "La reserva fue creada y el pago quedo registrado.")
+            return redirect("citas:reserva_confirmada")
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+
+    return render(
+        request,
+        "citas/public/form.html",
+        {
+            "usuario": usuario,
+            "servicios": servicios,
+            "reserva": None,
+            "servicio_preseleccionado": servicio_preseleccionado,
+            "metodos_pago": PagoReserva.METODOS,
+        },
+    )
 
 
 @login_required_session
 def reserva_editar(request, reserva_id):
-    reserva = get_object_or_404(Reserva, id=reserva_id)
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        id=reserva_id,
+    )
+    usuario = _asegurar_propiedad_reserva(request, reserva)
+    if not puede_editar_reserva(reserva):
+        messages.warning(request, "La cita ya no se puede editar.")
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
     if request.method == "POST":
-        reserva.servicio = get_object_or_404(Servicio, id=request.POST.get("servicio_id"))
-        # Convertir las fechas desde formato datetime-local (ISO format)
-        fecha_inicio_str = request.POST.get("fecha_inicio")
-        fecha_fin_str = request.POST.get("fecha_fin")
-        reserva.fecha_inicio = datetime.fromisoformat(fecha_inicio_str) if fecha_inicio_str else reserva.fecha_inicio
-        reserva.fecha_fin = datetime.fromisoformat(fecha_fin_str) if fecha_fin_str else reserva.fecha_fin
-        reserva.estado = request.POST.get("estado", "programada")
-        reserva.notas = request.POST.get("notas", "")
-        reserva.save()
-        return redirect("citas:agenda")
-    servicios = Servicio.objects.all()
-    return render(request, "citas/public/form.html", {"reserva": reserva, "servicios": servicios})
+        try:
+            servicio = get_object_or_404(Servicio.objects.select_related("profesional"), id=request.POST.get("servicio_id"), activo=True)
+            fecha_inicio = _parse_datetime_local(request.POST.get("fecha_inicio"))
+            actualizar_reserva(
+                reserva=reserva,
+                servicio=servicio,
+                fecha_inicio=fecha_inicio,
+                notas=request.POST.get("notas", ""),
+                actor=usuario,
+            )
+            messages.success(request, "La cita fue actualizada correctamente.")
+            return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+
+    servicios = Servicio.objects.select_related("profesional").filter(activo=True).order_by("nombre")
+    return render(
+        request,
+        "citas/public/form.html",
+        {
+            "reserva": reserva,
+            "servicios": servicios,
+            "usuario": usuario,
+            "metodos_pago": PagoReserva.METODOS,
+        },
+    )
+
+
+@login_required_session
+def reserva_detalle(request, reserva_id):
+    reserva = get_object_or_404(
+        Reserva.objects.select_related(
+            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "creada_por"
+        )
+        .prefetch_related("pagos", "historial_estados"),
+        id=reserva_id,
+    )
+    usuario = _asegurar_propiedad_reserva(request, reserva)
+    historial = reserva.historial_estados.select_related("usuario_actor").all()
+    pagos = pagos_reserva_por_validos(reserva)
+    return render(
+        request,
+        "citas/public/detalle.html",
+        {
+            "reserva": reserva,
+            "usuario": usuario,
+            "historial": historial,
+            "pagos": pagos,
+            "metodos_pago": PagoReserva.METODOS,
+            "tipos_pago": PagoReserva.TIPOS,
+            "puede_confirmar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CONFIRMADA),
+            "puede_iniciar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_EN_PROCESO),
+            "puede_finalizar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_FINALIZADA),
+            "puede_cancelar_admin": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CANCELADA),
+            "puede_no_asistir": _estado_puede_pasar_a(reserva, Reserva.ESTADO_NO_ASISTIO),
+        },
+    )
+
+
+def reserva_confirmada(request):
+    reserva_id = request.session.get("reserva_confirmada_id")
+    token = request.session.get("reserva_confirmada_token")
+    if not reserva_id:
+        messages.warning(request, "No hay una reserva publica reciente para mostrar.")
+        return redirect("citas:servicios_publicos")
+
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        id=reserva_id,
+    )
+    return render(
+        request,
+        "citas/public/reserva_confirmada.html",
+        {"reserva": reserva, "comprobante_token": token},
+    )
+
+
+@login_required_session
+def reserva_cancelar(request, reserva_id):
+    reserva = get_object_or_404(Reserva.objects.select_related("cliente", "cliente_invitado"), id=reserva_id)
+    usuario = _asegurar_propiedad_reserva(request, reserva)
+    if request.method != "POST":
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+    try:
+        observacion = request.POST.get("motivo_cancelacion", "Cancelada desde el modulo de citas.")
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_CANCELADA,
+            actor=usuario,
+            observacion=observacion,
+        )
+        messages.success(request, "La cita fue cancelada.")
+    except ValidationError as exc:
+        messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    if usuario.rol == Usuario.ROL_ADMIN:
+        return redirect("citas:calendario")
+    return redirect("citas:agenda")
+
+
+@admin_required_session
+def reserva_confirmar(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    usuario = _usuario_admin(request)
+    if request.method == "POST":
+        try:
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_CONFIRMADA,
+                actor=usuario,
+                observacion="Cita confirmada desde dashboard.",
+            )
+            messages.success(request, "La cita fue confirmada.")
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    return redirect("citas:calendario")
+
+
+@admin_required_session
+def reserva_iniciar(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    usuario = _usuario_admin(request)
+    if request.method == "POST":
+        try:
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+                actor=usuario,
+                observacion="Atencion iniciada.",
+            )
+            messages.success(request, "La cita paso a estado en proceso.")
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    return redirect("citas:calendario")
+
+
+@admin_required_session
+def reserva_finalizar(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    usuario = _usuario_admin(request)
+    if request.method == "POST":
+        try:
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_FINALIZADA,
+                actor=usuario,
+                observacion="Atencion finalizada.",
+            )
+            messages.success(request, "La cita fue finalizada.")
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    return redirect("citas:calendario")
+
+
+@admin_required_session
+def reserva_no_asistio(request, reserva_id):
+    reserva = get_object_or_404(Reserva, id=reserva_id)
+    usuario = _usuario_admin(request)
+    if request.method == "POST":
+        try:
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_NO_ASISTIO,
+                actor=usuario,
+                observacion="Cliente marcado como no asistio.",
+            )
+            messages.success(request, "La cita fue marcada como no asistio.")
+        except ValidationError as exc:
+            messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    return redirect("citas:calendario")
+
+
+@login_required_session
+def reserva_registrar_pago(request, reserva_id):
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        id=reserva_id,
+    )
+    usuario = _asegurar_propiedad_reserva(request, reserva)
+    if request.method != "POST":
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+    try:
+        from apps.citas.services import registrar_pago
+
+        es_admin = usuario.rol == Usuario.ROL_ADMIN
+        if es_admin:
+            pago_data = _extraer_pago_admin(request, reserva)
+        else:
+            pago_data = _extraer_pago_publico(request, reserva.servicio, requerido=True)
+
+        pago = registrar_pago(
+            reserva=reserva,
+            monto=pago_data["monto"],
+            metodo_pago=pago_data["metodo_pago"],
+            referencia=pago_data.get("referencia", ""),
+            tipo=pago_data.get("tipo", PagoReserva.TIPO_TOTAL),
+            actor=usuario,
+        )
+        if reserva.estado == Reserva.ESTADO_PROGRAMADA:
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_CONFIRMADA,
+                actor=usuario,
+                observacion="Pago registrado y cita confirmada.",
+            )
+        messages.success(request, "El pago fue registrado correctamente.")
+        if usuario.rol == Usuario.ROL_ADMIN:
+            return redirect("citas:calendario")
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+    except ValidationError as exc:
+        messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+        if usuario.rol == Usuario.ROL_ADMIN:
+            return redirect("citas:calendario")
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+
+def comprobante_pago_pdf(request, pago_id):
+    pago = None
+    token = (request.GET.get("token") or "").strip()
+    if token:
+        try:
+            pago = resolver_token_comprobante(token)
+        except Exception:
+            return HttpResponseForbidden("Token de comprobante invalido.")
+        if pago.id != pago_id:
+            return HttpResponseForbidden("El comprobante solicitado no coincide con el token.")
+    else:
+        usuario = _usuario_actual(request)
+        if not usuario:
+            return HttpResponseForbidden("Debes iniciar sesion para ver este comprobante.")
+        pago = get_object_or_404(
+            PagoReserva.objects.select_related(
+                "reserva", "reserva__cliente", "reserva__cliente_invitado", "reserva__servicio"
+            ),
+            id=pago_id,
+        )
+        if usuario.rol != Usuario.ROL_ADMIN and pago.reserva.cliente_id != usuario.id:
+            return HttpResponseForbidden("No tienes acceso a este comprobante.")
+
+    if pago.estado != PagoReserva.ESTADO_CONFIRMADO:
+        return HttpResponseForbidden("El pago no tiene un comprobante valido.")
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    y = height - 60
+    pdf.setTitle(f"Comprobante {pago.numero_comprobante}")
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.drawString(50, y, "Comprobante de Pago de Cita")
+    y -= 30
+    pdf.setFont("Helvetica", 11)
+    lineas = [
+        f"Numero de comprobante: {pago.numero_comprobante}",
+        f"Fecha de pago: {timezone.localtime(pago.fecha_pago).strftime('%d/%m/%Y %H:%M')}",
+        f"Cliente: {pago.reserva.cliente_nombre_completo}",
+        f"Servicio: {pago.reserva.servicio.nombre}",
+        f"Profesional: {pago.reserva.servicio.profesional.nombre if pago.reserva.servicio.profesional else 'Sin asignar'}",
+        f"Fecha de la cita: {timezone.localtime(pago.reserva.fecha_inicio).strftime('%d/%m/%Y %H:%M')}",
+        f"Monto: {format_money(pago.monto)}",
+        f"Metodo de pago: {pago.get_metodo_pago_display()}",
+        f"Referencia: {pago.referencia or 'N/A'}",
+        f"Estado: {pago.get_estado_display()}",
+    ]
+    for linea in lineas:
+        pdf.drawString(50, y, linea)
+        y -= 20
+
+    y -= 10
+    pdf.setFont("Helvetica-Oblique", 10)
+    pdf.drawString(50, y, "Documento generado automaticamente por Lotus Dream Spa.")
+    pdf.showPage()
+    pdf.save()
+    buffer.seek(0)
+
+    response = HttpResponse(buffer.read(), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="comprobante-{pago.numero_comprobante}.pdf"'
+    return response

@@ -202,8 +202,8 @@
                             </div>
 
                             <div class="text-end">
-                                <small>Venta: ${{ item.producto.precio_venta|floatformat:2 }}</small><br>
-                                <small>Compra: ${{ item.producto.precio_compra|floatformat:2 }}</small>
+                                <small>Venta: {{ item.producto.precio_venta|currency }}</small><br>
+                                <small>Compra: {{ item.producto.precio_compra|currency }}</small>
                             </div>
                         </div>
                     </div>

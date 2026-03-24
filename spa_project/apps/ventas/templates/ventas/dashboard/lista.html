@@ -180,7 +180,7 @@
                             <td style="color: var(--ink-500);">{{ venta.fecha|date:"d/m/Y H:i" }}</td>
                             <td>
                                 <strong style="color: var(--rose-500); font-size: 1.1rem;">
-                                    ${{ venta.total|floatformat:2 }}
+                                    {{ venta.total|currency }}
                                 </strong>
                             </td>
                             <td>

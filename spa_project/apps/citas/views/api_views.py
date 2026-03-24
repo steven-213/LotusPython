@@ -1,90 +1,86 @@
 import json
-from datetime import timedelta
 
+from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.citas.models import Reserva, Servicio
+from apps.citas.services import crear_reserva, reservas_para_calendario
 from apps.sesiones.models import Usuario
 
 
-def _validar_login(request):
-    # Valida que exista una sesion activa para el API.
-    if "usuario_id" not in request.session:
-        return JsonResponse({"error": "autenticacion requerida"}, status=401)
-    return None
+def _usuario_actual(request):
+    usuario_id = request.session.get("usuario_id")
+    if not usuario_id:
+        return None
+    return Usuario.objects.filter(id=usuario_id).first()
+
+
+def _evento_payload(reserva):
+    pago = reserva.ultimo_pago_confirmado
+    return {
+        "id": reserva.id,
+        "title": f"{reserva.cliente_nombre_completo} - {reserva.servicio.nombre}",
+        "start": reserva.fecha_inicio,
+        "end": reserva.fecha_fin,
+        "extendedProps": {
+            "cliente": reserva.cliente_nombre_completo,
+            "servicio": reserva.servicio.nombre,
+            "estado": reserva.estado,
+            "profesional": reserva.servicio.profesional.nombre if reserva.servicio.profesional else "",
+            "pagada": reserva.esta_pagada,
+            "ultimo_pago": pago.numero_comprobante if pago else "",
+            "origen": reserva.origen_reserva,
+        },
+    }
 
 
 @csrf_exempt
 def api_eventos(request):
-    denied = _validar_login(request)
-    if denied:
-        return denied
-
-    usuario_id = request.session.get("usuario_id")
-    usuario_rol = request.session.get("usuario_rol")
+    usuario = _usuario_actual(request)
+    if not usuario:
+        return JsonResponse({"error": "autenticacion requerida"}, status=401)
 
     if request.method == "GET":
-        reservas = Reserva.objects.select_related("cliente", "servicio")
-        if usuario_rol != Usuario.ROL_ADMIN:
-            reservas = reservas.filter(cliente_id=usuario_id)
-
-        payload = [
-            {
-                "id": reserva.id,
-                "title": f"{reserva.cliente.nombre} - {reserva.servicio.nombre}",
-                "start": reserva.fecha_inicio.isoformat(),
-                "end": reserva.fecha_fin.isoformat(),
-                "extendedProps": {
-                    "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
-                    "servicio": reserva.servicio.nombre,
-                    "estado": reserva.estado,
-                },
-            }
-            for reserva in reservas
-        ]
-        return JsonResponse(payload, safe=False)
+        reservas = reservas_para_calendario(usuario)
+        payload = [_evento_payload(reserva) for reserva in reservas]
+        return JsonResponse(payload, safe=False, encoder=DjangoJSONEncoder)
 
     if request.method == "POST":
-        body = json.loads(request.body or "{}")
-        cliente_id = body.get("cliente_id")
-        servicio_id = body.get("servicio_id")
-        inicio = parse_datetime(body.get("start")) or timezone.now()
-        fin = parse_datetime(body.get("end")) or (inicio + timedelta(hours=1))
+        try:
+            body = json.loads(request.body or "{}")
+            servicio = Servicio.objects.select_related("profesional").filter(
+                id=body.get("servicio_id"), activo=True
+            ).first()
+            if not servicio:
+                return JsonResponse({"error": "servicio_id invalido"}, status=400)
 
-        if usuario_rol != Usuario.ROL_ADMIN:
-            cliente_id = usuario_id
+            fecha_inicio = body.get("start")
+            if not fecha_inicio:
+                return JsonResponse({"error": "start es obligatorio"}, status=400)
+            fecha_inicio = timezone.datetime.fromisoformat(fecha_inicio.replace("Z", "+00:00"))
+            if timezone.is_naive(fecha_inicio):
+                fecha_inicio = timezone.make_aware(fecha_inicio, timezone.get_current_timezone())
 
-        if not servicio_id:
-            return JsonResponse({"error": "servicio_id es obligatorio"}, status=400)
+            cliente = usuario
+            if usuario.rol == Usuario.ROL_ADMIN and body.get("cliente_id"):
+                cliente = Usuario.objects.filter(id=body.get("cliente_id")).first() or usuario
 
-        cliente = Usuario.objects.filter(id=cliente_id).first()
-        servicio = Servicio.objects.filter(id=servicio_id).first()
-        if not cliente or not servicio:
-            return JsonResponse({"error": "cliente_id o servicio_id invalido"}, status=400)
-
-        reserva = Reserva.objects.create(
-            cliente=cliente,
-            servicio=servicio,
-            fecha_inicio=inicio,
-            fecha_fin=fin,
-            estado=body.get("estado", "programada"),
-        )
-        return JsonResponse(
-            {
-                "id": reserva.id,
-                "title": f"{reserva.cliente.nombre} - {reserva.servicio.nombre}",
-                "start": reserva.fecha_inicio.isoformat(),
-                "end": reserva.fecha_fin.isoformat(),
-                "extendedProps": {
-                    "cliente": f"{reserva.cliente.nombre} {reserva.cliente.apellido}",
-                    "servicio": reserva.servicio.nombre,
-                    "estado": reserva.estado,
-                },
-            },
-            status=201,
-        )
+            reserva, _ = crear_reserva(
+                cliente=cliente,
+                servicio=servicio,
+                fecha_inicio=fecha_inicio,
+                notas=body.get("notas", ""),
+                origen=Reserva.ORIGEN_ADMIN if usuario.rol == Usuario.ROL_ADMIN else Reserva.ORIGEN_AUTENTICADO,
+                actor=usuario,
+                pago_data=None,
+            )
+            return JsonResponse(_evento_payload(reserva), status=201, encoder=DjangoJSONEncoder)
+        except ValidationError as exc:
+            return JsonResponse({"error": exc.message if hasattr(exc, "message") else exc.messages[0]}, status=400)
+        except ValueError:
+            return JsonResponse({"error": "Fecha invalida"}, status=400)
 
     return JsonResponse({"error": "metodo no permitido"}, status=405)

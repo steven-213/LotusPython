@@ -137,11 +137,11 @@
                         <!-- Precios -->
                         <div class="d-flex justify-content-between mb-2">
                             <small class="text-muted"><i class="bi bi-cash-coin"></i> Venta:</small>
-                            <strong style="color: #ca6b86; font-size: 1.1rem;">${{ p.precio_venta|floatformat:2 }}</strong>
+                            <strong style="color: #ca6b86; font-size: 1.1rem;">{{ p.precio_venta|currency }}</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <small class="text-muted"><i class="bi bi-box2-heart"></i> Compra:</small>
-                            <small>${{ p.precio_compra|floatformat:2 }}</small>
+                            <small>{{ p.precio_compra|currency }}</small>
                         </div>
 
                         <!-- Margen de Ganancia -->

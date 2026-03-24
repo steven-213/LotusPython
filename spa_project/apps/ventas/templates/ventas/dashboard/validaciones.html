@@ -39,7 +39,7 @@
                         <div class="col-md-4">
                             <label style="color: #999; font-size: 0.9rem;">Monto Total</label>
                             <h6 style="color: #ca6b86; font-weight: 600; font-size: 1.2rem;">
-                                ${{ venta.total|floatformat:2 }}
+                                {{ venta.total|currency }}
                             </h6>
                         </div>
                         <div class="col-md-4">
@@ -79,7 +79,7 @@
                                 <label for="monto" class="form-label" style="color: #3b2b32; font-weight: 600;">Monto Pagado</label>
                                 <div class="input-group" style="border-radius: 0.5rem; overflow: hidden;">
                                     <span class="input-group-text" style="background: #fbcdd9; border: 2px solid #fbcdd9; color: #ca6b86; font-weight: 600;">$</span>
-                                    <input type="number" class="form-control" id="monto" name="monto" placeholder="0.00" step="0.01" min="0" required style="border-color: #fbcdd9; border-width: 2px;">
+                                    <input type="text" class="form-control" id="monto" name="monto" inputmode="numeric" data-money="cop" placeholder="20.000" required style="border-color: #fbcdd9; border-width: 2px;">
                                 </div>
                                 <small class="form-text text-muted">Monto confirmado del pago</small>
                             </div>
@@ -151,7 +151,7 @@
                             </div>
                             <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 0.5rem;">
                                 <strong style="color: #ca6b86; font-size: 1rem;">
-                                    ${{ validacion.monto|floatformat:2 }}
+                                    {{ validacion.monto|currency }}
                                 </strong>
                             </div>
                             {% if validacion.referencia_pago %}

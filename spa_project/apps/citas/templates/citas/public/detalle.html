@@ -1,0 +1,275 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Detalle de cita | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="citas-page-shell">
+  <header class="citas-hero">
+    <div>
+      <p class="eyebrow">Seguimiento de cita</p>
+      <h1>{{ reserva.servicio.nombre }}</h1>
+      <p>Revisa el estado operativo, el historial de cambios y los pagos asociados a esta reserva.</p>
+    </div>
+    <div class="hero-actions hero-actions-stacked">
+      <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+      <div class="hero-actions">
+        {% if usuario.rol == "admin" %}
+        <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Volver al dashboard</a>
+        {% else %}
+        <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Volver a mis citas</a>
+        {% endif %}
+        {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+        <a class="btn-primary-strong" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <section class="detail-grid">
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Resumen de la reserva</h2>
+      </header>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">Fecha</span>
+          <strong>{{ reserva.fecha_inicio|date:"l d \\d\\e F \\d\\e Y" }}</strong>
+          <p>{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Profesional</span>
+          <strong>{{ reserva.servicio.profesional.nombre|default:"Pendiente por asignar" }}</strong>
+          <p>{{ reserva.servicio.duracion_minutos }} minutos</p>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Pago registrado</span>
+          <strong>{{ reserva.total_pagado|currency }}</strong>
+          <p>Saldo pendiente: {{ reserva.saldo_pendiente|currency }}</p>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Origen</span>
+          <strong>{{ reserva.get_origen_reserva_display }}</strong>
+          <p>Creada {{ reserva.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        {% if usuario.rol == "admin" %}
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">Cliente</span>
+          <strong>{{ reserva.cliente_nombre_completo }}</strong>
+          <p>{{ reserva.cliente_correo }} · Documento {{ reserva.cliente_documento }}</p>
+        </div>
+        {% endif %}
+        {% if reserva.notas %}
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">Notas</span>
+          <p>{{ reserva.notas }}</p>
+        </div>
+        {% endif %}
+        {% if reserva.motivo_cancelacion %}
+        <div class="summary-card summary-card-wide danger-surface">
+          <span class="summary-label">Motivo de cancelacion</span>
+          <p>{{ reserva.motivo_cancelacion }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </article>
+
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Linea de tiempo</h2>
+      </header>
+      {% if historial %}
+      <div class="timeline">
+        {% for item in historial %}
+        <article class="timeline-item">
+          <span class="timeline-dot estado-{{ item.estado_nuevo }}"></span>
+          <div class="timeline-body">
+            <div class="timeline-top">
+              <strong>{{ item.estado_nuevo_legible }}</strong>
+              <span>{{ item.fecha|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% if item.usuario_actor %}
+            <p>Accion registrada por {{ item.usuario_actor.nombre }} {{ item.usuario_actor.apellido }}</p>
+            {% endif %}
+            {% if item.observacion %}
+            <p>{{ item.observacion }}</p>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-copy">Todavia no hay movimientos registrados en esta cita.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="detail-grid">
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Pagos y comprobantes</h2>
+      </header>
+
+      {% if pagos %}
+      <div class="payments-list">
+        {% for pago in pagos %}
+        <article class="payment-card">
+          <div>
+            <span class="summary-label">{{ pago.get_tipo_display }}</span>
+            <strong>{{ pago.monto|currency }}</strong>
+            <p>{{ pago.get_metodo_pago_display }} · {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
+            {% if pago.referencia %}
+            <p>Referencia: {{ pago.referencia }}</p>
+            {% endif %}
+            <p>Comprobante: {{ pago.numero_comprobante }}</p>
+          </div>
+          <a class="btn-secondary-soft" href="{% url 'citas:comprobante_pago_pdf' pago.id %}">Descargar PDF</a>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="payment-callout">
+        <i class="bi bi-wallet2"></i>
+        <div>
+          <strong>No hay pagos registrados</strong>
+          <p>La cita sigue con saldo pendiente hasta que se registre un pago valido.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if reserva.estado != "cancelada" and reserva.estado != "no_asistio" %}
+        {% if usuario.rol == "admin" %}
+        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
+          {% csrf_token %}
+          <h3>Registrar pago desde admin</h3>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Monto</span>
+              <input class="form-control" type="number" name="monto" min="0" step="0.01" value="{{ reserva.saldo_pendiente }}">
+            </label>
+            <label class="field">
+              <span>Tipo</span>
+              <select class="form-select" name="tipo_pago">
+                {% for value, label in tipos_pago %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Metodo de pago</span>
+              <select class="form-select" name="metodo_pago" required>
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
+            </label>
+          </div>
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Registrar pago</button>
+        </form>
+        {% elif not reserva.esta_pagada and reserva.estado != "finalizada" %}
+        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
+          {% csrf_token %}
+          <h3>Pagar esta cita ahora</h3>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Metodo de pago</span>
+              <select class="form-select" name="metodo_pago" required>
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
+            </label>
+          </div>
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-credit-card"></i> Registrar pago</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </article>
+
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Acciones disponibles</h2>
+      </header>
+
+      {% if usuario.rol == "admin" %}
+      <div class="action-stack">
+        {% if puede_confirmar %}
+        <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-patch-check"></i> Confirmar cita</button>
+        </form>
+        {% endif %}
+        {% if puede_iniciar %}
+        <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-play-circle"></i> Iniciar atencion</button>
+        </form>
+        {% endif %}
+        {% if puede_finalizar %}
+        <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-primary-strong btn-block"><i class="bi bi-check2-square"></i> Finalizar cita</button>
+        </form>
+        {% endif %}
+        {% if puede_no_asistir %}
+        <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-warning-soft btn-block"><i class="bi bi-person-x"></i> Marcar no asistio</button>
+        </form>
+        {% endif %}
+        {% if puede_cancelar_admin %}
+        <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
+          {% csrf_token %}
+          <label class="field">
+            <span>Motivo de cancelacion</span>
+            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Describe la razon">
+          </label>
+          <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="action-stack">
+        {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+        <a class="btn-secondary-soft btn-block" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar reserva</a>
+        {% endif %}
+        {% if reserva.estado != "cancelada" and reserva.estado != "finalizada" and reserva.estado != "no_asistio" %}
+        <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
+          {% csrf_token %}
+          <label class="field">
+            <span>Motivo de cancelacion</span>
+            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Opcional">
+          </label>
+          <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="side-panel subtle">
+        <h3>Flujo esperado</h3>
+        <ol class="flow-list">
+          <li>Programada o confirmada segun el pago inicial.</li>
+          <li>Cuando el equipo inicia la atencion, la cita pasa a en proceso.</li>
+          <li>Al cerrar el servicio, el estado final pasa a finalizada.</li>
+          <li>Si la persona no llega, el dashboard puede marcarla como no asistio.</li>
+        </ol>
+      </div>
+    </article>
+  </section>
+</section>
+{% endblock %}

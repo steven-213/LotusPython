@@ -1,51 +1,279 @@
 import json
+from datetime import timedelta
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from apps.citas.models import Servicio
+from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, Servicio
+from apps.citas.services import cambiar_estado_reserva, crear_reserva
 from apps.sesiones.models import Usuario
 
 
-class CitasViewsAndApiTest(TestCase):
+class CitasFlowTest(TestCase):
     def setUp(self):
-        self.usuario = Usuario.objects.create(
+        self.admin = Usuario.objects.create(
+            documento=100,
+            nombre="Admin",
+            apellido="Spa",
+            correo="admin@spa.com",
+            fecha_nacimiento="1990-01-01",
+            clave="1234",
+            rol=Usuario.ROL_ADMIN,
+        )
+        self.cliente = Usuario.objects.create(
             documento=300,
             nombre="Cliente",
-            apellido="Cita",
-            correo="cliente@cita.com",
+            apellido="Uno",
+            correo="cliente1@spa.com",
             fecha_nacimiento="1998-01-01",
             clave="1234",
-            rol="cliente",
+            rol=Usuario.ROL_CLIENTE,
         )
-        self.servicio = Servicio.objects.create(nombre="Facial", precio=50000)
+        self.otro_cliente = Usuario.objects.create(
+            documento=301,
+            nombre="Cliente",
+            apellido="Dos",
+            correo="cliente2@spa.com",
+            fecha_nacimiento="1997-01-01",
+            clave="1234",
+            rol=Usuario.ROL_CLIENTE,
+        )
+        self.profesional = Profesional.objects.create(nombre="Laura")
+        self.profesional_2 = Profesional.objects.create(nombre="Marta")
+        self.servicio = Servicio.objects.create(
+            nombre="Facial",
+            precio=50000,
+            profesional=self.profesional,
+            duracion_minutos=60,
+            activo=True,
+        )
+        self.servicio_2 = Servicio.objects.create(
+            nombre="Masaje",
+            precio=65000,
+            profesional=self.profesional_2,
+            duracion_minutos=60,
+            activo=True,
+        )
 
+    def _future_start(self, days=2, hour=10):
+        fecha = timezone.localtime(timezone.now() + timedelta(days=days))
+        return fecha.replace(hour=hour, minute=0, second=0, microsecond=0)
+
+    def _future_input(self, days=2, hour=10):
+        return self._future_start(days=days, hour=hour).strftime("%Y-%m-%dT%H:%M")
+
+    def _force_session(self, usuario):
         session = self.client.session
-        session["usuario_id"] = self.usuario.id
-        session["usuario_rol"] = "cliente"
+        session["usuario_id"] = usuario.id
+        session["usuario_rol"] = usuario.rol
         session.save()
 
-    def test_calendario_ok(self):
-        session = self.client.session
-        session["usuario_rol"] = "admin"
-        session.save()
-        response = self.client.get(reverse("citas:calendario"))
+    def _crear_reserva(self, *, cliente=None, servicio=None, fecha_inicio=None, pago=False):
+        reserva, _ = crear_reserva(
+            cliente=cliente or self.cliente,
+            servicio=servicio or self.servicio,
+            fecha_inicio=fecha_inicio or self._future_start(),
+            notas="Prueba",
+            origen=Reserva.ORIGEN_AUTENTICADO,
+            actor=cliente or self.cliente,
+            pago_data={
+                "monto": (servicio or self.servicio).precio,
+                "metodo_pago": PagoReserva.METODO_EFECTIVO,
+                "referencia": "",
+                "tipo": PagoReserva.TIPO_TOTAL,
+            }
+            if pago
+            else None,
+        )
+        return reserva
+
+    def test_guest_booking_requires_payment(self):
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "documento": "888",
+                "nombre": "Invitada",
+                "apellido": "Prueba",
+                "correo": "invitada@spa.com",
+                "fecha_nacimiento": "1995-05-05",
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(),
+                "notas": "Sin pago",
+            },
+        )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(Reserva.objects.count(), 0)
+        self.assertFalse(Usuario.objects.filter(documento=888).exists())
 
-    def test_api_eventos_get_post(self):
-        post = self.client.post(
+    def test_guest_booking_with_payment_creates_confirmed_reservation(self):
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "documento": "889",
+                "nombre": "Invitada",
+                "apellido": "Pago",
+                "correo": "invitada.pago@spa.com",
+                "fecha_nacimiento": "1994-04-04",
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(),
+                "metodo_pago": PagoReserva.METODO_NEQUI,
+                "referencia_pago": "TX-INV-1",
+            },
+        )
+        self.assertRedirects(response, reverse("citas:reserva_confirmada"))
+        reserva = Reserva.objects.get()
+        self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
+        self.assertEqual(reserva.origen_reserva, Reserva.ORIGEN_INVITADO)
+        self.assertIsNone(reserva.cliente)
+        self.assertIsNotNone(reserva.cliente_invitado)
+        self.assertEqual(reserva.cliente_invitado.documento, 889)
+        self.assertEqual(reserva.pagos.count(), 1)
+        self.assertTrue(self.client.session.get("reserva_confirmada_token"))
+        self.assertTrue(ClienteInvitado.objects.filter(documento=889).exists())
+        self.assertFalse(Usuario.objects.filter(documento=889).exists())
+
+    def test_guest_booking_does_not_block_future_registration(self):
+        self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "documento": "890",
+                "nombre": "Invitada",
+                "apellido": "Registro",
+                "correo": "invitada.registro@spa.com",
+                "fecha_nacimiento": "1993-03-03",
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(days=3, hour=13),
+                "metodo_pago": PagoReserva.METODO_TRANSFERENCIA,
+                "referencia_pago": "TX-INV-REG",
+            },
+        )
+
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "890",
+                "nombre": "Cuenta",
+                "apellido": "Real",
+                "correo": "cuenta.real@spa.com",
+                "fecha_nacimiento": "1993-03-03",
+                "clave": "secreta",
+                "rol": Usuario.ROL_CLIENTE,
+            },
+        )
+
+        self.assertRedirects(response, reverse("sesiones:login"))
+        self.assertTrue(ClienteInvitado.objects.filter(documento=890).exists())
+        self.assertTrue(Usuario.objects.filter(documento=890).exists())
+
+    def test_authenticated_booking_without_payment_is_programada(self):
+        self._force_session(self.cliente)
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(days=3, hour=11),
+                "notas": "Pago presencial",
+            },
+        )
+        reserva = Reserva.objects.get()
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        self.assertEqual(reserva.estado, Reserva.ESTADO_PROGRAMADA)
+        self.assertEqual(reserva.pagos.count(), 0)
+
+    def test_authenticated_booking_with_payment_is_confirmada(self):
+        self._force_session(self.cliente)
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(days=4, hour=12),
+                "notas": "Pago ahora",
+                "pagar_ahora": "1",
+                "metodo_pago": PagoReserva.METODO_TARJETA,
+                "referencia_pago": "CARD-1",
+            },
+        )
+        reserva = Reserva.objects.get()
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
+        self.assertEqual(reserva.pagos.count(), 1)
+
+    def test_same_professional_overlap_is_rejected(self):
+        fecha = self._future_start(days=5, hour=9)
+        self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
+
+        with self.assertRaises(ValidationError):
+            crear_reserva(
+                cliente=self.otro_cliente,
+                servicio=self.servicio,
+                fecha_inicio=fecha + timedelta(minutes=30),
+                notas="Cruce",
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=self.otro_cliente,
+                pago_data=None,
+            )
+
+    def test_different_professional_same_time_is_allowed(self):
+        fecha = self._future_start(days=6, hour=9)
+        self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
+        reserva = self._crear_reserva(cliente=self.otro_cliente, servicio=self.servicio_2, fecha_inicio=fecha)
+        self.assertEqual(reserva.servicio_id, self.servicio_2.id)
+        self.assertEqual(Reserva.objects.count(), 2)
+
+    def test_client_cannot_view_other_user_reservation(self):
+        reserva = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=7, hour=14))
+        self._force_session(self.cliente)
+        response = self.client.get(reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        self.assertEqual(response.status_code, 404)
+
+    def test_api_post_ignores_cliente_id_for_non_admin(self):
+        self._force_session(self.cliente)
+        response = self.client.post(
             reverse("citas:api_eventos"),
             data=json.dumps(
                 {
-                    "cliente_id": self.usuario.id,
+                    "cliente_id": self.otro_cliente.id,
                     "servicio_id": self.servicio.id,
-                    "start": "2026-03-09T10:00:00Z",
-                    "end": "2026-03-09T11:00:00Z",
+                    "start": self._future_start(days=8, hour=10).isoformat(),
+                    "notas": "API segura",
                 }
             ),
             content_type="application/json",
         )
-        self.assertEqual(post.status_code, 201)
-        get = self.client.get(reverse("citas:api_eventos"))
-        self.assertEqual(get.status_code, 200)
-        self.assertGreaterEqual(len(get.json()), 1)
+        self.assertEqual(response.status_code, 201)
+        reserva = Reserva.objects.get()
+        self.assertEqual(reserva.cliente_id, self.cliente.id)
+
+    def test_admin_can_mark_no_show_and_history_is_recorded(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=10))
+        self._force_session(self.admin)
+        response = self.client.post(reverse("citas:reserva_no_asistio", kwargs={"reserva_id": reserva.id}))
+        self.assertRedirects(response, reverse("citas:calendario"))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, Reserva.ESTADO_NO_ASISTIO)
+        self.assertTrue(reserva.historial_estados.filter(estado_nuevo=Reserva.ESTADO_NO_ASISTIO).exists())
+
+    def test_cannot_finalize_without_being_in_process(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=10, hour=16))
+        with self.assertRaises(ValidationError):
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_FINALIZADA,
+                actor=self.admin,
+                observacion="Intento invalido",
+            )
+
+    def test_owner_can_download_receipt_pdf(self):
+        reserva = self._crear_reserva(
+            cliente=self.cliente,
+            fecha_inicio=self._future_start(days=11, hour=15),
+            pago=True,
+        )
+        pago = reserva.pagos.first()
+        self._force_session(self.cliente)
+        response = self.client.get(reverse("citas:comprobante_pago_pdf", kwargs={"pago_id": pago.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))

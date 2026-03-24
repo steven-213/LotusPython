@@ -1,13 +1,80 @@
-<h1>{% if servicio %}Editar{% else %}Nuevo{% endif %} servicio</h1>
-<form method="post">{% csrf_token %}
-  <input name="nombre" value="{{ servicio.nombre|default:'' }}" placeholder="Nombre" required>
-  <textarea name="descripcion" placeholder="Descripcion">{{ servicio.descripcion|default:'' }}</textarea>
-  <input name="precio" type="number" step="0.01" value="{{ servicio.precio|default:0 }}" required>
-  <input
-    name="persona_servicio"
-    value="{{ servicio.persona_servicio|default:'' }}"
-    placeholder="Profesional"
-  >
-  <button type="submit">Guardar</button>
-</form>
-<p><a href="{% url 'citas:servicio_lista' %}">Volver al listado</a></p>
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}{% if servicio %}Editar servicio{% else %}Nuevo servicio{% endif %} | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <header class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Configuracion</p>
+      <h1>{% if servicio %}Editar servicio{% else %}Nuevo servicio{% endif %}</h1>
+      <p>Define precio, duracion y profesional para que la agenda pueda bloquear horarios correctamente.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Volver al listado</a>
+    </div>
+  </header>
+
+  <article class="form-surface dashboard-form-surface">
+    <form method="post" enctype="multipart/form-data" class="citas-form" novalidate>
+      {% csrf_token %}
+      <div class="form-grid two-up">
+        <label class="field field-full">
+          <span>Nombre</span>
+          <input class="form-control" type="text" name="nombre" value="{% if request.POST.nombre %}{{ request.POST.nombre }}{% elif servicio %}{{ servicio.nombre }}{% endif %}" required>
+        </label>
+        <label class="field field-full">
+          <span>Descripcion</span>
+          <textarea class="form-control" name="descripcion" rows="4" placeholder="Describe el servicio.">{% if request.POST.descripcion %}{{ request.POST.descripcion }}{% elif servicio %}{{ servicio.descripcion }}{% endif %}</textarea>
+        </label>
+        <label class="field field-full">
+          <span>Imagen del servicio</span>
+          {% if servicio and servicio.imagen %}
+          <div style="margin-bottom: 0.85rem;">
+            <img src="{{ servicio.imagen }}" alt="Imagen actual de {{ servicio.nombre }}" style="width: 100%; max-width: 320px; height: 220px; object-fit: cover; border-radius: 1rem; border: 1px solid rgba(76, 51, 57, 0.15);">
+          </div>
+          <p class="tracking-note" style="margin-top: 0;">Si subes una nueva imagen, reemplazara la actual.</p>
+          {% endif %}
+          <input class="form-control" type="file" name="imagen" accept="image/*">
+        </label>
+        <label class="field">
+          <span>Precio</span>
+          <input class="form-control" type="text" name="precio" inputmode="numeric" data-money="cop" value="{% if request.POST.precio %}{{ request.POST.precio }}{% elif servicio %}{{ servicio.precio|money_input }}{% endif %}" placeholder="20.000" required>
+        </label>
+        <label class="field">
+          <span>Duracion en minutos</span>
+          <input class="form-control" type="number" name="duracion_minutos" min="15" step="15" value="{% if request.POST.duracion_minutos %}{{ request.POST.duracion_minutos }}{% elif servicio %}{{ servicio.duracion_minutos }}{% else %}60{% endif %}" required>
+        </label>
+        <label class="field">
+          <span>Seleccionar profesional existente</span>
+          <select class="form-select" name="profesional_id">
+            <option value="">Sin seleccionar</option>
+            {% for profesional in profesionales %}
+            <option value="{{ profesional.id }}" {% if request.POST.profesional_id == profesional.id|stringformat:"s" %}selected{% elif servicio and servicio.profesional_id == profesional.id and not request.POST.profesional_nombre %}selected{% endif %}>{{ profesional.nombre }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field">
+          <span>O crear / reutilizar profesional</span>
+          <input class="form-control" type="text" name="profesional_nombre" value="{% if request.POST.profesional_nombre %}{{ request.POST.profesional_nombre }}{% endif %}" placeholder="Solo si no seleccionaste una existente">
+        </label>
+      </div>
+
+      <label class="toggle-payment admin-toggle">
+        <input type="checkbox" name="activo" {% if request.POST.activo == "on" %}checked{% elif servicio and servicio.activo %}checked{% elif not servicio and not request.POST %}checked{% endif %}>
+        <span>Servicio activo para agenda publica</span>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary-strong"><i class="bi bi-save"></i> Guardar servicio</button>
+        <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Cancelar</a>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}

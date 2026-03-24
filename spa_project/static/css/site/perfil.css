@@ -390,10 +390,20 @@
   color: #245a9a;
 }
 
+.estado-en_proceso {
+  background: #f0e8ff;
+  color: #5f3c9b;
+}
+
 .estado-cancelada,
 .estado-rechazado {
   background: #ffe3e7;
   color: #8f2d42;
+}
+
+.estado-no_asistio {
+  background: #f5ebdf;
+  color: #7f5b34;
 }
 
 .empty-card {
