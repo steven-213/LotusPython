@@ -60,6 +60,7 @@
                                                 <th>Producto</th>
                                                 <th>Cantidad</th>
                                                 <th>Precio Unitario</th>
+                                                <th>Lote</th>
                                                 <th>Subtotal</th>
                                                 <th></th>
                                             </tr>
@@ -81,6 +82,9 @@
                                                 </td>
                                                 <td>
                                                     <input type="text" name="precios[]" class="form-control form-control-sm precio" inputmode="numeric" data-money="cop" value="0">
+                                                </td>
+                                                <td>
+                                                    <input type="text" name="lotes[]" class="form-control form-control-sm lote" placeholder="Ej. LOTE-001">
                                                 </td>
                                                 <td>
                                                     <span class="subtotal">{{ 0|currency }}</span>
@@ -136,6 +140,7 @@ function agregarProducto() {
     row.querySelectorAll('input, select').forEach(el => {
         if (el.name.includes('cantidades')) el.value = '1';
         if (el.name.includes('precios')) el.value = '0';
+        if (el.name.includes('lotes')) el.value = '';
         if (el.classList.contains('producto-select')) el.value = '';
     });
     row.querySelector('.subtotal').textContent = "{{ 0|currency }}";

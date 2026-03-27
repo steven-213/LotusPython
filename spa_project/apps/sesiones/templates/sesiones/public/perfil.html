@@ -74,7 +74,7 @@
           <article class="agenda-card">
             <div class="agenda-top">
               <strong>{{ reserva.servicio.nombre }}</strong>
-              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+              <span class="estado-pill estado-{{ reserva.estado|slugify }}">{{ reserva.get_estado_display }}</span>
             </div>
             <p class="agenda-date">{{ reserva.fecha_inicio|date:"l d \d\e F, Y" }}</p>
             <p class="agenda-time">{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
@@ -104,7 +104,7 @@
           <article class="agenda-card agenda-card-lite">
             <div class="agenda-top">
               <strong>{{ reserva.servicio.nombre }}</strong>
-              <span class="estado-pill estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+              <span class="estado-pill estado-{{ reserva.estado|slugify }}">{{ reserva.get_estado_display }}</span>
             </div>
             <p class="agenda-time">{{ reserva.fecha_inicio|date:"d/m/Y H:i" }}</p>
           </article>
@@ -178,7 +178,7 @@
           <p>{{ compra.fecha_validacion|date:"d/m/Y H:i" }}</p>
         </div>
         <div class="validacion-meta">
-          <span class="estado-pill estado-{{ compra.estado }}">{{ compra.estado|capfirst }}</span>
+          <span class="estado-pill estado-{{ compra.estado|slugify }}">{{ compra.estado|capfirst }}</span>
           <span>{{ compra.monto|currency }}</span>
         </div>
       </article>

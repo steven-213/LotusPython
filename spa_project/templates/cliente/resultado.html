@@ -1,0 +1,66 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Compra registrada | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260326a">
+{% endblock %}
+
+{% block content %}
+<section class="shop-shell shop-result">
+  <article class="shop-result-card">
+    <div class="shop-result-icon">
+      <i class="bi bi-check2-circle"></i>
+    </div>
+
+    <h1>Tu pedido ya quedo registrado</h1>
+
+
+    <div id="checkout-warning" class="shop-cart-feedback" hidden></div>
+
+    <div class="shop-result-steps">
+      <article class="shop-result-step">
+        <i class="bi bi-receipt"></i>
+        <div>
+          <strong>Pedido pendiente de confirmacion</strong>
+        </div>
+      </article>
+
+      <article class="shop-result-step">
+        <i class="bi bi-person-lines-fill"></i>
+        <div>
+          <strong>Seguimiento del pedido</strong>
+          <span>Puedes revisar el estado de la compra desde tu perfil cuando el equipo la gestione.</span>
+        </div>
+      </article>
+    </div>
+
+    <div class="shop-result-actions">
+      <a href="{% url 'inventario:productos_publicos' %}" class="shop-btn shop-btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a la tienda
+      </a>
+      <a href="{% url 'sesiones:perfil' %}" class="shop-btn shop-btn-primary">
+        <i class="bi bi-person-circle"></i> Ir a mi perfil
+      </a>
+    </div>
+  </article>
+</section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    localStorage.removeItem("lotus_cart");
+
+    const warning = sessionStorage.getItem("lotus_checkout_warning");
+    const warningBox = document.getElementById("checkout-warning");
+    if (warning && warningBox) {
+      warningBox.hidden = false;
+      warningBox.dataset.state = "error";
+      warningBox.textContent = warning;
+      sessionStorage.removeItem("lotus_checkout_warning");
+    }
+  });
+</script>
+{% endblock %}

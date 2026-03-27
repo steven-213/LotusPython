@@ -1,12 +1,12 @@
 {% extends "base_public.html" %}
-{% load static %}
+{% load static inventario_tags %}
 
 {% block title %}Tienda | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
-<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260324a">
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260326a">
 {% endblock %}
 
 {% block content %}
@@ -49,71 +49,153 @@
   </header>
 
   {% if productos %}
-  <section class="shop-grid">
-    {% for p in productos %}
-    <article class="product-card">
-      <div class="product-media">
-        {% if p.imagen %}
-        <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" loading="lazy">
-        {% else %}
-        <div class="product-placeholder">
-          <i class="bi bi-image"></i>
-        </div>
-        {% endif %}
+  <div class="shop-layout">
+    <section class="shop-catalog-column">
+      <section class="shop-grid">
+        {% for p in productos %}
+        <article class="product-card">
+          <div class="product-media">
+            {% if p.imagen %}
+            <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" loading="lazy">
+            {% else %}
+            <div class="product-placeholder">
+              <i class="bi bi-image"></i>
+            </div>
+            {% endif %}
 
-        {% if p.stock <= 5 %}
-        <span class="product-status product-status-warning">
-          <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
-        </span>
-        {% else %}
-        <span class="product-status product-status-available">
-          <i class="bi bi-check-circle-fill"></i> Disponible
-        </span>
-        {% endif %}
-      </div>
-
-      <div class="product-body">
-        <div class="product-head">
-          <h3>{{ p.nombre }}</h3>
-          <div class="product-price">
-            <small>Precio</small>
-            <strong>{{ p.precio_venta|currency }}</strong>
+            {% if p.stock_disponible|default:p.stock <= 5 %}
+            <span class="product-status product-status-warning">
+              <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
+            </span>
+            {% else %}
+            <span class="product-status product-status-available">
+              <i class="bi bi-check-circle-fill"></i> Disponible
+            </span>
+            {% endif %}
           </div>
-        </div>
 
-        <p class="product-description">{{ p.descripcion|default:"Cuidado premium para prolongar tu ritual en casa."|truncatewords:18 }}</p>
+          <div class="product-body">
+            <div class="product-head">
+              <h3>{{ p.nombre }}</h3>
+              <div class="product-price">
+                <small>Precio</small>
+                <strong>{{ p.precio_venta|currency }}</strong>
+              </div>
+            </div>
 
-        <div class="product-meta">
-          <span><i class="bi bi-box-seam"></i> {{ p.stock }} unidades</span>
-          <span><i class="bi bi-shield-check"></i> Compra segura</span>
-        </div>
+            <p class="product-description">{{ p.descripcion|default:"Cuidado premium para prolongar tu ritual en casa."|truncatewords:18 }}</p>
 
-        <div class="product-actions">
-          {% if request.session.usuario_id and p.stock > 0 %}
-          <form method="post" action="{% url 'inventario:producto_comprar' p.id %}" class="product-buy-form">
-            {% csrf_token %}
-            <label class="product-qty-group" aria-label="Cantidad para {{ p.nombre }}">
-              <span>Cantidad</span>
-              <input type="number" name="cantidad" min="1" max="{{ p.stock }}" value="1">
-            </label>
-            <button class="shop-btn shop-btn-primary" type="submit">
-              <i class="bi bi-cart-plus"></i> Comprar ahora
-            </button>
-          </form>
-          {% elif not request.session.usuario_id and p.stock > 0 %}
-          <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
-            <i class="bi bi-person-circle"></i> Inicia sesion para comprar
-          </a>
-          {% else %}
-          <button class="shop-btn shop-btn-disabled" disabled>
-            <i class="bi bi-lock"></i> Producto agotado
-          </button>
-          {% endif %}
+            <div class="product-meta">
+              <span><i class="bi bi-box-seam"></i> {{ p.stock_disponible|default:p.stock }} unidades</span>
+              <span><i class="bi bi-shield-check"></i> Compra segura</span>
+            </div>
+
+            <div class="product-actions">
+              {% if request.session.usuario_id and p.stock_disponible|default:p.stock > 0 %}
+              <div class="product-cart-row">
+                <label class="product-qty-group" aria-label="Cantidad para {{ p.nombre }}">
+                  <span>Cantidad</span>
+                  <input
+                    id="qty-{{ p.id }}"
+                    type="number"
+                    min="1"
+                    max="{{ p.stock_disponible|default:p.stock }}"
+                    value="1"
+                  >
+                </label>
+                <button
+                  class="shop-btn shop-btn-primary"
+                  type="button"
+                  onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre|escapejs }}', '{{ p.precio_venta|floatformat:2 }}', {{ p.stock_disponible|default:p.stock }})"
+                >
+                  <i class="bi bi-cart-plus"></i> Agregar
+                </button>
+              </div>
+              {% elif not request.session.usuario_id and p.stock_disponible|default:p.stock > 0 %}
+              <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
+                <i class="bi bi-person-circle"></i> Inicia sesion para comprar
+              </a>
+              {% else %}
+              <button class="shop-btn shop-btn-disabled" disabled>
+                <i class="bi bi-lock"></i> Producto agotado
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+    </section>
+
+    <aside class="shop-cart-card">
+      {% if request.session.usuario_id %}
+      <div class="shop-cart-header">
+        <div>
+          <p class="shop-cart-label">Carrito Lotus</p>
+          <h2>Tu pedido</h2>
         </div>
+        <span id="cart-count" class="shop-cart-count">0</span>
       </div>
-    </article>
-    {% endfor %}
-  </section>
+
+      <div id="cart-feedback" class="shop-cart-feedback" hidden></div>
+      <div id="cart-items-list" class="shop-cart-items"></div>
+
+      <div class="shop-cart-section">
+        <label class="shop-field">
+          <span>Metodo de pago</span>
+          <select id="metodo_pago">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia bancaria</option>
+            <option value="Daviplata/Nequi">Daviplata / Nequi</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="shop-cart-section">
+        <label class="shop-field">
+          <span>Telefono</span>
+          <input type="text" id="telefono_cliente" placeholder="Ej: 3101234567">
+        </label>
+        <label class="shop-field">
+          <span>Direccion de entrega</span>
+          <textarea id="direccion_cliente" rows="3" placeholder="Calle, carrera, barrio o referencia"></textarea>
+        </label>
+      </div>
+
+      <div class="shop-cart-footer">
+        <div class="shop-cart-total-row">
+          <span>Total estimado</span>
+          <strong id="cart-total">{{ 0|currency }}</strong>
+        </div>
+        <p class="shop-cart-note">
+          La compra queda pendiente de confirmacion. El stock se valida antes de guardarla y se descuenta al confirmar.
+        </p>
+        <button id="cart-submit" class="shop-btn shop-btn-primary" type="button" onclick="procederAlPago()">
+          <i class="bi bi-bag-check"></i> Procesar pedido
+        </button>
+        <button class="shop-btn shop-btn-secondary" type="button" onclick="vaciarCarrito()">
+          <i class="bi bi-trash3"></i> Limpiar carrito
+        </button>
+      </div>
+      {% else %}
+      <div class="shop-cart-header">
+        <div>
+          <p class="shop-cart-label">Carrito Lotus</p>
+          <h2>Inicia sesion</h2>
+        </div>
+        <span class="shop-cart-count">?</span>
+      </div>
+      <div class="shop-cart-callout">
+        <p>
+          El carrito y la validacion de compra estan disponibles para usuarios con sesion activa.
+        </p>
+        <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
+          <i class="bi bi-person-circle"></i> Iniciar sesion
+        </a>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
   {% else %}
   <article class="shop-empty">
     <div class="shop-empty-icon"><i class="bi bi-bag-x"></i></div>
@@ -123,4 +205,237 @@
   </article>
   {% endif %}
 </section>
+
+{% if request.session.usuario_id %}
+<script>
+  const CART_KEY = "lotus_cart";
+  const stockCatalogo = {
+    {% for p in productos %}
+    "{{ p.id }}": {{ p.stock_disponible|default:p.stock }}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  };
+  let carrito = [];
+
+  function formatearMoneda(valor) {
+    if (window.CopMoney && typeof window.CopMoney.formatDisplay === "function") {
+      return window.CopMoney.formatDisplay(valor);
+    }
+
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      maximumFractionDigits: 0,
+    }).format(valor);
+  }
+
+  function leerCarrito() {
+    try {
+      const data = JSON.parse(localStorage.getItem(CART_KEY));
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function guardarCarrito() {
+    localStorage.setItem(CART_KEY, JSON.stringify(carrito));
+  }
+
+  function mostrarFeedback(mensaje, estado) {
+    const caja = document.getElementById("cart-feedback");
+    if (!caja) {
+      return;
+    }
+
+    if (!mensaje) {
+      caja.hidden = true;
+      caja.textContent = "";
+      caja.dataset.state = "";
+      return;
+    }
+
+    caja.hidden = false;
+    caja.dataset.state = estado || "info";
+    caja.textContent = mensaje;
+  }
+
+  function sanitizarCarrito() {
+    carrito = carrito
+      .filter((item) => stockCatalogo[item.id])
+      .map((item) => {
+        const stock = Number(stockCatalogo[item.id] || 0);
+        const cantidad = Math.max(1, Math.min(Number(item.cantidad || 1), stock));
+        return { ...item, cantidad };
+      })
+      .filter((item) => item.cantidad > 0);
+
+    guardarCarrito();
+  }
+
+  function agregarAlCarrito(id, nombre, precio, stockMaximo) {
+    const input = document.getElementById(`qty-${id}`);
+    const cantidadNueva = Math.max(1, Number.parseInt(input.value, 10) || 1);
+    const maximo = Math.max(0, Number(stockMaximo || 0));
+
+    if (maximo <= 0) {
+      mostrarFeedback("Ese producto ya no tiene stock disponible.", "error");
+      return;
+    }
+
+    const index = carrito.findIndex((item) => item.id === id);
+    const cantidadActual = index >= 0 ? carrito[index].cantidad : 0;
+
+    if (cantidadActual + cantidadNueva > maximo) {
+      mostrarFeedback(`Solo quedan ${maximo} unidades de ${nombre}.`, "error");
+      return;
+    }
+
+    if (index >= 0) {
+      carrito[index].cantidad += cantidadNueva;
+    } else {
+      carrito.push({
+        id,
+        nombre,
+        precio: Number.parseFloat(precio),
+        cantidad: cantidadNueva,
+      });
+    }
+
+    guardarCarrito();
+    renderizarCarrito();
+    mostrarFeedback(`${nombre} se agrego al carrito.`, "success");
+    input.value = "1";
+  }
+
+  function eliminarDelCarrito(id) {
+    carrito = carrito.filter((item) => item.id !== id);
+    guardarCarrito();
+    renderizarCarrito();
+    mostrarFeedback("Producto retirado del carrito.", "info");
+  }
+
+  function vaciarCarrito() {
+    if (!carrito.length) {
+      mostrarFeedback("El carrito ya esta vacio.", "info");
+      return;
+    }
+
+    carrito = [];
+    guardarCarrito();
+    renderizarCarrito();
+    mostrarFeedback("El carrito se vacio correctamente.", "info");
+  }
+
+  function renderizarCarrito() {
+    const contenedor = document.getElementById("cart-items-list");
+    const totalNodo = document.getElementById("cart-total");
+    const contadorNodo = document.getElementById("cart-count");
+
+    if (!contenedor || !totalNodo || !contadorNodo) {
+      return;
+    }
+
+    contenedor.innerHTML = "";
+    let total = 0;
+    let unidades = 0;
+
+    if (!carrito.length) {
+      contenedor.innerHTML = `
+        <div class="shop-cart-empty">
+          <i class="bi bi-bag"></i>
+          <p>Tu carrito esta vacio por ahora.</p>
+        </div>
+      `;
+      totalNodo.textContent = formatearMoneda(0);
+      contadorNodo.textContent = "0";
+      return;
+    }
+
+    carrito.forEach((item) => {
+      total += Number(item.precio) * Number(item.cantidad);
+      unidades += Number(item.cantidad);
+
+      const fila = document.createElement("article");
+      fila.className = "shop-cart-item";
+      fila.innerHTML = `
+        <div class="shop-cart-item-copy">
+          <strong>${item.nombre}</strong>
+          <span>${item.cantidad} x ${formatearMoneda(item.precio)}</span>
+        </div>
+        <button type="button" class="shop-cart-remove" aria-label="Eliminar ${item.nombre}">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+      `;
+
+      fila.querySelector("button").addEventListener("click", () => eliminarDelCarrito(item.id));
+      contenedor.appendChild(fila);
+    });
+
+    totalNodo.textContent = formatearMoneda(total);
+    contadorNodo.textContent = String(unidades);
+  }
+
+  async function procederAlPago() {
+    if (!carrito.length) {
+      mostrarFeedback("Agrega al menos un producto antes de procesar el pedido.", "error");
+      return;
+    }
+
+    const boton = document.getElementById("cart-submit");
+    const metodo = document.getElementById("metodo_pago").value;
+    const telefono = document.getElementById("telefono_cliente").value.trim();
+    const direccion = document.getElementById("direccion_cliente").value.trim();
+
+    boton.disabled = true;
+    boton.innerHTML = '<i class="bi bi-hourglass-split"></i> Procesando...';
+    mostrarFeedback("Validando tu pedido con el inventario disponible...", "info");
+
+    try {
+      const response = await fetch("{% url 'inventario:procesar_pago' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: JSON.stringify({
+          carrito,
+          metodo_pago: metodo,
+          telefono,
+          direccion,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+        return;
+      }
+
+      if (!response.ok || data.status !== "success") {
+        throw new Error(data.message || "No se pudo registrar la compra.");
+      }
+
+      localStorage.removeItem(CART_KEY);
+      if (data.warning) {
+        sessionStorage.setItem("lotus_checkout_warning", data.warning);
+      } else {
+        sessionStorage.removeItem("lotus_checkout_warning");
+      }
+      window.location.href = "{% url 'inventario:resultado' %}";
+    } catch (error) {
+      mostrarFeedback(error.message || "No se pudo procesar el pedido.", "error");
+    } finally {
+      boton.disabled = false;
+      boton.innerHTML = '<i class="bi bi-bag-check"></i> Procesar pedido';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    carrito = leerCarrito();
+    sanitizarCarrito();
+    renderizarCarrito();
+  });
+</script>
+{% endif %}
 {% endblock %}

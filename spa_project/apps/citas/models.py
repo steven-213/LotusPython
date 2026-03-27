@@ -32,6 +32,7 @@ class Servicio(models.Model):
         Profesional,
         on_delete=models.PROTECT,
         related_name="servicios",
+        db_column="id_persona",
         null=True,
         blank=True,
     )

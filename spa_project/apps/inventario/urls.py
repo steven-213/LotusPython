@@ -13,6 +13,7 @@ from apps.inventario.views.compra_views import (
 )
 from apps.inventario.views.dashboard_views import inventario_dashboard
 from apps.inventario.views.producto_views import (
+    procesar_pago,
     producto_comprar,
     producto_detalle,
     producto_editar,
@@ -20,6 +21,7 @@ from apps.inventario.views.producto_views import (
     producto_lista,
     producto_nuevo,
     productos_publicos,
+    resultado,
 )
 from apps.inventario.views.proveedor_views import (
     proveedor_detalle,
@@ -37,6 +39,8 @@ urlpatterns = [
     
     # Productos
     path("catalogo/", productos_publicos, name="productos_publicos"),
+    path("catalogo/procesar-pago/", procesar_pago, name="procesar_pago"),
+    path("catalogo/resultado/", resultado, name="resultado"),
     path("catalogo/<int:producto_id>/comprar/", producto_comprar, name="producto_comprar"),
     path("productos/", producto_lista, name="producto_lista"),
     path("productos/nuevo/", producto_nuevo, name="producto_nuevo"),

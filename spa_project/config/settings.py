@@ -12,7 +12,7 @@ ENV_FILE = BASE_DIR / ".env"
 try:
     from dotenv import load_dotenv  # type: ignore
 
-    load_dotenv(ENV_FILE)
+    load_dotenv(ENV_FILE, override=True)
 except Exception:
     if ENV_FILE.exists():
         for raw_line in ENV_FILE.read_text(encoding="utf-8").splitlines():
@@ -22,7 +22,7 @@ except Exception:
             key, value = line.split("=", 1)
             key = key.strip()
             value = value.strip().strip('"').strip("'")
-            os.environ.setdefault(key, value)
+            os.environ[key] = value
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)

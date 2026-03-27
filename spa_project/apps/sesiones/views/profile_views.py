@@ -23,7 +23,11 @@ def perfil(request):
 
     compras_pendientes = [v for v in validaciones if (v.estado or "").strip().lower() == "pendiente"]
     compras_compradas = [v for v in validaciones if (v.estado or "").strip().lower() == "comprado"]
-    compras_rechazadas = [v for v in validaciones if (v.estado or "").strip().lower() == "rechazado"]
+    compras_rechazadas = [
+        v
+        for v in validaciones
+        if (v.estado or "").strip().lower() in {"rechazado", "rechazada"}
+    ]
 
     ahora = timezone.now()
     reservas = list(
