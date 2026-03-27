@@ -1,15 +1,13 @@
-from datetime import datetime, timedelta
-
-from django.contrib import messages
-from django.db import transaction
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.common.currency import parse_money
-from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
-from apps.inventario.services import descontar_stock, generar_lote_default, registrar_ingreso
+from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor, Inventario, MovimientoInventario
 from apps.sesiones.decorators import admin_required_session
 
+from django.db.models import Q
+from datetime import datetime, timedelta
+from django.db import transaction
+from decimal import Decimal
+from django.contrib import messages
 
 @admin_required_session
 def compra_lista(request):
@@ -18,18 +16,15 @@ def compra_lista(request):
     proveedor_id = request.GET.get("proveedor_id", "")
     fecha_inicio = request.GET.get("fecha_inicio", "")
     fecha_fin = request.GET.get("fecha_fin", "")
-
+    
     compras = Compra.objects.select_related("proveedor").order_by("-fecha")
-
+    
     if query:
         compras = compras.filter(numero_factura__icontains=query)
-
-    if estado_filtro and estado_filtro != "completada":
-        compras = compras.none()
-
+    
     if proveedor_id:
         compras = compras.filter(proveedor_id=proveedor_id)
-
+    
     filtro_fecha = Q()
     if fecha_inicio:
         try:
@@ -41,31 +36,24 @@ def compra_lista(request):
             filtro_fecha &= Q(fecha__lte=datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1))
         except ValueError:
             fecha_fin = ""
-
+    
     if filtro_fecha:
         compras = compras.filter(filtro_fecha)
-
-    compras_completadas = Compra.objects.count()
-    compras_pendientes = 0
-    compras_canceladas = 0
+    
+    
     proveedores = Proveedor.objects.all()
+    
+    return render(request, "inventario/dashboard/compras/lista.html", {
+        "compras": compras,
+        "query": query,
+        "estado_filtro": estado_filtro,
+        "proveedor_id": proveedor_id,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "proveedores": proveedores
+    })
 
-    return render(
-        request,
-        "inventario/dashboard/compras/lista.html",
-        {
-            "compras": compras,
-            "query": query,
-            "estado_filtro": estado_filtro,
-            "proveedor_id": proveedor_id,
-            "fecha_inicio": fecha_inicio,
-            "fecha_fin": fecha_fin,
-            "proveedores": proveedores,
-            "compras_completadas": compras_completadas,
-            "compras_pendientes": compras_pendientes,
-            "compras_canceladas": compras_canceladas,
-        },
-    )
+
 
 
 @admin_required_session
@@ -73,66 +61,73 @@ def compra_nueva(request):
     if request.method == "POST":
         proveedor_id = request.POST.get("proveedor_id")
         proveedor = get_object_or_404(Proveedor, id=proveedor_id)
-        numero_factura = request.POST.get("numero_factura", "")
-        total = parse_money(request.POST.get("total"))
+
+        numero_factura = request.POST.get("numero_factura", "").strip()
+        total = request.POST.get("total") or 0
+
+        if numero_factura:
+            existe = Compra.objects.filter(
+                proveedor=proveedor,
+                numero_factura=numero_factura
+            ).exists()
+
+            if existe:
+                messages.error(request, "Ya existe esa factura para este proveedor")
+
+                proveedores = Proveedor.objects.all()
+                productos = Producto.objects.filter(activo=True)
+
+                return render(
+                    request,
+                    "inventario/dashboard/compras/nueva.html",
+                    {
+                        "proveedores": proveedores,
+                        "productos": productos
+                    }
+                )
+
+        compra = Compra.objects.create(
+            proveedor=proveedor,
+            total=total,
+            numero_factura=numero_factura,
+        )
 
         productos_ids = request.POST.getlist("productos_ids[]")
         cantidades = request.POST.getlist("cantidades[]")
         precios = request.POST.getlist("precios[]")
+        impuestos = request.POST.getlist("impuestos[]")
+        margenes = request.POST.getlist("margenes[]")
         lotes = request.POST.getlist("lotes[]")
 
-        with transaction.atomic():
-            compra = Compra.objects.create(
-                proveedor=proveedor,
-                total=total,
-                numero_factura=numero_factura,
-            )
-
-            for index, (producto_id, cantidad, precio) in enumerate(
-                zip(productos_ids, cantidades, precios)
-            ):
-                if not (producto_id and cantidad and precio):
-                    continue
-
+        for producto_id, cantidad, precio, impuesto, margen, lote in zip(
+            productos_ids, cantidades, precios, impuestos, margenes, lotes
+        ):
+            if producto_id and cantidad and precio:
                 producto = get_object_or_404(Producto, id=producto_id)
-                cantidad_int = int(cantidad)
-                lote = ""
-                if index < len(lotes):
-                    lote = (lotes[index] or "").strip()
-                if not lote:
-                    lote = generar_lote_default(producto.id, prefix=f"COMPRA-{compra.id}")
 
-                detalle, created = DetalleCompra.objects.get_or_create(
+                DetalleCompra.objects.create(
                     compra=compra,
                     producto=producto,
-                    lote=lote,
-                    defaults={
-                        "cantidad": cantidad_int,
-                        "precio_compra": parse_money(precio),
-                    },
-                )
-                if not created:
-                    detalle.cantidad += cantidad_int
-                    detalle.precio_compra = parse_money(precio)
-                    detalle.save(update_fields=["cantidad", "precio_compra"])
-
-                registrar_ingreso(
-                    producto,
-                    cantidad_int,
-                    lote=lote,
-                    fecha_ingreso=compra.fecha,
+                    cantidad=int(cantidad),
+                    precio_compra=float(precio),
+                    impuesto=float(impuesto or 0),
+                    margen_ganancia=float(margen or 0),
+                    lote=lote
                 )
 
-        return redirect("inventario:compra_detalle", compra_id=compra.id)
+        return redirect("inventario:compra_detalle", compra.id)
 
     proveedores = Proveedor.objects.all()
-    productos = Producto.objects.all()
+    productos = Producto.objects.filter(activo=True)
+
     return render(
         request,
         "inventario/dashboard/compras/nueva.html",
-        {"proveedores": proveedores, "productos": productos},
+        {
+            "proveedores": proveedores,
+            "productos": productos
+        }
     )
-
 
 @admin_required_session
 def compra_detalle(request, compra_id):
@@ -148,43 +143,71 @@ def compra_detalle(request, compra_id):
 
 @admin_required_session
 def compra_editar(request, compra_id):
+
     compra = get_object_or_404(Compra, id=compra_id)
+
     if request.method == "POST":
+
         proveedor_id = request.POST.get("proveedor_id")
         compra.proveedor = get_object_or_404(Proveedor, id=proveedor_id)
-        compra.numero_factura = request.POST.get("numero_factura", "")
-        compra.total = parse_money(request.POST.get("total"))
-        compra.save()
-        return redirect("inventario:compra_detalle", compra_id=compra.id)
+
+        productos_ids = request.POST.getlist("productos_ids[]")
+        cantidades = request.POST.getlist("cantidades[]")
+        precios = request.POST.getlist("precios[]")
+        impuestos = request.POST.getlist("impuestos[]")
+        margenes = request.POST.getlist("margenes[]")
+
+        total = Decimal("0")
+
+        with transaction.atomic():
+
+            compra.detalles.all().delete()
+
+            for pid, c, p, i, m in zip(productos_ids, cantidades, precios, impuestos, margenes):
+
+                if pid and c and p:
+                    producto = get_object_or_404(Producto, id=pid)
+
+                    c = int(c)
+                    p = Decimal(p)
+                    i = Decimal(i or 0)
+                    m = Decimal(m or 0)
+
+                    subtotal = c * p
+                    total += subtotal
+
+                    DetalleCompra.objects.create(
+                        compra=compra,
+                        producto=producto,
+                        cantidad=c,
+                        precio_compra=p,
+                        impuesto=i,
+                        margen_ganancia=m
+                    )
+
+            compra.total = total
+            compra.save()
+
+        return redirect("inventario:compra_detalle", compra.id)
 
     proveedores = Proveedor.objects.all()
-    return render(
-        request,
-        "inventario/dashboard/compras/editar.html",
-        {"compra": compra, "proveedores": proveedores},
-    )
+    productos = Producto.objects.all()
 
+    return render(request, "inventario/dashboard/compras/editar.html", {
+        "compra": compra,
+        "proveedores": proveedores,
+        "productos": productos
+    })
 
 @admin_required_session
 def compra_eliminar(request, compra_id):
     compra = get_object_or_404(Compra, id=compra_id)
     if request.method == "POST":
-        try:
-            with transaction.atomic():
-                for detalle in compra.detalles.select_related("producto"):
-                    descontar_stock(
-                        detalle.producto,
-                        detalle.cantidad,
-                        lote=detalle.lote or None,
-                    )
-                compra.delete()
-        except ValueError as exc:
-            messages.error(
-                request,
-                f"No se pudo eliminar la compra porque el stock actual ya no cubre sus lotes: {exc}",
-            )
-            return redirect("inventario:compra_detalle", compra_id=compra.id)
-
+        for detalle in compra.detalles.all():
+            producto = detalle.producto
+            producto.stock -= detalle.cantidad
+            producto.save()
+        compra.delete()
     return redirect("inventario:compra_lista")
 
 
@@ -193,12 +216,12 @@ def devolucion_lista(request):
     estado_filtro = request.GET.get("estado", "")
     fecha_inicio = request.GET.get("fecha_inicio", "")
     fecha_fin = request.GET.get("fecha_fin", "")
-
+    
     devoluciones = DevolucionCompra.objects.select_related("compra", "producto").order_by("-fecha")
-
+    
     if estado_filtro:
         devoluciones = devoluciones.filter(estado=estado_filtro)
-
+    
     filtro_fecha = Q()
     if fecha_inicio:
         try:
@@ -210,31 +233,28 @@ def devolucion_lista(request):
             filtro_fecha &= Q(fecha__lte=datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1))
         except ValueError:
             fecha_fin = ""
-
+    
     if filtro_fecha:
         devoluciones = devoluciones.filter(filtro_fecha)
-
+    
     devoluciones_pendientes = DevolucionCompra.objects.filter(estado="pendiente").count()
     devoluciones_aprobadas = DevolucionCompra.objects.filter(estado="aprobada").count()
     devoluciones_rechazadas = DevolucionCompra.objects.filter(estado="rechazada").count()
-
-    return render(
-        request,
-        "inventario/dashboard/devoluciones/lista.html",
-        {
-            "devoluciones": devoluciones,
-            "estado_filtro": estado_filtro,
-            "fecha_inicio": fecha_inicio,
-            "fecha_fin": fecha_fin,
-            "devoluciones_pendientes": devoluciones_pendientes,
-            "devoluciones_aprobadas": devoluciones_aprobadas,
-            "devoluciones_rechazadas": devoluciones_rechazadas,
-        },
-    )
+    
+    return render(request, "inventario/dashboard/devoluciones/lista.html", {
+        "devoluciones": devoluciones,
+        "estado_filtro": estado_filtro,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "devoluciones_pendientes": devoluciones_pendientes,
+        "devoluciones_aprobadas": devoluciones_aprobadas,
+        "devoluciones_rechazadas": devoluciones_rechazadas,
+    })
 
 
 @admin_required_session
 def devolucion_nueva(request):
+
     if request.method == "POST":
         compra_id = request.POST.get("compra_id")
         producto_id = request.POST.get("producto_id")
@@ -243,55 +263,116 @@ def devolucion_nueva(request):
 
         compra = get_object_or_404(Compra, id=compra_id)
         producto = get_object_or_404(Producto, id=producto_id)
-        detalle = compra.detalles.filter(producto_id=producto_id).order_by("id").first()
-        lote = detalle.lote if detalle and detalle.lote else None
 
-        try:
-            with transaction.atomic():
-                descontar_stock(producto, cantidad, lote=lote)
-                DevolucionCompra.objects.create(
-                    compra=compra,
-                    producto=producto,
-                    cantidad=cantidad,
-                    motivo=motivo,
-                )
-        except ValueError as exc:
-            messages.error(request, f"No hay stock suficiente para registrar la devolucion: {exc}")
-            return redirect("inventario:devolucion_nueva")
+        with transaction.atomic():
+            devolucion = DevolucionCompra.objects.create(
+                compra=compra,
+                producto=producto,
+                cantidad=cantidad,
+                motivo=motivo,
+            )
+
+            inventarios = Inventario.objects.filter(producto=producto).order_by("fecha_ingreso")
+
+            cantidad_restante = cantidad
+
+            for inventario in inventarios:
+                if cantidad_restante <= 0:
+                    break
+
+                if inventario.stock >= cantidad_restante:
+                    inventario.stock -= cantidad_restante
+
+                    MovimientoInventario.objects.create(
+                        inventario=inventario,
+                        producto=producto,
+                        lote=inventario.lote,
+                        cantidad=cantidad_restante,
+                        tipo="DEVOLUCION"
+                    )
+
+                    inventario.save()
+                    cantidad_restante = 0
+
+                else:
+                    cantidad_usada = inventario.stock
+
+                    MovimientoInventario.objects.create(
+                        inventario=inventario,
+                        producto=producto,
+                        lote=inventario.lote,
+                        cantidad=cantidad_usada,
+                        tipo="DEVOLUCION"
+                    )
+
+                    inventario.stock = 0
+                    inventario.save()
+
+                    cantidad_restante -= cantidad_usada
 
         return redirect("inventario:devolucion_lista")
 
-    compras = Compra.objects.select_related("proveedor").all()
-    return render(request, "inventario/dashboard/devoluciones/nueva.html", {"compras": compras})
+    compras = Compra.objects.prefetch_related("detalles__producto").all()
 
+    data_compras = []
+
+    for compra in compras:
+        productos = []
+        for d in compra.detalles.all():
+            productos.append({
+                "id": d.producto.id,
+                "nombre": d.producto.nombre,
+            })
+
+        data_compras.append({
+            "id": compra.id,
+            "productos": productos
+        })
+
+    return render(
+        request,
+        "inventario/dashboard/devoluciones/nueva.html",
+        {
+            "compras": compras,
+            "data_compras": data_compras
+        }
+    )
 
 @admin_required_session
 def devolucion_detalle(request, devolucion_id):
     devolucion = get_object_or_404(
-        DevolucionCompra.objects.select_related("compra", "producto"),
-        id=devolucion_id,
+        DevolucionCompra.objects.select_related("compra", "producto"), id=devolucion_id
     )
-    return render(
-        request,
-        "inventario/dashboard/devoluciones/detalle.html",
-        {"devolucion": devolucion},
-    )
+    return render(request, "inventario/dashboard/devoluciones/detalle.html", {"devolucion": devolucion})
 
 
 @admin_required_session
 def devolucion_eliminar(request, devolucion_id):
     devolucion = get_object_or_404(DevolucionCompra, id=devolucion_id)
+
     if request.method == "POST":
-        detalle = (
-            devolucion.compra.detalles.filter(producto_id=devolucion.producto_id)
-            .order_by("id")
-            .first()
-        )
-        registrar_ingreso(
-            devolucion.producto,
-            devolucion.cantidad,
-            lote=detalle.lote if detalle and detalle.lote else None,
-            fecha_ingreso=devolucion.compra.fecha,
-        )
+        producto = devolucion.producto
+        cantidad = devolucion.cantidad
+
+        inventarios = Inventario.objects.filter(producto=producto)
+
+        for inventario in inventarios:
+            if cantidad <= 0:
+                break
+
+            inventario.stock += cantidad
+
+            MovimientoInventario.objects.create(
+                inventario=inventario,
+                producto=producto,
+                lote=inventario.lote,
+                cantidad=cantidad,
+                tipo="INGRESO"
+            )
+
+            inventario.save()
+            cantidad = 0
+
         devolucion.delete()
+
     return redirect("inventario:devolucion_lista")

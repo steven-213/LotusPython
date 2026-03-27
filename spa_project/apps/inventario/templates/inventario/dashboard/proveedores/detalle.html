@@ -104,8 +104,8 @@
                                     {{ producto.stock }} unidades
                                 </span>
                             </td>
-                            <td>{{ producto.precio_compra|currency }}</td>
-                            <td>{{ producto.precio_venta|currency }}</td>
+                            <td>${{ producto.precio_compra }}</td>
+                            <td>${{ producto.precio_venta }}</td>
                             <td>{{ producto.iva }}%</td>
                             <td>
                                 <a href="{% url 'inventario:producto_editar' producto.id %}" class="btn btn-sm btn-outline-primary">

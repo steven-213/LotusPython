@@ -1,0 +1,116 @@
+/* CONTENEDOR */
+.compras-container {
+    color: #3b2b32;
+}
+
+/* BOTÓN ATRÁS */
+.btn-back {
+    background: #f0f0f0;
+    color: #3b2b32;
+    border: none;
+}
+
+/* TÍTULO */
+.titulo-compras {
+    font-weight: 700;
+    margin-top: 1rem;
+}
+
+.icono-titulo {
+    color: #ca6b86;
+}
+
+/* CARDS */
+.card-custom {
+    border-radius: 1rem;
+}
+
+/* HEADER TABLA */
+.card-header-custom {
+    background-color: #fbcdd9;
+}
+
+.titulo-tabla {
+    color: #3b2b32;
+}
+
+/* BUSCADOR */
+.search-icon {
+    background: #fbcdd9;
+    border: 2px solid #fbcdd9;
+    color: #ca6b86;
+}
+
+.search-input {
+    border-color: #fbcdd9;
+    border-width: 2px;
+}
+
+.btn-search {
+    background: #ca6b86;
+    border: none;
+}
+
+/* BOTÓN NUEVA */
+.btn-nueva {
+    background: #ca6b86;
+    border: none;
+}
+
+/* TABLA */
+.thead-custom {
+    background-color: #f8f9fa;
+}
+
+.thead-custom th {
+    color: #ca6b86;
+    font-weight: 600;
+}
+
+/* BADGE ID */
+.badge-id {
+    background: #ca6b86;
+}
+
+/* LINKS */
+.link-proveedor {
+    color: #3b2b32;
+    text-decoration: none;
+}
+
+/* PRECIO */
+.precio {
+    color: #ca6b86;
+    font-size: 1.1rem;
+}
+
+/* FECHA */
+.fecha {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* BOTONES */
+.btn-ver {
+    background: #ca6b86;
+    border: none;
+    color: white;
+}
+
+.btn-editar {
+    background: #f39c12;
+    border: none;
+    color: white;
+}
+
+.btn-eliminar {
+    background: #dc3545;
+    border: none;
+    color: white;
+}
+
+/* EMPTY */
+.icon-empty {
+    font-size: 2rem;
+    color: #ccc;
+}

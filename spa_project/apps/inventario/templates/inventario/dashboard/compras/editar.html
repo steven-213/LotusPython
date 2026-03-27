@@ -1,58 +1,224 @@
 {% extends "base_public.html" %}
+{% load static %}
 
-{% block title %}Editar Compra #{{ compra.id }} - Administración{% endblock %}
+{% block title %}Editar Compra #{{ compra.id }}{% endblock %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'inventario/productos/form_style.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Compra #{{ compra.id }}</h4>
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="proveedor_id" class="form-label">Proveedor *</label>
-                                <select class="form-control" id="proveedor_id" name="proveedor_id" required>
-                                    <option value="">-- Seleccionar Proveedor --</option>
-                                    {% for proveedor in proveedores %}
-                                    <option value="{{ proveedor.id }}" {% if proveedor.id == compra.proveedor.id %}selected{% endif %}>
-                                        {{ proveedor.nombre }} ({{ proveedor.empresa }})
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="numero_factura" class="form-label">Número de Factura</label>
-                                <input type="text" class="form-control" id="numero_factura" name="numero_factura" value="{{ compra.numero_factura }}">
-                            </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label for="total" class="form-label">Total</label>
-                            <input type="number" class="form-control" id="total" name="total" step="0.01" value="{{ compra.total }}" required>
-                        </div>
+<div class="container-fluid py-5">
 
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Nota:</strong> Para modificar los productos de esta compra, debes acceder a la vista de detalles y editar desde allí.
-                        </div>
+<div class="row justify-content-center">
+<div class="col-lg-8">
 
-                        <div class="d-flex gap-2 justify-content-end mt-4">
-                            <a href="{% url 'inventario:compra_detalle' compra.id %}" class="btn btn-secondary">
-                                <i class="bi bi-x-circle"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-warning">
-                                <i class="bi bi-check-circle"></i> Guardar Cambios
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+<!-- HEADER -->
+
+<div class="mb-4">
+    <h1 class="titulo-principal">
+        <i class="bi bi-pencil-square icono"></i>
+        Editar Compra #{{ compra.id }}
+    </h1>
+    <p class="text-muted">
+        Modifica la información de la compra
+    </p>
 </div>
+
+<form method="post">
+{% csrf_token %}
+
+<!-- TARJETA PRINCIPAL -->
+
+<div class="card shadow-lg mb-4 tarjeta">
+
+<div class="card-header encabezado-tarjeta">
+    <h5 class="mb-0">
+        <i class="bi bi-info-circle"></i> Información General
+    </h5>
+</div>
+
+<div class="card-body p-4">
+
+<!-- PROVEEDOR FIJO -->
+
+<div class="mb-4">
+    <label class="form-label fw-bold">
+        <i class="bi bi-building icono"></i> Proveedor
+    </label>
+
+<input type="text" class="form-control form-control-lg"
+       value="{{ compra.proveedor.nombre }}" readonly>
+
+<input type="hidden" name="proveedor_id" value="{{ compra.proveedor.id }}">
+
+</div>
+
+<!-- PRODUCTOS -->
+
+<div class="mb-4">
+    <label class="form-label fw-bold">
+        <i class="bi bi-box-seam icono"></i> Productos
+    </label>
+
+<div class="table-responsive">
+    <table class="table table-bordered align-middle">
+
+        <thead class="table-light">
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Impuesto</th>
+                <th>Margen</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+
+        <tbody id="productos-lista">
+
+        {% for d in compra.detalles.all %}
+        <tr class="producto-row">
+
+            <td>
+                <select name="productos_ids[]" class="form-control producto-select">
+                    <option value="">--</option>
+                    {% for producto in productos %}
+                    <option value="{{ producto.id }}"
+                        data-precio="{{ producto.precio_compra }}"
+                        data-impuesto="{{ producto.impuesto }}"
+                        data-margen="{{ producto.margen_ganancia }}"
+                        {% if producto.id == d.producto.id %}selected{% endif %}>
+                        {{ producto.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </td>
+
+            <td>
+                <input type="number" name="cantidades[]" class="form-control cantidad"
+                       value="{{ d.cantidad }}" min="1">
+            </td>
+
+            <td>
+                <input type="text" name="precios[]" class="form-control precio"
+                       value="{{ d.precio_compra }}" step="0.01">
+            </td>
+
+            <td>
+                <input type="text" name="impuestos[]" class="form-control impuesto"
+                       value="{{ d.impuesto }}" step="0.01">
+            </td>
+
+            <td>
+                <input type="text" name="margenes[]" class="form-control margen"
+                       value="{{ d.margen_ganancia }}" step="0.01">
+            </td>
+
+            <td>
+                <span class="subtotal">$0.00</span>
+            </td>
+
+        </tr>
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+</div>
+
+<!-- TOTAL -->
+
+<div class="mb-4 text-end">
+    <label class="fw-bold">Total</label>
+    <input type="number" id="total" name="total"
+           class="form-control form-control-lg text-end" readonly>
+</div>
+
+</div>
+</div>
+
+<!-- BOTONES -->
+
+<div class="d-flex gap-2 justify-content-end mb-4">
+
+<a href="{% url 'inventario:compra_detalle' compra.id %}"
+   class="btn btn-secondary btn-lg">
+    <i class="bi bi-x-circle"></i> Cancelar
+</a>
+
+<button type="submit" class="btn btn-principal btn-lg">
+    <i class="bi bi-check-circle"></i> Guardar Cambios
+</button>
+
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+<script>
+
+// EVENTOS
+function agregarEventos(row) {
+    const producto = row.querySelector('.producto-select');
+    const cantidad = row.querySelector('.cantidad');
+    const precio = row.querySelector('.precio');
+
+    producto.addEventListener('change', function () {
+        const op = this.selectedOptions[0];
+
+        row.querySelector('.precio').value = op.dataset.precio || 0;
+        row.querySelector('.impuesto').value = op.dataset.impuesto || 0;
+        row.querySelector('.margen').value = op.dataset.margen || 0;
+
+        actualizarSubtotal(row);
+    });
+
+    [cantidad, precio].forEach(el => {
+        el.addEventListener('input', () => actualizarSubtotal(row));
+    });
+}
+
+// SUBTOTAL
+function actualizarSubtotal(row) {
+    const c = parseFloat(row.querySelector('.cantidad').value) || 0;
+    const p = parseFloat(row.querySelector('.precio').value) || 0;
+
+    const sub = c * p;
+
+    row.querySelector('.subtotal').textContent = '$' + sub.toFixed(2);
+    actualizarTotal();
+}
+
+// TOTAL
+function actualizarTotal() {
+    let total = 0;
+
+    document.querySelectorAll('.producto-row').forEach(row => {
+        const c = parseFloat(row.querySelector('.cantidad').value) || 0;
+        const p = parseFloat(row.querySelector('.precio').value) || 0;
+
+        total += c * p;
+    });
+
+    document.getElementById('total').value = total.toFixed(2);
+}
+
+// INIT
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.producto-row').forEach(row => {
+        agregarEventos(row);
+        actualizarSubtotal(row);
+    });
+});
+
+</script>
+
 {% endblock %}

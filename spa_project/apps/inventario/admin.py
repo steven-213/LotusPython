@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Inventario, Producto, Proveedor
+from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
 
 
 @admin.register(Proveedor)
@@ -8,32 +8,25 @@ class ProveedorAdmin(admin.ModelAdmin):
     list_display = ("nombre", "empresa", "telefono", "correo", "pais")
     list_filter = ("pais",)
     search_fields = ("nombre", "empresa", "correo", "nit")
+    fieldsets = (
+        ("Información General", {"fields": ("nombre", "empresa", "nit")}),
+        ("Contacto", {"fields": ("telefono", "correo", "direccion")}),
+        ("Ubicación", {"fields": ("pais",)}),
+    )
 
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "proveedor", "stock_actual", "precio_compra", "precio_venta", "iva")
-    list_filter = ("proveedor", "precio_venta", "activo")
+    list_display = ("nombre", "proveedor", "precio_compra", "precio_venta", "impuesto", "activo")
+    list_filter = ("proveedor", "activo")
     search_fields = ("nombre", "descripcion")
-    readonly_fields = ("stock_actual",)
     fieldsets = (
-        ("Informacion del Producto", {"fields": ("nombre", "descripcion", "imagen")}),
+        ("Información del Producto", {"fields": ("nombre", "descripcion", "imagen")}),
         ("Proveedor", {"fields": ("proveedor",)}),
-        ("Precios", {"fields": ("precio_compra", "precio_venta", "iva", "margen_ganancia")}),
-        ("Stock", {"fields": ("stock_actual",)}),
+        ("Precios", {"fields": ("precio_compra", "precio_venta", "impuesto", "margen_ganancia")}),
         ("Estado", {"fields": ("activo",)}),
     )
-
-    @admin.display(description="Stock")
-    def stock_actual(self, obj):
-        return obj.stock
-
-
-@admin.register(Inventario)
-class InventarioAdmin(admin.ModelAdmin):
-    list_display = ("producto", "lote", "stock", "precio_venta", "fecha_ingreso")
-    list_filter = ("fecha_ingreso",)
-    search_fields = ("producto__nombre", "lote")
+    readonly_fields = ("precio_venta",)
 
 
 @admin.register(Compra)
@@ -42,17 +35,33 @@ class CompraAdmin(admin.ModelAdmin):
     list_filter = ("fecha", "proveedor")
     search_fields = ("numero_factura", "proveedor__nombre")
     readonly_fields = ("fecha",)
+    fieldsets = (
+        ("Información de la Compra", {"fields": ("proveedor", "numero_factura", "fecha")}),
+        ("Total", {"fields": ("total",)}),
+    )
+
+
+class DetalleCompraInline(admin.TabularInline):
+    model = DetalleCompra
+    extra = 0
+    readonly_fields = ("producto",)
 
 
 @admin.register(DetalleCompra)
 class DetalleCompraAdmin(admin.ModelAdmin):
-    list_display = ("compra", "producto", "cantidad", "precio_compra", "lote")
+    list_display = ("compra", "producto", "cantidad", "precio_compra")
     list_filter = ("compra", "producto")
-    search_fields = ("compra__numero_factura", "producto__nombre", "lote")
+    search_fields = ("compra__numero_factura", "producto__nombre")
+    readonly_fields = ("compra", "producto")
 
 
 @admin.register(DevolucionCompra)
 class DevolucionCompraAdmin(admin.ModelAdmin):
-    list_display = ("compra", "producto", "cantidad", "estado", "fecha")
-    list_filter = ("fecha", "estado")
+    list_display = ("compra", "producto", "cantidad", "motivo", "fecha")
+    list_filter = ("fecha", "compra__proveedor")
     search_fields = ("compra__numero_factura", "producto__nombre", "motivo")
+    readonly_fields = ("fecha",)
+    fieldsets = (
+        ("Información de la Devolución", {"fields": ("compra", "producto", "cantidad", "fecha")}),
+        ("Motivo", {"fields": ("motivo",)}),
+    )

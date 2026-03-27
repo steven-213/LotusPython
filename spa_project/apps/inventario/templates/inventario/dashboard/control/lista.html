@@ -1,0 +1,121 @@
+{% extends "base_public.html" %}
+
+{% block content %}
+<div class="contenedor">
+    <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+        <i class="bi bi-arrow-left"></i> Atrás
+    </a>
+    <h2>Sugerencia de Pedido</h2>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            <form method="get" class="row g-3">
+
+                <div class="col-md-6">
+                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">
+                        Buscar Producto
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="nombre" class="form-control"
+                            placeholder="Buscar producto..."
+                            value="{{ request.GET.nombre }}" style="border-color: #ca6b86;">
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">
+                        Proveedor
+                    </label>
+                    <select name="proveedor" class="form-select" style="border-color: #ca6b86;">
+                        <option value="">-- Todos --</option>
+                        {% for proveedor in proveedores %}
+                        <option value="{{ proveedor.id }}"
+                            {% if request.GET.proveedor == proveedor.id|stringformat:"s" %}selected{% endif %}>
+                            {{ proveedor.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="d-flex w-100 gap-2">
+                        <button class="btn btn-primary w-100"
+                            style="background: #ca6b86; border: none;" type="submit">
+                            Buscar
+                        </button>
+                        <a href="{% url 'inventario:sugerencia_pedido' %}"
+                            class="btn btn-secondary w-100">
+                            Limpiar
+                        </a>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <table class="tabla">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>Salidas (30 días)</th>
+                <th>Sugerido</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sugerencias %}
+            <tr class="{{ item.clase }}">
+                <td>{{ item.producto.nombre }}</td>
+                <td>{{ item.stock }}</td>
+                <td>{{ item.salidas }}</td>
+                <td><strong>{{ item.cantidad_sugerida }}</strong></td>
+                <td>{{ item.estado }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.contenedor {
+    padding: 20px;
+}
+
+.filtros {
+    margin-bottom: 20px;
+}
+
+.filtros input, .filtros select {
+    padding: 8px;
+    margin-right: 10px;
+}
+
+.tabla {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tabla th, .tabla td {
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.danger {
+    background-color: #f8d7da;
+}
+
+.warning {
+    background-color: #fff3cd;
+}
+
+.success {
+    background-color: #d4edda;
+}
+</style>
+
+{% endblock %}

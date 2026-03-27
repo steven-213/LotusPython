@@ -1,0 +1,130 @@
+/* CONTENEDOR */
+.contenedor-productos {
+    padding: 2rem;
+}
+
+/* ENCABEZADO */
+.encabezado h1 {
+    color: #3b2b32;
+}
+
+/* ESTADÍSTICAS */
+.estadisticas {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.card-estadistica {
+    flex: 1;
+    background: #f8f8f8;
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.card-estadistica h3 {
+    color: #ca6b86;
+}
+
+.card-estadistica.alerta h3 {
+    color: red;
+}
+
+.card-estadistica.warning h3 {
+    color: orange;
+}
+
+/* FILTROS */
+.filtros {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.filtros input,
+.filtros select {
+    padding: 0.5rem;
+    border: 1px solid #ca6b86;
+    border-radius: 5px;
+}
+
+.filtros button {
+    background: #ca6b86;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+}
+
+/* GRID */
+.grid-productos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* CARD */
+.card-producto {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* IMAGEN */
+.imagen {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.sin-imagen {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fbcdd9;
+}
+
+/* INFO */
+.info {
+    padding: 1rem;
+}
+
+.info h3 {
+    color: #3b2b32;
+}
+
+/* DATOS */
+.datos div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.precio {
+    color: #ca6b86;
+}
+
+/* ACCIONES */
+.acciones {
+    display: flex;
+    gap: 5px;
+    padding: 1rem;
+}
+
+.acciones a,
+.acciones button {
+    flex: 1;
+    text-align: center;
+    padding: 5px;
+    border: none;
+    background: #ca6b86;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+}
+
+.acciones button {
+    background: red;
+}
