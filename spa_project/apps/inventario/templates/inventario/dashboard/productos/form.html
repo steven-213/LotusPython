@@ -8,6 +8,7 @@
 {% block extra_css %}
 
 <link rel="stylesheet" href="{% static 'inventario/productos/form_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -16,21 +17,16 @@
 
 <div class="row justify-content-center">
     <div class="col-lg-8">
-
-        <!-- HEADER -->
-        <div class="mb-4">
-            <h1 class="titulo-principal">
-                <i class="bi bi-{% if producto %}pencil-square{% else %}plus-circle{% endif %} icono"></i>
-                {% if producto %}Editar Producto{% else %}Crear Nuevo Producto{% endif %}
-            </h1>
-            <p class="text-muted">
-                {% if producto %}
-                    Modifica la información del producto
-                {% else %}
-                    Registra un nuevo producto en el sistema
-                {% endif %}
-            </p>
-        </div>
+        {% if producto %}
+        {% url 'inventario:producto_detalle' producto.id as producto_back_url %}
+        {% else %}
+        {% url 'inventario:producto_lista' as producto_back_url %}
+        {% endif %}
+        {% if producto %}
+        {% include "inventario/dashboard/partials/panel_header.html" with page_title="Editar Producto" page_description="Completa la informacion principal y vuelve rapidamente al detalle del producto." back_url=producto_back_url back_label="Volver" active_section="productos" %}
+        {% else %}
+        {% include "inventario/dashboard/partials/panel_header.html" with page_title="Nuevo Producto" page_description="Completa la informacion principal y vuelve rapidamente a la lista de productos." back_url=producto_back_url back_label="Volver" active_section="productos" %}
+        {% endif %}
 
         {% if messages %}
             {% for message in messages %}
@@ -133,7 +129,7 @@
 
                 <button type="submit" class="btn btn-principal btn-lg">
                     <i class="bi bi-check-circle"></i>
-                    {% if producto %}Actualizar{% else %}Crear{% endif %} Producto
+                    {% if producto %}Actualizar{% else %}Crear{% endif %} producto
                 </button>
 
             </div>

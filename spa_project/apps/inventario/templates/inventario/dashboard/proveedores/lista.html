@@ -5,23 +5,13 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'inventario/proveedores/lista_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-            <i class="bi bi-arrow-left"></i> Atrás
-        </a>
-
-        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
-            <i class="bi bi-building" style="color: #ca6b86;"></i> Gestión de Proveedores
-        </h1>
-
-        <p class="text-muted">Administra la información de tus proveedores estratégicos</p>
-    </div>
+    {% url 'inventario:dashboard' as inventario_dashboard_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Proveedores" page_description="Busca por nombre, empresa, NIT, pais o correo y navega rapido al detalle de cada proveedor." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="proveedores" %}
 
 
     <!-- Estadísticas -->
@@ -56,7 +46,7 @@
                         type="text"
                         name="q"
                         class="form-control"
-                        placeholder="Buscar por nombre, empresa, NIT o país..."
+                        placeholder="Buscar por nombre, empresa, NIT, pais o correo..."
                         value="{{ query }}"
                         style="border-color: #fbcdd9; border-width: 2px;"
                     >

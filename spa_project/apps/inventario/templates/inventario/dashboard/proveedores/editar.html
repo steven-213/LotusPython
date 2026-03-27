@@ -1,11 +1,18 @@
 {% extends "base_public.html" %}
+{% load static %}
 
 {% block title %}Editar Proveedor - Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8 offset-md-2">
+            {% url 'inventario:proveedor_detalle' proveedor.id as proveedor_detalle_url %}
+            {% include "inventario/dashboard/partials/panel_header.html" with page_title="Editar Proveedor" page_description="Actualiza informacion de contacto y vuelve al detalle cuando termines." back_url=proveedor_detalle_url back_label="Volver al detalle" active_section="proveedores" %}
             <div class="card">
                 <div class="card-header bg-warning text-dark">
                     <h4 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Proveedor</h4>

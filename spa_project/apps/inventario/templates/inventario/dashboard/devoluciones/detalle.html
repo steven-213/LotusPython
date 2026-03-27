@@ -3,14 +3,16 @@
 
 {% block title %}Devolución #{{ devolucion.id }} - Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-8 offset-md-2">
-            <!-- Botón de Atrás -->
-            <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary mb-3">
-                <i class="bi bi-arrow-left"></i> Atrás
-            </a>
+            {% url 'inventario:devolucion_lista' as devolucion_lista_url %}
+            {% include "inventario/dashboard/partials/panel_header.html" with page_title="Detalle de Devolucion" page_description="Revisa el motivo, la compra original y vuelve rapidamente al listado para seguir gestionando devoluciones." back_url=devolucion_lista_url back_label="Volver a devoluciones" active_section="devoluciones" %}
 
             <!-- Información de Devolución -->
             <div class="card mb-4">
@@ -120,7 +122,7 @@
                     <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 {% if devolucion.estado == "pendiente" %}
-                <form method="post" style="display: inline;">
+                <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger" onclick="return confirm('¿Eliminar esta devolución?');">
                         <i class="bi bi-trash"></i> Eliminar

@@ -1,6 +1,8 @@
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.inventario.models import Proveedor
+from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session
 
 
@@ -9,7 +11,13 @@ def proveedor_lista(request):
     query = request.GET.get("q", "")
     proveedores = Proveedor.objects.all()
     if query:
-        proveedores = proveedores.filter(nombre__icontains=query)
+        proveedores = proveedores.filter(
+            Q(nombre__icontains=query)
+            | Q(empresa__icontains=query)
+            | Q(nit__icontains=query)
+            | Q(pais__icontains=query)
+            | Q(correo__icontains=query)
+        )
     return render(request, "inventario/dashboard/proveedores/lista.html", {"proveedores": proveedores, "query": query})
 
 
@@ -32,7 +40,7 @@ def proveedor_nuevo(request):
 @admin_required_session
 def proveedor_detalle(request, proveedor_id):
     proveedor = get_object_or_404(Proveedor, id=proveedor_id)
-    productos = proveedor.producto_set.all()
+    productos = anotar_stock_disponible(proveedor.producto_set.filter(activo=True))
     return render(
         request,
         "inventario/dashboard/proveedores/detalle.html",

@@ -6,6 +6,7 @@
 {% block extra_css %}
 
 <link rel="stylesheet" href="{% static 'inventario/productos/form_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -14,18 +15,10 @@
 
 <div class="row justify-content-center">
 <div class="col-lg-8">
+{% url 'inventario:compra_detalle' compra.id as compra_detalle_url %}
+{% include "inventario/dashboard/partials/panel_header.html" with page_title="Editar Compra" page_description="Ajusta cantidades y valores sin perder el acceso rapido al detalle de la compra." back_url=compra_detalle_url back_label="Volver al detalle" active_section="compras" %}
 
 <!-- HEADER -->
-
-<div class="mb-4">
-    <h1 class="titulo-principal">
-        <i class="bi bi-pencil-square icono"></i>
-        Editar Compra #{{ compra.id }}
-    </h1>
-    <p class="text-muted">
-        Modifica la información de la compra
-    </p>
-</div>
 
 <form method="post">
 {% csrf_token %}

@@ -3,22 +3,15 @@
 
 {% block title %}Nuevo Proveedor | Administración{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'inventario/proveedores/nuevo_style.css' %}">
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid py-4">
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'inventario:proveedor_lista' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-            <i class="bi bi-arrow-left"></i> Cancelar
-        </a>
-        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
-            <i class="bi bi-plus-circle" style="color: #ca6b86;"></i> Registrar Nuevo Proveedor
-        </h1>
-        <p class="text-muted">Completa el formulario para agregar un nuevo proveedor a tu lista</p>
-    </div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/proveedores/nuevo_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% url 'inventario:proveedor_lista' as proveedor_lista_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Nuevo Proveedor" page_description="Registra los datos del proveedor y vuelve facilmente a la lista general." back_url=proveedor_lista_url back_label="Volver a proveedores" active_section="proveedores" %}
 
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -104,5 +97,5 @@
     </div>
 </div>
 
-{% endblock %}
+{% endblock %}
 

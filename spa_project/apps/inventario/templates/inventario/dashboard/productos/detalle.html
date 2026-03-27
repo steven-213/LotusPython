@@ -1,14 +1,22 @@
 {% extends "base_public.html" %}
+{% load static %}
 
 {% block title %}{{ producto.nombre }} - Detalle{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-5">
+    {% url 'inventario:producto_lista' as producto_lista_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title=producto.nombre page_description="Consulta precios, proveedor y existencias antes de editar o volver a la lista." back_url=producto_lista_url back_label="Volver a productos" active_section="productos" %}
+
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0" style="color: #3b2b32;">
-            <i class="bi bi-box-seam" style="color: #ca6b86; font-size: 2rem;"></i> {{ producto.nombre }}
-        </h1>
+        <h2 class="mb-0" style="color: #3b2b32;">
+            <i class="bi bi-box-seam" style="color: #ca6b86; font-size: 2rem;"></i> Resumen del producto
+        </h2>
     </div>
 
     <div class="row mb-4">
@@ -26,8 +34,9 @@
                     <h5 class="card-title mb-3" style="color:#ca6b86; font-weight:700; font-size:1.5rem;">
                         ${{ producto.precio_venta|floatformat:2 }}
                     </h5>
-                    <div class="badge bg-success py-2 px-3" style="font-size:1rem;">
-                        <i class="bi bi-check-circle"></i> Stock: {{ producto.stock }}
+                    <div class="badge {% if producto.stock_disponible > 0 %}bg-success{% else %}bg-secondary{% endif %} py-2 px-3" style="font-size:1rem;">
+                        <i class="bi {% if producto.stock_disponible > 0 %}bi-check-circle{% else %}bi-slash-circle{% endif %}"></i>
+                        Stock: {{ producto.stock_disponible }} unidades
                     </div>
                 </div>
             </div>
@@ -106,6 +115,12 @@
                             <p class="text-muted mb-1">Impuesto</p>
                             <p class="fw-bold" style="color: #3b2b32; font-size: 1.5rem;">
                                 {{ producto.impuesto }}%
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Stock disponible</p>
+                            <p class="fw-bold" style="color: #3b2b32; font-size: 1.5rem;">
+                                {{ producto.stock_disponible }} unidades
                             </p>
                         </div>
                     </div>

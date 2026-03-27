@@ -43,18 +43,38 @@ def login_view(request):
 
 def registro(request):
     if request.method == "POST":
+        documento = request.POST.get("documento")
+        form_data = {
+            "documento": documento,
+            "nombre": request.POST.get("nombre", ""),
+            "apellido": request.POST.get("apellido", ""),
+            "correo": request.POST.get("correo", ""),
+            "fecha_nacimiento": request.POST.get("fecha_nacimiento") or request.POST.get("fechaNacimiento", ""),
+        }
+
+        if Usuario.objects.filter(documento=documento).exists():
+            messages.error(request, "Ya existe una cuenta registrada con ese documento.")
+            return render(
+                request,
+                "registro.html",
+                {
+                    "form_data": form_data,
+                    "duplicate_documento": True,
+                },
+            )
+
         Usuario.objects.create(
-            documento=request.POST.get("documento"),
-            nombre=request.POST.get("nombre"),
-            apellido=request.POST.get("apellido"),
-            correo=request.POST.get("correo"),
-            fecha_nacimiento=request.POST.get("fecha_nacimiento") or request.POST.get("fechaNacimiento"),
+            documento=documento,
+            nombre=form_data["nombre"],
+            apellido=form_data["apellido"],
+            correo=form_data["correo"],
+            fecha_nacimiento=form_data["fecha_nacimiento"],
             clave=request.POST.get("clave"),
             rol=request.POST.get("rol", Usuario.ROL_CLIENTE),
         )
         messages.success(request, "Usuario registrado correctamente.")
         return redirect("sesiones:login")
-    return render(request, "registro.html")
+    return render(request, "registro.html", {"form_data": {}})
 
 
 def logout_view(request):

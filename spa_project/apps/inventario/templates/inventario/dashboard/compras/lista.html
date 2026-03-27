@@ -5,24 +5,14 @@
 {% block extra_css %}
 
 <link rel="stylesheet" href="{% static 'inventario/compras/compras.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
 
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 compras-container">
-
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm btn-back">
-            <i class="bi bi-arrow-left"></i> Atrás
-        </a>
-
-        <h1 class="titulo-compras">
-            <i class="bi bi-cart-check icono-titulo"></i> Gestión de Compras
-        </h1>
-
-        <p class="text-muted">Histórico y administración de compras a proveedores</p>
-    </div>
+    {% url 'inventario:dashboard' as inventario_dashboard_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Compras" page_description="Consulta facturas, entra al detalle y continua el flujo de abastecimiento sin perder contexto." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="compras" %}
 
     <!-- Búsqueda -->
     <div class="card mb-4 shadow-sm border-0 card-custom">
@@ -34,7 +24,7 @@
                     </span>
 
                     <input type="text" name="q" class="form-control search-input"
-                        placeholder="Buscar por número de factura, proveedor..."
+                        placeholder="Buscar por numero de factura o proveedor..."
                         value="{{ query }}">
 
                     <button class="btn btn-primary btn-search" type="submit">

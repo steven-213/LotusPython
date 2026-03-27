@@ -1,13 +1,19 @@
 {% extends "base_public.html" %}
+{% load static %}
 
 {% block title %}Nueva Compra - Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
 
 {% block content %}
 
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-10 offset-md-1">
+        {% url 'inventario:compra_lista' as compra_lista_url %}
+        {% include "inventario/dashboard/partials/panel_header.html" with page_title="Nueva Compra" page_description="Selecciona proveedor, agrega productos y regresa facilmente al historial de compras." back_url=compra_lista_url back_label="Volver a compras" active_section="compras" %}
 
         <div class="card">
             <div class="card-header bg-primary text-white">

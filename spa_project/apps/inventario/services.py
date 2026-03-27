@@ -1,4 +1,5 @@
-from django.db.models import Sum
+from django.db.models import IntegerField, Sum, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from apps.inventario.models import Inventario
@@ -10,6 +11,16 @@ DEFAULT_LOT_PREFIX = "LOTE"
 def generar_lote_default(producto_id, *, prefix=DEFAULT_LOT_PREFIX):
     timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
     return f"{prefix}-{producto_id}-{timestamp}"
+
+
+def anotar_stock_disponible(queryset):
+    return queryset.annotate(
+        stock_disponible=Coalesce(
+            Sum("inventario__stock"),
+            Value(0),
+            output_field=IntegerField(),
+        )
+    )
 
 
 def obtener_stock_disponible(producto):

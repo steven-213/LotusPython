@@ -1,12 +1,19 @@
 {% extends "base_public.html" %}
+{% load static %}
 
 {% block title %}{{ proveedor.nombre }} - Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
+    {% url 'inventario:proveedor_lista' as proveedor_lista_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title=proveedor.nombre page_description="Consulta los datos del proveedor y sus productos asociados con acceso directo al detalle y la edicion." back_url=proveedor_lista_url back_label="Volver a proveedores" active_section="proveedores" %}
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1>{{ proveedor.nombre }}</h1>
+            <h2>{{ proveedor.nombre }}</h2>
         </div>
         <div class="col-md-4 text-end">
             <a href="{% url 'inventario:proveedor_editar' proveedor.id %}" class="btn btn-warning">
@@ -87,7 +94,7 @@
                             <th>Stock</th>
                             <th>Precio Compra</th>
                             <th>Precio Venta</th>
-                            <th>IVA</th>
+                            <th>Impuesto</th>
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -100,13 +107,13 @@
                                 </a>
                             </td>
                             <td>
-                                <span class="badge {% if producto.stock > 0 %}bg-success{% else %}bg-danger{% endif %}">
-                                    {{ producto.stock }} unidades
+                                <span class="badge {% if producto.stock_disponible > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ producto.stock_disponible }} unidades
                                 </span>
                             </td>
                             <td>${{ producto.precio_compra }}</td>
                             <td>${{ producto.precio_venta }}</td>
-                            <td>{{ producto.iva }}%</td>
+                            <td>{{ producto.impuesto }}%</td>
                             <td>
                                 <a href="{% url 'inventario:producto_editar' producto.id %}" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil"></i>

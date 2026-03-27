@@ -9,8 +9,10 @@ from apps.inventario.models import (
     Proveedor,
     MovimientoInventario
 )
+from apps.sesiones.decorators import admin_required_session
 
 
+@admin_required_session
 def sugerencia_pedido(request):
     proveedor_id = request.GET.get("proveedor")
     nombre_producto = request.GET.get("nombre")

@@ -63,13 +63,17 @@
             </div>
             {% endif %}
 
-            {% if p.stock_disponible|default:p.stock <= 5 %}
+            {% if p.stock_disponible <= 5 and p.stock_disponible > 0 %}
             <span class="product-status product-status-warning">
               <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
             </span>
-            {% else %}
+            {% elif p.stock_disponible > 0 %}
             <span class="product-status product-status-available">
               <i class="bi bi-check-circle-fill"></i> Disponible
+            </span>
+            {% else %}
+            <span class="product-status product-status-warning">
+              <i class="bi bi-slash-circle-fill"></i> Agotado
             </span>
             {% endif %}
           </div>
@@ -86,12 +90,12 @@
             <p class="product-description">{{ p.descripcion|default:"Cuidado premium para prolongar tu ritual en casa."|truncatewords:18 }}</p>
 
             <div class="product-meta">
-              <span><i class="bi bi-box-seam"></i> {{ p.stock_disponible|default:p.stock }} unidades</span>
+              <span><i class="bi bi-box-seam"></i> {{ p.stock_disponible }} unidades</span>
               <span><i class="bi bi-shield-check"></i> Compra segura</span>
             </div>
 
             <div class="product-actions">
-              {% if request.session.usuario_id and p.stock_disponible|default:p.stock > 0 %}
+              {% if request.session.usuario_id and p.stock_disponible > 0 %}
               <div class="product-cart-row">
                 <label class="product-qty-group" aria-label="Cantidad para {{ p.nombre }}">
                   <span>Cantidad</span>
@@ -99,19 +103,19 @@
                     id="qty-{{ p.id }}"
                     type="number"
                     min="1"
-                    max="{{ p.stock_disponible|default:p.stock }}"
+                    max="{{ p.stock_disponible }}"
                     value="1"
                   >
                 </label>
                 <button
                   class="shop-btn shop-btn-primary"
                   type="button"
-                  onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre|escapejs }}', '{{ p.precio_venta|floatformat:2 }}', {{ p.stock_disponible|default:p.stock }})"
+                  onclick="agregarAlCarrito({{ p.id }}, '{{ p.nombre|escapejs }}', '{{ p.precio_venta|floatformat:2 }}', {{ p.stock_disponible }})"
                 >
                   <i class="bi bi-cart-plus"></i> Agregar
                 </button>
               </div>
-              {% elif not request.session.usuario_id and p.stock_disponible|default:p.stock > 0 %}
+              {% elif not request.session.usuario_id and p.stock_disponible > 0 %}
               <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={% url 'inventario:productos_publicos' %}&reason=comprar">
                 <i class="bi bi-person-circle"></i> Inicia sesion para comprar
               </a>
@@ -211,7 +215,7 @@
   const CART_KEY = "lotus_cart";
   const stockCatalogo = {
     {% for p in productos %}
-    "{{ p.id }}": {{ p.stock_disponible|default:p.stock }}{% if not forloop.last %},{% endif %}
+    "{{ p.id }}": {{ p.stock_disponible }}{% if not forloop.last %},{% endif %}
     {% endfor %}
   };
   let carrito = [];

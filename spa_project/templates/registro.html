@@ -18,23 +18,33 @@
 
       <div>
         <label for="documento">Documento</label>
-        <input id="documento" type="number" name="documento" required>
+        <input
+          id="documento"
+          type="number"
+          name="documento"
+          value="{{ form_data.documento|default:'' }}"
+          class="{% if duplicate_documento %}campo-invalido{% endif %}"
+          required
+        >
+        {% if duplicate_documento %}
+        <p class="campo-alerta" role="alert">Ese documento ya tiene una cuenta registrada.</p>
+        {% endif %}
       </div>
       <div>
         <label for="nombre">Nombre</label>
-        <input id="nombre" type="text" name="nombre" required>
+        <input id="nombre" type="text" name="nombre" value="{{ form_data.nombre|default:'' }}" required>
       </div>
       <div>
         <label for="apellido">Apellido</label>
-        <input id="apellido" type="text" name="apellido" required>
+        <input id="apellido" type="text" name="apellido" value="{{ form_data.apellido|default:'' }}" required>
       </div>
       <div>
         <label for="correo">Correo</label>
-        <input id="correo" type="email" name="correo" required>
+        <input id="correo" type="email" name="correo" value="{{ form_data.correo|default:'' }}" required>
       </div>
       <div>
         <label for="fechaNacimiento">Fecha de nacimiento</label>
-        <input id="fechaNacimiento" type="date" name="fechaNacimiento" required>
+        <input id="fechaNacimiento" type="date" name="fechaNacimiento" value="{{ form_data.fecha_nacimiento|default:'' }}" required>
       </div>
       <div>
         <label for="clave">Contraseña</label>

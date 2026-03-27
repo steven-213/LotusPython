@@ -1,13 +1,16 @@
 {% extends "base_public.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="contenedor">
-    <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-        <i class="bi bi-arrow-left"></i> Atrás
-    </a>
-    <h2>Sugerencia de Pedido</h2>
+<div class="contenedor container-fluid py-4">
+    {% url 'inventario:dashboard' as inventario_dashboard_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Control de Inventario" page_description="Filtra productos, revisa salidas recientes y prioriza pedidos sugeridos segun el estado del stock." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="control" %}
 
-    <div class="card border-0 shadow-sm mb-4">
+    <div class="card border-0 shadow-sm mb-4 inv-surface-card">
         <div class="card-body p-4">
             <form method="get" class="row g-3">
 
@@ -57,28 +60,53 @@
         </div>
     </div>
 
-    <table class="tabla">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Stock</th>
-                <th>Salidas (30 días)</th>
-                <th>Sugerido</th>
-                <th>Estado</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in sugerencias %}
-            <tr class="{{ item.clase }}">
-                <td>{{ item.producto.nombre }}</td>
-                <td>{{ item.stock }}</td>
-                <td>{{ item.salidas }}</td>
-                <td><strong>{{ item.cantidad_sugerida }}</strong></td>
-                <td>{{ item.estado }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="inv-surface-card inv-table-card">
+        <div class="card-header py-3 px-4">
+            <h2 class="h5 mb-1" style="color:#3b2b32;">Sugerencias de pedido</h2>
+            <p class="mb-0 text-muted">Ordenadas para que lo urgente quede siempre arriba.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Producto</th>
+                        <th>Stock</th>
+                        <th>Salidas (30 dias)</th>
+                        <th>Sugerido</th>
+                        <th class="pe-4">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in sugerencias %}
+                    <tr class="{{ item.clase }}">
+                        <td class="ps-4">{{ item.producto.nombre }}</td>
+                        <td>{{ item.stock }}</td>
+                        <td>{{ item.salidas }}</td>
+                        <td><strong>{{ item.cantidad_sugerida }}</strong></td>
+                        <td class="pe-4">
+                            {% if item.clase == "danger" %}
+                            <span class="inv-status-badge is-danger">{{ item.estado }}</span>
+                            {% elif item.clase == "warning" %}
+                            <span class="inv-status-badge is-warning">{{ item.estado }}</span>
+                            {% else %}
+                            <span class="inv-status-badge is-success">{{ item.estado }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="inv-empty">
+                                <i class="bi bi-clipboard2-check"></i>
+                                No hay sugerencias para mostrar con los filtros actuales.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -93,16 +121,6 @@
 .filtros input, .filtros select {
     padding: 8px;
     margin-right: 10px;
-}
-
-.tabla {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.tabla th, .tabla td {
-    padding: 10px;
-    border: 1px solid #ccc;
 }
 
 .danger {

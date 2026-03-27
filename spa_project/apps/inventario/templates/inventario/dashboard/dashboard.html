@@ -10,178 +10,231 @@
 {% endblock %}
 
 {% block content %}
-
 <div class="container-lg py-3 inv-dashboard">
+    {% url 'sesiones:admin_dashboard' as admin_dashboard_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Panel de Inventario" page_description="Supervisa stock, compras, proveedores y devoluciones desde un solo punto con accesos directos al flujo completo." back_url=admin_dashboard_url back_label="Volver al panel admin" active_section="dashboard" %}
 
-<!-- Encabezado -->
-<div class="dashboard-header">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="mb-1 h5">
-                <i class="bi bi-box-seam me-1"></i> Dashboard de Inventario
-            </h1>
-            <p class="mb-0 opacity-75">
-                Gestión completa de productos, proveedores y compras
-            </p>
-        </div>
-        <div class="d-none d-lg-block">
-            <i class="bi bi-pie-chart-fill header-icon"></i>
-        </div>
+    <div class="inv-kpi-grid">
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Productos activos</div>
+            <div class="inv-kpi-value">{{ total_productos }}</div>
+            <div class="inv-kpi-meta">Catalogo actual listo para compras y ajustes.</div>
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Proveedores</div>
+            <div class="inv-kpi-value">{{ total_proveedores }}</div>
+            <div class="inv-kpi-meta">Gestion centralizada de aliados y abastecimiento.</div>
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Compras registradas</div>
+            <div class="inv-kpi-value">{{ total_compras }}</div>
+            <div class="inv-kpi-meta">Seguimiento del historial de ingresos al inventario.</div>
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Devoluciones</div>
+            <div class="inv-kpi-value">{{ total_devoluciones }}</div>
+            <div class="inv-kpi-meta">Control de ajustes por retornos o correcciones.</div>
+        </article>
     </div>
-</div>
 
-<h2 class="section-title mb-4">
-    <i class="bi bi-boxes"></i> Acciones Rapidas
-</h2>
-<div class="rejilla-estadisticas">
-
-    <div class="tarjeta-estadistica">
-        <div class="parte-superior">
-            <div>
-                <div class="etiqueta-estadistica">PRODUCTOS</div>
-                <div class="valor-estadistica">{{ total_productos }}</div>
+    <div class="row g-4 mb-4">
+        <div class="col-xl-8">
+            <div class="inv-surface-card inv-table-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center py-3 px-4">
+                    <div>
+                        <h2 class="h5 mb-1" style="color:#3b2b32;">Resumen del inventario</h2>
+                        <p class="mb-0 text-muted">Revisa existencias y entra directo al detalle del producto.</p>
+                    </div>
+                    <a href="{% url 'inventario:producto_nuevo' %}" class="inv-nav-button">
+                        <i class="bi bi-plus-circle"></i> Nuevo producto
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Producto</th>
+                                    <th>Proveedor</th>
+                                    <th>Precio venta</th>
+                                    <th>Stock</th>
+                                    <th>Estado</th>
+                                    <th class="pe-4 text-end">Accion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventario %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <strong>{{ item.producto.nombre }}</strong>
+                                    </td>
+                                    <td>{{ item.producto.proveedor.nombre|default:"Sin proveedor" }}</td>
+                                    <td>${{ item.precio|floatformat:2 }}</td>
+                                    <td>{{ item.stock }}</td>
+                                    <td>
+                                        {% if item.stock == 0 %}
+                                        <span class="inv-status-badge is-danger">Sin stock</span>
+                                        {% elif item.stock < 10 %}
+                                        <span class="inv-status-badge is-warning">Bajo</span>
+                                        {% else %}
+                                        <span class="inv-status-badge is-success">Disponible</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="pe-4 text-end">
+                                        <a href="{% url 'inventario:producto_detalle' item.producto.id %}" class="btn btn-sm btn-outline-secondary">
+                                            Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="py-4">
+                                        <div class="inv-empty">
+                                            <i class="bi bi-inbox"></i>
+                                            No hay inventario disponible todavia.
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <i class="bi bi-box-seam icono-estadistica"></i>
         </div>
 
-        <a href="{% url 'inventario:producto_lista' %}" class="boton-estadistica">
-            Ver productos
-        </a>
-    </div>
-
-    <div class="tarjeta-estadistica exito">
-        <div class="parte-superior">
-            <div>
-                <div class="etiqueta-estadistica">PROVEEDORES</div>
-                <div class="valor-estadistica">{{ total_proveedores }}</div>
+        <div class="col-xl-4">
+            <div class="inv-surface-card mb-4">
+                <div class="card-header py-3 px-4">
+                    <h2 class="h5 mb-1" style="color:#3b2b32;">Salud del stock</h2>
+                    <p class="mb-0 text-muted">Identifica rapido que requiere atencion.</p>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>Disponibles</strong>
+                                <small class="d-block">Productos con stock estable.</small>
+                            </div>
+                            <span class="inv-pill"><i class="bi bi-check-circle"></i> {{ productos_disponibles }}</span>
+                        </div>
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>Bajo stock</strong>
+                                <small class="d-block">Revisar antes de que se agoten.</small>
+                            </div>
+                            <span class="inv-pill"><i class="bi bi-exclamation-circle"></i> {{ productos_bajos }}</span>
+                        </div>
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>Sin stock</strong>
+                                <small class="d-block">Necesitan reposicion inmediata.</small>
+                            </div>
+                            <span class="inv-pill"><i class="bi bi-slash-circle"></i> {{ productos_sinstock }}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <i class="bi bi-truck icono-estadistica"></i>
-        </div>
 
-        <a href="{% url 'inventario:proveedor_lista' %}" class="boton-estadistica">
-            Ver proveedores
-        </a>
-    </div>
-
-    <div class="tarjeta-estadistica advertencia">
-        <div class="parte-superior">
-            <div>
-                <div class="etiqueta-estadistica">COMPRAS</div>
-                <div class="valor-estadistica">{{ total_compras }}</div>
+            <div class="inv-surface-card">
+                <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h5 mb-1" style="color:#3b2b32;">Alertas</h2>
+                        <p class="mb-0 text-muted">Productos con menos de 10 unidades.</p>
+                    </div>
+                    <a href="{% url 'inventario:sugerencia_pedido' %}" class="btn btn-sm btn-outline-secondary">Control</a>
+                </div>
+                <div class="card-body">
+                    {% if inventario_critico %}
+                    <div class="inv-list">
+                        {% for item in inventario_critico %}
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>{{ item.producto.nombre }}</strong>
+                                <small class="d-block">{{ item.producto.proveedor.nombre|default:"Sin proveedor" }}</small>
+                            </div>
+                            <span class="inv-pill">
+                                <i class="bi bi-box-seam"></i> {{ item.stock }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="inv-empty">
+                        <i class="bi bi-shield-check"></i>
+                        No hay alertas criticas de stock en este momento.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <i class="bi bi-cart-check icono-estadistica"></i>
         </div>
-
-        <a href="{% url 'inventario:compra_lista' %}" class="boton-estadistica">
-            Ver compras
-        </a>
     </div>
 
-    <div class="tarjeta-estadistica peligro">
-        <div class="parte-superior">
-            <div>
-                <div class="etiqueta-estadistica">SUGERENCIAS</div>
-                <div class="valor-estadistica">{{ sugerencias }}</div>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="inv-surface-card h-100">
+                <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h5 mb-1" style="color:#3b2b32;">Compras recientes</h2>
+                        <p class="mb-0 text-muted">Atajos para continuar el flujo de abastecimiento.</p>
+                    </div>
+                    <a href="{% url 'inventario:compra_lista' %}" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+                </div>
+                <div class="card-body">
+                    {% if compras_recientes %}
+                    <div class="inv-list">
+                        {% for compra in compras_recientes %}
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>Compra #{{ compra.id }}</strong>
+                                <small class="d-block">{{ compra.proveedor.nombre }} · {{ compra.fecha|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <a href="{% url 'inventario:compra_detalle' compra.id %}" class="inv-pill">
+                                ${{ compra.total|floatformat:2 }}
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="inv-empty">
+                        <i class="bi bi-cart-x"></i>
+                        Aun no hay compras registradas.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            <i class="bi bi-exclamation-circle icono-estadistica"></i>
         </div>
 
-        <a href="{% url 'inventario:sugerencia_pedido' %}" class="boton-estadistica">
-            Ver sugerencias
-        </a>
-    </div>
-
-</div>
-<h2 class="section-title">
-    <i class="bi bi-lightning-fill"></i> Productos
-</h2>
-
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="stat-card stat-card-success">
-            <p>Productos Disponibles</p>
-            <h2>{{ productos_disponibles }}</h2>
+        <div class="col-lg-6">
+            <div class="inv-surface-card h-100">
+                <div class="card-header py-3 px-4">
+                    <h2 class="h5 mb-1" style="color:#3b2b32;">Proveedores con mas productos</h2>
+                    <p class="mb-0 text-muted">Vista rapida para saber donde estas concentrando el catalogo.</p>
+                </div>
+                <div class="card-body">
+                    {% if productos_por_proveedor %}
+                    <div class="inv-list">
+                        {% for item in productos_por_proveedor %}
+                        <div class="inv-list-item">
+                            <div>
+                                <strong>{{ item.proveedor__nombre|default:"Sin proveedor" }}</strong>
+                                <small class="d-block">Productos activos asociados</small>
+                            </div>
+                            <span class="inv-pill">
+                                <i class="bi bi-boxes"></i> {{ item.total }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="inv-empty">
+                        <i class="bi bi-building"></i>
+                        Aun no hay datos de proveedores para mostrar.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="stat-card stat-card-primary">
-            <p>Productos Bajo Stock</p>
-            <h2>{{ productos_bajos }}</h2>
-        </div>
-    </div>
-
-    <div class="col-md-4">
-        <div class="stat-card stat-card-rose">
-            <p>Productos Sin Stock</p>
-            <h2>{{ productos_sinstock }}</h2>
-        </div>
-    </div>
-</div>
-
-<h2 class="section-title">
-    <i class="bi bi-boxes"></i> Inventario General
-</h2>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Precio Venta</th>
-                        <th>Stock Total</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for item in inventario %}
-                    <tr>
-                        <td>
-                            <strong>{{ item.producto.nombre }}</strong>
-                        </td>
-
-                        <td>
-                            ${{ item.precio|floatformat:2 }}
-                        </td>
-
-                        <td>
-                            {{ item.stock }}
-                        </td>
-
-                        <td>
-                            {% if item.stock == 0 %}
-                                <span class="badge bg-danger">Sin stock</span>
-                            {% elif item.stock < 10 %}
-                                <span class="badge bg-warning text-dark">Bajo</span>
-                            {% else %}
-                                <span class="badge bg-success">Disponible</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">
-                            No hay inventario disponible
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-
-            </table>
-        </div>
-
-    </div>
-</div>
-
-<div class="d-flex gap-2 justify-content-end">
-    <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-        <i class="bi bi-arrow-left"></i> Atrás
-    </a>
-</div>
-
 </div>
 {% endblock %}

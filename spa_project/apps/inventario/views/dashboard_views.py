@@ -3,8 +3,9 @@ from django.db.models import Count, Q
 from datetime import datetime, timedelta
 
 from apps.inventario.models import (
-    Producto, Proveedor, Compra, DevolucionCompra, Inventario
+    Producto, Proveedor, Compra, DevolucionCompra
 )
+from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session
 
 
@@ -62,27 +63,18 @@ def inventario_dashboard(request):
         .order_by("-total")[:5]
     )
 
-    inventario_qs = (
-        Inventario.objects
-        .select_related("producto")
-        .filter(producto__activo=True)
+    productos_con_stock = anotar_stock_disponible(
+        Producto.objects.filter(activo=True).select_related("proveedor").order_by("nombre")
     )
 
-    productos_dict = {}
-
-    for item in inventario_qs:
-        prod_id = item.producto.id
-
-        if prod_id not in productos_dict:
-            productos_dict[prod_id] = {
-                "producto": item.producto,
-                "stock": 0,
-                "precio": item.producto.precio_venta,
-            }
-
-        productos_dict[prod_id]["stock"] += item.stock
-
-    inventario = list(productos_dict.values())
+    inventario = [
+        {
+            "producto": producto,
+            "stock": producto.stock_disponible,
+            "precio": producto.precio_venta,
+        }
+        for producto in productos_con_stock
+    ]
 
     productos_disponibles = 0
     productos_bajos = 0
@@ -97,6 +89,10 @@ def inventario_dashboard(request):
             productos_bajos += 1
         else:
             productos_disponibles += 1
+
+    inventario_critico = [
+        item for item in inventario if item["stock"] < 10
+    ][:6]
 
     context = {
         "total_productos": total_productos,
@@ -118,6 +114,7 @@ def inventario_dashboard(request):
         "productos_por_proveedor": productos_por_proveedor,
 
         "inventario": inventario,
+        "inventario_critico": inventario_critico,
 
         "proveedores": Proveedor.objects.all(),
         "fecha_inicio": fecha_inicio,

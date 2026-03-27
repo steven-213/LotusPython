@@ -20,7 +20,10 @@ def compra_lista(request):
     compras = Compra.objects.select_related("proveedor").order_by("-fecha")
     
     if query:
-        compras = compras.filter(numero_factura__icontains=query)
+        compras = compras.filter(
+            Q(numero_factura__icontains=query) |
+            Q(proveedor__nombre__icontains=query)
+        )
     
     if proveedor_id:
         compras = compras.filter(proveedor_id=proveedor_id)
