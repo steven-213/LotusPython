@@ -4,17 +4,23 @@
 {% block title %}Ventas | Administración{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin_nav.css' %}">
 <link rel="stylesheet" href="{% static 'ventas/lista_style.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-lg py-4">
-    <!-- Encabezado -->
+    <div class="ventas-admin-backbar">
+        <a href="{% url 'inventario:dashboard' %}" class="ventas-admin-backlink">
+            <i class="bi bi-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
     <div class="dashboard-header">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="mb-2"><i class="bi bi-receipt"></i> Administración de Ventas</h1>
-                <p class="mb-0 opacity-75">Historial, seguimiento y validación de transacciones</p>
+                <h1 class="mb-2"><i class="bi bi-receipt"></i> Administración de Ventas y Devoluciones Cliente</h1>
+                <p class="mb-0 opacity-75">Historial, validación de pagos y seguimiento de devoluciones solicitadas por clientes.</p>
             </div>
             <div class="d-none d-lg-block">
                 <i class="bi bi-graph-up" style="font-size: 3rem; opacity: 0.2;"></i>
@@ -79,6 +85,32 @@
             <div class="stat-card" style="border-left: 4px solid #F44336;">
                 <p class="stat-label">Rechazados</p>
                 <h2 class="stat-value" style="color: #F44336;">{{ validaciones_rechazado }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <h2 style="color: var(--ink-700); font-weight: 700; margin-bottom: 1rem; border-bottom: 2px solid var(--rose-200); padding-bottom: 0.5rem;">
+        <i class="bi bi-arrow-return-left"></i> Devoluciones de Clientes
+    </h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #FFC107;">
+                <p class="stat-label">En espera</p>
+                <h2 class="stat-value" style="color: #FFC107;">{{ devoluciones_pendientes }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #4CAF50;">
+                <p class="stat-label">Aprobadas</p>
+                <h2 class="stat-value" style="color: #4CAF50;">{{ devoluciones_aprobadas }}</h2>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="stat-card" style="border-left: 4px solid #F44336;">
+                <p class="stat-label">Rechazadas</p>
+                <h2 class="stat-value" style="color: #F44336;">{{ devoluciones_rechazadas }}</h2>
             </div>
         </div>
     </div>
@@ -162,6 +194,7 @@
                             <th>Fecha</th>
                             <th>Total</th>
                             <th>Estado de Pago</th>
+                            <th>Devolución Cliente</th>
                             <th style="text-align: right;">Acciones</th>
                         </tr>
                     </thead>
@@ -208,6 +241,32 @@
                                     </span>
                                 {% endif %}
                             </td>
+                            <td>
+                                {% if venta.devolucion_resumen.slug == "pendiente" %}
+                                    <span class="badge" style="background: #FFC107; color: #333;">
+                                        <i class="bi bi-clock-history"></i> {{ venta.devolucion_resumen.label }}
+                                    </span>
+                                {% elif venta.devolucion_resumen.slug == "devuelta_total" %}
+                                    <span class="badge" style="background: #4CAF50; color: white;">
+                                        <i class="bi bi-arrow-repeat"></i> {{ venta.devolucion_resumen.label }}
+                                    </span>
+                                {% elif venta.devolucion_resumen.slug == "devuelta_parcial" %}
+                                    <span class="badge" style="background: #0D6EFD; color: white;">
+                                        <i class="bi bi-arrow-left-right"></i> {{ venta.devolucion_resumen.label }}
+                                    </span>
+                                {% elif venta.devolucion_resumen.slug == "rechazada" %}
+                                    <span class="badge" style="background: #F44336; color: white;">
+                                        <i class="bi bi-x-octagon"></i> {{ venta.devolucion_resumen.label }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge" style="background: #9E9E9E; color: white;">
+                                        <i class="bi bi-dash-circle"></i> {{ venta.devolucion_resumen.label }}
+                                    </span>
+                                {% endif %}
+                                <div style="font-size: 0.8rem; color: var(--ink-500); margin-top: 0.35rem;">
+                                    {{ venta.devolucion_resumen.detail }}
+                                </div>
+                            </td>
                             <td style="text-align: right;">
                                 <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-sm btn-primary" style="background: var(--rose-500); border: none; color: white;">
                                     <i class="bi bi-eye"></i> Ver
@@ -233,11 +292,5 @@
         </div>
     </div>
 
-    <!-- Botón atrás -->
-    <div class="mt-4">
-        <a href="{% url 'inventario:dashboard' %}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Volver al Dashboard
-        </a>
-    </div>
 </div>
 {% endblock %}

@@ -260,6 +260,13 @@
   flex: 1;
 }
 
+.producto-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
 .producto-info h3 {
   margin: 0;
   color: #433136;
@@ -287,6 +294,103 @@
   color: #73595f;
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.producto-status-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.9rem;
+}
+
+.producto-status-card {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid #ffe0d3;
+  border-radius: 14px;
+  padding: 0.7rem 0.8rem;
+  background: #fffaf7;
+}
+
+.producto-status-label {
+  color: #7b5f64;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.producto-status-copy {
+  color: #71585d;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.producto-devolucion-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+}
+
+.producto-compra-fecha {
+  color: #6f565b;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.devolucion-box {
+  margin-left: auto;
+  min-width: 168px;
+  border: 1px solid var(--brand-500);
+  border-radius: 18px;
+  background: var(--brand-500);
+  color: #fff;
+  box-shadow: 0 14px 26px rgba(204, 111, 160, 0.22);
+  overflow: hidden;
+}
+
+.devolucion-box[open] {
+  width: 100%;
+}
+
+.devolucion-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  list-style: none;
+  cursor: pointer;
+  background: transparent;
+  color: #fff;
+  border-radius: 0;
+  padding: 0.7rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.devolucion-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.devolucion-box[open] .devolucion-toggle {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.devolucion-panel {
+  margin-top: 0;
+  padding: 0.95rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.16) 100%);
+}
+
+.devolucion-panel-copy {
+  margin: 0 0 0.8rem;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
 .panel-validaciones {
@@ -327,6 +431,12 @@
   color: #8a3232;
 }
 
+.chip-outline {
+  background: #fff;
+  border: 1px solid #ffd8ca;
+  color: #6f555b;
+}
+
 .validaciones-lista {
   display: grid;
   gap: 0.6rem;
@@ -355,12 +465,61 @@
   font-weight: 600;
 }
 
+.validacion-item-rich {
+  align-items: stretch;
+}
+
+.validacion-main {
+  display: grid;
+  gap: 0.26rem;
+}
+
+.validacion-products,
+.validacion-return-copy {
+  margin: 0;
+  color: #6f585d;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.validacion-return-copy {
+  color: #875763;
+}
+
+.validacion-side {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: end;
+  align-content: center;
+}
+
+.validacion-state-block {
+  display: grid;
+  gap: 0.22rem;
+  justify-items: end;
+}
+
+.validacion-state-label {
+  color: #7d656a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.validacion-amount {
+  color: #4c373c;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
 .validacion-meta {
   display: flex;
   align-items: center;
   gap: 0.45rem;
   font-weight: 800;
   color: #4b363b;
+  flex-wrap: wrap;
 }
 
 .estado-pill {
@@ -380,9 +539,16 @@
 
 .estado-confirmada,
 .estado-comprado,
-.estado-validada {
+.estado-validada,
+.estado-aprobada,
+.estado-devuelto {
   background: #dff7ea;
   color: #165f37;
+}
+
+.estado-devuelto_parcial {
+  background: #e6f0ff;
+  color: #245a9a;
 }
 
 .estado-finalizada {
@@ -396,9 +562,15 @@
 }
 
 .estado-cancelada,
-.estado-rechazado {
+.estado-rechazado,
+.estado-rechazada {
   background: #ffe3e7;
   color: #8f2d42;
+}
+
+.estado-sin_solicitud {
+  background: #f6efe9;
+  color: #73564d;
 }
 
 .estado-no_asistio {
@@ -417,6 +589,113 @@
 
 .empty-card p {
   margin: 0;
+}
+
+.devolucion-status-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.devolucion-status-card {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  padding: 0.75rem;
+}
+
+.devolucion-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.devolucion-status-id {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.devolucion-status-id strong {
+  color: #fff;
+  font-size: 0.92rem;
+}
+
+.devolucion-status-id span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.devolucion-status-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.devolucion-qty-tag {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.devolucion-motivo,
+.devolucion-admin {
+  margin: 0.35rem 0 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.92rem;
+}
+
+.devolucion-form {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.devolucion-label {
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.devolucion-input,
+.devolucion-textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  background: #fff;
+  color: #3e2f33;
+  font: inherit;
+}
+
+.devolucion-input:focus,
+.devolucion-textarea:focus {
+  outline: 2px solid rgba(234, 63, 211, 0.12);
+  border-color: var(--perfil-accent);
+}
+
+.devolucion-textarea {
+  resize: vertical;
+  min-height: 94px;
+}
+
+.devolucion-submit {
+  justify-self: flex-start;
+  background: #fff;
+  border-color: #fff;
+  color: var(--brand-700);
+}
+
+.devolucion-submit:hover,
+.devolucion-submit:focus {
+  background: var(--brand-100);
+  border-color: var(--brand-100);
+  color: var(--brand-900);
 }
 
 @media (max-width: 980px) {
@@ -452,6 +731,15 @@
     flex-direction: column;
   }
 
+  .producto-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .producto-status-strip {
+    grid-template-columns: 1fr;
+  }
+
   .producto-media img,
   .producto-placeholder {
     width: 100%;
@@ -461,5 +749,26 @@
   .validacion-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .validacion-side,
+  .validacion-state-block {
+    justify-items: start;
+  }
+
+  .producto-devolucion-row,
+  .devolucion-status-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .devolucion-box {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .devolucion-toggle {
+    display: inline-flex;
+    width: auto;
   }
 }

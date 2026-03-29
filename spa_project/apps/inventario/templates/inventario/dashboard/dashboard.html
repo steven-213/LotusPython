@@ -12,7 +12,7 @@
 {% block content %}
 <div class="container-lg py-3 inv-dashboard">
     {% url 'sesiones:admin_dashboard' as admin_dashboard_url %}
-    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Panel de Inventario" page_description="Supervisa stock, compras, proveedores y devoluciones desde un solo punto con accesos directos al flujo completo." back_url=admin_dashboard_url back_label="Volver al panel admin" active_section="dashboard" %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Panel de Inventario" page_description="Supervisa stock, compras, proveedores y devoluciones de compra desde un solo punto con accesos directos al flujo completo." back_url=admin_dashboard_url back_label="Volver al panel admin" active_section="dashboard" %}
 
     <div class="inv-kpi-grid">
         <article class="inv-kpi-card">
@@ -31,9 +31,9 @@
             <div class="inv-kpi-meta">Seguimiento del historial de ingresos al inventario.</div>
         </article>
         <article class="inv-kpi-card">
-            <div class="inv-kpi-label">Devoluciones</div>
+            <div class="inv-kpi-label">Devoluciones de compra</div>
             <div class="inv-kpi-value">{{ total_devoluciones }}</div>
-            <div class="inv-kpi-meta">Control de ajustes por retornos o correcciones.</div>
+            <div class="inv-kpi-meta">Control de ajustes a compras y retornos hacia proveedores.</div>
         </article>
     </div>
 

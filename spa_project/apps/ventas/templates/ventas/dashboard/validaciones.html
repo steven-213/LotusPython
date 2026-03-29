@@ -4,16 +4,19 @@
 {% block title %}Validaciones Venta #{{ venta.id }} | Administración{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin_nav.css' %}">
 <link rel="stylesheet" href="{% static 'ventas/validaciones_style.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-            <i class="bi bi-arrow-left"></i> Volver a Venta
+    <div class="ventas-admin-backbar">
+        <a href="{% url 'ventas:venta_detalle' venta.id %}" class="ventas-admin-backlink">
+            <i class="bi bi-arrow-left"></i> Volver al Detalle
         </a>
+    </div>
+
+    <div class="mb-4">
         <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
             <i class="bi bi-check-circle" style="color: #ca6b86;"></i> Validación de Pago - Venta #{{ venta.id }}
         </h1>
@@ -115,9 +118,6 @@
                             <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600;">
                                 <i class="bi bi-check-circle"></i> Registrar Validación
                             </button>
-                            <a href="{% url 'ventas:venta_detalle' venta.id %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">
-                                <i class="bi bi-arrow-left"></i> Volver
-                            </a>
                         </div>
                     </form>
                 </div>

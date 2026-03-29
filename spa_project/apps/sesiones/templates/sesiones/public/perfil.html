@@ -136,15 +136,113 @@
             {% endif %}
           </div>
           <div class="producto-info">
-            <h3>{{ item.producto.nombre }}</h3>
-            {% if item.producto.descripcion %}
-            <p>{{ item.producto.descripcion|truncatechars:95 }}</p>
-            {% endif %}
+            <div class="producto-heading">
+              <div>
+                <h3>{{ item.producto.nombre }}</h3>
+                {% if item.producto.descripcion %}
+                <p>{{ item.producto.descripcion|truncatechars:95 }}</p>
+                {% endif %}
+              </div>
+              <span class="chip chip-outline">Venta #{{ item.venta_id }}</span>
+            </div>
             <div class="producto-metas">
-              <span>{{ item.cantidad_total }} unidades</span>
-              <span>{{ item.ordenes }} compras</span>
+              <span>{{ item.cantidad_comprada }} unidades</span>
               <span>{{ item.total_gastado|currency }}</span>
-              <span>Ultima: {{ item.ultima_compra|date:"d/m/Y" }}</span>
+              <span>Disponible para devolver: {{ item.cantidad_disponible }}</span>
+            </div>
+
+            <div class="producto-status-strip">
+              <article class="producto-status-card">
+                <span class="producto-status-label">Estado de compra</span>
+                <span class="estado-pill estado-comprado">{{ item.estado_compra }}</span>
+              </article>
+              <article class="producto-status-card">
+                <span class="producto-status-label">Estado de devolucion</span>
+                <span class="estado-pill estado-{{ item.estado_devolucion.slug }}">
+                  {{ item.estado_devolucion.label }}
+                </span>
+                <span class="producto-status-copy">{{ item.estado_devolucion.detalle }}</span>
+              </article>
+            </div>
+
+            <div class="producto-devolucion-row">
+              <span class="producto-compra-fecha">Compra: {{ item.fecha_compra|date:"d/m/Y" }}</span>
+
+              {% if item.cantidad_disponible > 0 or item.solicitudes %}
+              <details class="devolucion-box">
+                <summary class="devolucion-toggle">Devolucion</summary>
+                <div class="devolucion-panel">
+                  {% if item.solicitudes %}
+                  <div class="devolucion-status-list">
+                    {% for solicitud in item.solicitudes %}
+                    <article class="devolucion-status-card">
+                      <div class="devolucion-status-head">
+                        <div class="devolucion-status-id">
+                          <strong>Solicitud #{{ solicitud.id }}</strong>
+                          <span>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="devolucion-status-meta">
+                          <span class="estado-pill estado-{{ solicitud.estado|slugify }}">{{ solicitud.estado|capfirst }}</span>
+                          <span class="devolucion-qty-tag">
+                            {{ solicitud.cantidad }} unidad{{ solicitud.cantidad|pluralize }}
+                          </span>
+                        </div>
+                      </div>
+                      <p class="devolucion-motivo"><strong>Motivo:</strong> {{ solicitud.motivo }}</p>
+                      {% if solicitud.comentario_admin %}
+                      <p class="devolucion-admin"><strong>Respuesta:</strong> {{ solicitud.comentario_admin }}</p>
+                      {% endif %}
+                    </article>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+
+                  {% if item.cantidad_disponible > 0 %}
+                  <p class="devolucion-panel-copy">
+                    Puedes solicitar hasta {{ item.cantidad_disponible }} unidad{{ item.cantidad_disponible|pluralize }} de este producto.
+                  </p>
+                  <form
+                    class="devolucion-form"
+                    method="post"
+                    action="{% url 'ventas:solicitar_devolucion' item.detalle.id %}"
+                  >
+                    {% csrf_token %}
+                    <label class="devolucion-label" for="cantidad-{{ item.detalle.id }}">Cantidad a devolver</label>
+                    <input
+                      id="cantidad-{{ item.detalle.id }}"
+                      class="devolucion-input"
+                      type="number"
+                      name="cantidad"
+                      min="1"
+                      max="{{ item.cantidad_disponible }}"
+                      value="1"
+                      required
+                    >
+
+                    <label class="devolucion-label" for="motivo-{{ item.detalle.id }}">Motivo de devolucion</label>
+                    <textarea
+                      id="motivo-{{ item.detalle.id }}"
+                      class="devolucion-textarea"
+                      name="motivo"
+                      rows="3"
+                      placeholder="Escribe el motivo de la devolucion."
+                      required
+                    ></textarea>
+
+                    <button class="boton boton-primario devolucion-submit" type="submit">
+                      Enviar solicitud
+                    </button>
+                  </form>
+                  {% else %}
+                  <p class="devolucion-panel-copy">
+                    Ya no tienes unidades disponibles para abrir una nueva solicitud de devolucion para este producto.
+                  </p>
+                  {% endif %}
+                </div>
+              </details>
+              {% else %}
+              <span class="chip chip-rechazado">Sin saldo para devolucion</span>
+              {% endif %}
             </div>
           </div>
         </article>
@@ -171,15 +269,29 @@
 
     {% if validaciones_recientes %}
     <div class="validaciones-lista">
-      {% for compra in validaciones_recientes %}
-      <article class="validacion-item">
-        <div>
-          <strong>Venta #{{ compra.venta.id }}</strong>
-          <p>{{ compra.fecha_validacion|date:"d/m/Y H:i" }}</p>
+      {% for item in validaciones_recientes %}
+      <article class="validacion-item validacion-item-rich">
+        <div class="validacion-main">
+          <strong>Venta #{{ item.validacion.venta.id }}</strong>
+          <p>{{ item.validacion.fecha_validacion|date:"d/m/Y H:i" }}</p>
+          <p class="validacion-products">Productos: {{ item.productos_resumen }}</p>
+          <p class="validacion-return-copy">
+            {{ item.estado_devolucion.identificador|default:"Sin solicitudes" }}
+            {% if item.estado_devolucion.detalle %}
+            · {{ item.estado_devolucion.detalle }}
+            {% endif %}
+          </p>
         </div>
-        <div class="validacion-meta">
-          <span class="estado-pill estado-{{ compra.estado|slugify }}">{{ compra.estado|capfirst }}</span>
-          <span>{{ compra.monto|currency }}</span>
+        <div class="validacion-side">
+          <div class="validacion-state-block">
+            <span class="validacion-state-label">Compra</span>
+            <span class="estado-pill estado-{{ item.estado_compra.slug }}">{{ item.estado_compra.label }}</span>
+          </div>
+          <div class="validacion-state-block">
+            <span class="validacion-state-label">Devolucion</span>
+            <span class="estado-pill estado-{{ item.estado_devolucion.slug }}">{{ item.estado_devolucion.label }}</span>
+          </div>
+          <span class="validacion-amount">{{ item.validacion.monto|currency }}</span>
         </div>
       </article>
       {% endfor %}

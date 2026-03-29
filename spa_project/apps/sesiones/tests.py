@@ -1,7 +1,14 @@
 from django.test import TestCase
 from django.urls import reverse
 
+from apps.inventario.models import Producto, Proveedor
 from apps.sesiones.models import Usuario
+from apps.ventas.models import (
+    DetalleVenta,
+    SolicitudDevolucionVenta,
+    ValidacionVenta,
+    Venta,
+)
 
 
 class SesionesUrlsTest(TestCase):
@@ -60,3 +67,67 @@ class SesionesAuthFlowTest(TestCase):
             "Ese documento ya tiene una cuenta registrada.",
         )
         self.assertEqual(Usuario.objects.filter(documento=12345).count(), 1)
+
+
+class PerfilClienteTest(TestCase):
+    def setUp(self):
+        self.usuario = Usuario.objects.create(
+            documento=54321,
+            nombre="Cliente",
+            apellido="Perfil",
+            correo="cliente@perfil.com",
+            fecha_nacimiento="1996-04-12",
+            clave="1234",
+            rol="cliente",
+        )
+        proveedor = Proveedor.objects.create(
+            nombre="Proveedor Perfil",
+            nit="900111222",
+        )
+        producto = Producto.objects.create(
+            nombre="Crema corporal",
+            proveedor=proveedor,
+            precio_compra=10000,
+            precio_venta=18000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        venta = Venta.objects.create(cliente=self.usuario, total=36000)
+        detalle = DetalleVenta.objects.create(
+            venta=venta,
+            producto=producto,
+            cantidad=2,
+            precio_unitario=18000,
+        )
+        ValidacionVenta.objects.create(
+            venta=venta,
+            cliente=self.usuario,
+            metodo_pago="transferencia",
+            referencia_pago="WEB-1",
+            monto=36000,
+            estado="comprado",
+            observaciones="Compra de prueba",
+        )
+        SolicitudDevolucionVenta.objects.create(
+            detalle_venta=detalle,
+            cliente=self.usuario,
+            cantidad=1,
+            motivo="El producto no era lo esperado.",
+            estado=SolicitudDevolucionVenta.ESTADO_APROBADA,
+        )
+
+        session = self.client.session
+        session["usuario_id"] = self.usuario.id
+        session["usuario_rol"] = "cliente"
+        session.save()
+
+    def test_perfil_muestra_estado_devolucion_en_compra_reciente(self):
+        response = self.client.get(reverse("sesiones:perfil"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Devuelta parcial")
+        self.assertContains(response, "Solicitud #")
+        self.assertEqual(
+            response.context["validaciones_recientes"][0]["estado_devolucion"]["label"],
+            "Devuelta parcial",
+        )

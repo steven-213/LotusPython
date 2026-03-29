@@ -14,8 +14,10 @@
         <div class="card-body py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
+                    <h1 class="text-white-50">Hola, Natalia Plazas</h1>
                     <h1 class="h6 mb-1"><i class="bi bi-speedometer2 me-1"></i> Panel Admin</h1>
                     <small class="text-white-50">Lotus Dream Spa</small>
+                    
                 </div>
             </div>
         </div>
@@ -60,7 +62,7 @@
                         <span class="badge module-badge"><i class="bi bi-graph-up"></i></span>
                         <div>
                             <h5 class="h6 mb-0 module-title">Ventas</h5>
-                            <small class="module-subtitle">Transacciones</small>
+                            <small class="module-subtitle">Ventas y devoluciones cliente</small>
                         </div>
                     </div>
                     <div class="d-grid gap-1 mt-2">
@@ -105,16 +107,16 @@
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <span class="badge module-badge"><i class="bi bi-arrow-return-left"></i></span>
                         <div>
-                            <h5 class="h6 mb-0 module-title">Devoluciones</h5>
-                            <small class="module-subtitle">Retornos</small>
+                            <h5 class="h6 mb-0 module-title">Devoluciones de compra</h5>
+                            <small class="module-subtitle">Retornos a proveedor</small>
                         </div>
                     </div>
                     <div class="d-grid gap-1 mt-2">
                         <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-list me-1"></i> Lista
+                            <i class="bi bi-list me-1"></i> Lista compra
                         </a>
                         <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-plus me-1"></i> Nueva
+                            <i class="bi bi-plus me-1"></i> Nueva compra
                         </a>
                     </div>
                 </div>

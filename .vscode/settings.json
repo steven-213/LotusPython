@@ -1,5 +1,20 @@
 {
     "python.analysis.extraPaths": [
         "./spa_project/apps"
-    ]
+    ],
+    "explorer.compactFolders": false,
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        ".venv": true,
+        "venv": true
+    },
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        ".venv": true,
+        "venv": true
+    }
 }

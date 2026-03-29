@@ -56,7 +56,7 @@
         <article class="product-card">
           <div class="product-media">
             {% if p.imagen %}
-            <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" loading="lazy">
+            <img src="{{ p.imagen }}" alt="Imagen de {{ p.nombre }}" loading="lazy" decoding="async">
             {% else %}
             <div class="product-placeholder">
               <i class="bi bi-image"></i>

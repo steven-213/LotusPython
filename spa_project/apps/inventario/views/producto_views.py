@@ -1,11 +1,15 @@
 import json
+from decimal import Decimal
+from hashlib import md5
+
+from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.db.models import Q
 from django.urls import reverse
-from decimal import Decimal
 
 from apps.inventario.models import Producto, Proveedor
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
@@ -18,16 +22,38 @@ from apps.ventas.models import DetalleVenta, ValidacionVenta, Venta
 from apps.ventas.telegram_notifier import notificar_compra_pendiente
 
 
+PUBLIC_PRODUCTS_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
 
-def productos_publicos(request):
-    query = request.GET.get("q", "")
 
+def _productos_publicos_cache_key(query):
+    normalized_query = (query or "").strip().lower()
+    if not normalized_query:
+        return "public:productos:all"
+    digest = md5(normalized_query.encode("utf-8")).hexdigest()
+    return f"public:productos:{digest}"
+
+
+def _cargar_productos_publicos(query):
     productos = anotar_stock_disponible(
-        Producto.objects.filter(activo=True).order_by("nombre")
+        Producto.objects.filter(activo=True)
+        .only("id", "nombre", "descripcion", "imagen", "precio_venta")
+        .order_by("nombre")
     )
 
     if query:
         productos = productos.filter(nombre__icontains=query)
+
+    return list(productos)
+
+
+def productos_publicos(request):
+    query = (request.GET.get("q", "") or "").strip()
+    cache_key = _productos_publicos_cache_key(query)
+    productos = cache.get(cache_key)
+
+    if productos is None:
+        productos = _cargar_productos_publicos(query)
+        cache.set(cache_key, productos, PUBLIC_PRODUCTS_CACHE_TIMEOUT)
 
     return render(request, "cliente/compra.html", {
         "productos": productos,

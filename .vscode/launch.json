@@ -1,14 +1,31 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "chrome",
+            "name": "Django: runserver",
+            "type": "debugpy",
             "request": "launch",
-            "name": "Open index.html",
-            "file": "c:\\Users\\steve\\OneDrive\\Documentos\\GitHub\\LotusPython\\spa_project\\templates\\index.html"
+            "program": "${workspaceFolder}/spa_project/manage.py",
+            "args": [
+                "runserver"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/spa_project",
+            "envFile": "${workspaceFolder}/spa_project/.env"
+        },
+        {
+            "name": "Django: tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/spa_project/manage.py",
+            "args": [
+                "test",
+                "--settings=config.test_settings",
+                "--noinput"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/spa_project",
+            "envFile": "${workspaceFolder}/spa_project/.env"
         }
     ]
 }

@@ -18,24 +18,24 @@
       <a class="boton boton-suave" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
     </div>
   </div>
-  <img src="{% static 'img/index/local.webp' %}" alt="Sede Lotus Dream Spa">
+  <img src="{% static 'img/index/local.webp' %}" alt="Sede Lotus Dream Spa" fetchpriority="high" decoding="async">
 </section>
 
 <section class="grilla-destacados">
   <article class="tarjeta-destacado">
-    <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales">
+    <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales" loading="lazy" decoding="async">
     <h2>Masajes corporales</h2>
     <p>Sesiones enfocadas en liberar tensión y mejorar tu descanso.</p>
   </article>
 
   <article class="tarjeta-destacado">
-    <img src="{% static 'img/index/faciales.png' %}" alt="Faciales">
+    <img src="{% static 'img/index/faciales.png' %}" alt="Faciales" loading="lazy" decoding="async">
     <h2>Faciales</h2>
     <p>Rituales para hidratar, revitalizar y cuidar la piel.</p>
   </article>
 
   <article class="tarjeta-destacado">
-    <img src="{% static 'img/index/pestañas.jpg' %}" alt="Pestanas">
+    <img src="{% static 'img/index/pestañas.jpg' %}" alt="Pestanas" loading="lazy" decoding="async">
     <h2>Pestañas</h2>
     <p>Diseños personalizados para una mirada definida y natural.</p>
   </article>

@@ -25,12 +25,18 @@
 
 .services-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.9fr);
+  grid-template-columns: 1fr;
   gap: 1.2rem;
   padding: 1.5rem;
   background: linear-gradient(120deg, #fff8fd 0%, #ffe8f5 55%, #ffd8ed 100%);
   position: relative;
   overflow: hidden;
+}
+
+.services-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 74ch;
 }
 
 .services-hero::after {
@@ -151,6 +157,42 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 1.1rem;
+}
+
+.services-catalog {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.services-catalog-head {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0 0.2rem;
+}
+
+.services-catalog-head h2 {
+  margin: 0;
+  color: var(--services-text);
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.08;
+}
+
+.services-catalog-head p {
+  margin: 0;
+  color: var(--services-muted);
+  max-width: 68ch;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.services-guide {
+  display: grid;
+  justify-content: center;
+}
+
+.services-guide .services-hero-panel {
+  width: min(100%, 920px);
 }
 
 .service-card {

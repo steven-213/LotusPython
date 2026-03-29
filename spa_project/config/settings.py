@@ -31,9 +31,33 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _env_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value.strip())
+    except (TypeError, ValueError):
+        return default
+
+
 def _env_list(name: str) -> list[str]:
     raw = os.getenv(name, "")
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def _env_telegram_chat_ids() -> list[str]:
+    chat_ids = _env_list("TELEGRAM_CHAT_IDS")
+    legacy_raw = os.getenv("TELEGRAM_CHAT_ID", "")
+    legacy_items = [
+        item.strip().strip('"').strip("'")
+        for item in legacy_raw.split(",")
+        if item.strip()
+    ]
+    for chat_id in legacy_items:
+        if chat_id and chat_id not in chat_ids:
+            chat_ids.append(chat_id)
+    return chat_ids
 
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
@@ -60,11 +84,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.http.ConditionalGetMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -143,6 +169,10 @@ else:
     else:
         raise RuntimeError("Database configuration missing. Set DB_* or DATABASE_URL.")
 
+for database_config in DATABASES.values():
+    database_config.setdefault("CONN_MAX_AGE", _env_int("DB_CONN_MAX_AGE", 60))
+    database_config.setdefault("CONN_HEALTH_CHECKS", True)
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -155,6 +185,16 @@ TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "lotus-local-cache",
+        "TIMEOUT": _env_int("DJANGO_CACHE_TIMEOUT", 300),
+    }
+}
+
+PUBLIC_CATALOG_CACHE_TIMEOUT = _env_int("PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -165,7 +205,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+TELEGRAM_CHAT_IDS = _env_telegram_chat_ids()
+TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ""
 TELEGRAM_CONFIRM_TOKEN = os.getenv("TELEGRAM_CONFIRM_TOKEN", "")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "")
 TELEGRAM_VERIFY_SSL = _env_bool("TELEGRAM_VERIFY_SSL", True)

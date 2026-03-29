@@ -3,23 +3,27 @@
 
 {% block title %}Detalle Venta #{{ venta.id }} | Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin_nav.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+    <div class="ventas-admin-backbar">
+        <a href="{% url 'ventas:venta_lista' %}" class="ventas-admin-backlink">
             <i class="bi bi-arrow-left"></i> Volver a Ventas
         </a>
+    </div>
+
+    <div class="mb-4">
         <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
             <i class="bi bi-receipt-cutoff" style="color: #ca6b86;"></i> Detalle de Venta #{{ venta.id }}
         </h1>
-        <p class="text-muted">Información completa del registro de venta</p>
+        <p class="text-muted">Seguimiento de pago, productos y devoluciones solicitadas por el cliente.</p>
     </div>
 
     <div class="row">
-        <!-- Información principal -->
         <div class="col-lg-8 mb-4">
-            <!-- Card Cliente -->
             <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
@@ -30,25 +34,26 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label style="color: #999; font-size: 0.9rem;">Nombre</label>
-                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.nombre }}</h6>
+                            <h6 style="color: #3b2b32; font-weight: 600;">
+                                {{ venta.cliente.nombre }} {{ venta.cliente.apellido|default:"" }}
+                            </h6>
                         </div>
                         <div class="col-md-6">
-                            <label style="color: #999; font-size: 0.9rem;">Email</label>
-                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.email }}</h6>
+                            <label style="color: #999; font-size: 0.9rem;">Correo</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.correo|default:"No registrado" }}</h6>
                         </div>
                         <div class="col-md-6 mt-3">
-                            <label style="color: #999; font-size: 0.9rem;">Teléfono</label>
-                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.telefono|default:"No registrado" }}</h6>
+                            <label style="color: #999; font-size: 0.9rem;">Documento</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.documento|default:"No registrado" }}</h6>
                         </div>
                         <div class="col-md-6 mt-3">
-                            <label style="color: #999; font-size: 0.9rem;">CI/RIF</label>
-                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.ci_rif|default:"No registrado" }}</h6>
+                            <label style="color: #999; font-size: 0.9rem;">Rol</label>
+                            <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.cliente.rol|title }}</h6>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Card Detalles de Venta -->
             <div class="card shadow-lg border-0" style="border-radius: 1rem;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
@@ -56,7 +61,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% if venta.detalles.all %}
+                    {% if detalles_venta %}
                     <div class="table-responsive">
                         <table class="table">
                             <thead style="background-color: #f8f9fa;">
@@ -65,24 +70,51 @@
                                     <th style="color: #ca6b86; font-weight: 600; text-align: center;">Cantidad</th>
                                     <th style="color: #ca6b86; font-weight: 600; text-align: right;">Precio Unit.</th>
                                     <th style="color: #ca6b86; font-weight: 600; text-align: right;">Subtotal</th>
+                                    <th style="color: #ca6b86; font-weight: 600;">Devolución Cliente</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for detalle in venta.detalles.all %}
+                                {% for item in detalles_venta %}
                                 <tr style="border-bottom: 1px solid #ecf0f1;">
                                     <td>
-                                        <strong style="color: #3b2b32;">{{ detalle.producto.nombre }}</strong>
+                                        <strong style="color: #3b2b32;">{{ item.detalle.producto.nombre }}</strong>
                                     </td>
                                     <td style="text-align: center;">
-                                        <span class="badge bg-light text-dark">{{ detalle.cantidad }}</span>
+                                        <span class="badge bg-light text-dark">{{ item.detalle.cantidad }}</span>
                                     </td>
                                     <td style="text-align: right; color: #666;">
-                                        {{ detalle.precio_unitario|currency }}
+                                        {{ item.detalle.precio_unitario|currency }}
                                     </td>
                                     <td style="text-align: right;">
                                         <strong style="color: #ca6b86;">
-                                            {{ detalle.subtotal|currency }}
+                                            {{ item.subtotal|currency }}
                                         </strong>
+                                    </td>
+                                    <td>
+                                        {% if item.devolucion_resumen.slug == "pendiente" %}
+                                        <span class="badge" style="background: #FFC107; color: #333;">
+                                            <i class="bi bi-clock-history"></i> {{ item.devolucion_resumen.label }}
+                                        </span>
+                                        {% elif item.devolucion_resumen.slug == "devuelta_total" %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-arrow-repeat"></i> {{ item.devolucion_resumen.label }}
+                                        </span>
+                                        {% elif item.devolucion_resumen.slug == "devuelta_parcial" %}
+                                        <span class="badge" style="background: #0D6EFD; color: white;">
+                                            <i class="bi bi-arrow-left-right"></i> {{ item.devolucion_resumen.label }}
+                                        </span>
+                                        {% elif item.devolucion_resumen.slug == "rechazada" %}
+                                        <span class="badge" style="background: #F44336; color: white;">
+                                            <i class="bi bi-x-octagon"></i> {{ item.devolucion_resumen.label }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge" style="background: #9E9E9E; color: white;">
+                                            <i class="bi bi-dash-circle"></i> {{ item.devolucion_resumen.label }}
+                                        </span>
+                                        {% endif %}
+                                        <div style="font-size: 0.8rem; color: #666; margin-top: 0.35rem;">
+                                            {{ item.devolucion_resumen.detail }}
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -96,11 +128,78 @@
                     {% endif %}
                 </div>
             </div>
+
+            <div class="card shadow-lg border-0 mt-4" style="border-radius: 1rem;">
+                <div class="card-header border-0" style="background-color: #fbcdd9;">
+                    <h5 class="mb-0" style="color: #3b2b32;">
+                        <i class="bi bi-arrow-return-left"></i> Devoluciones del Cliente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if devoluciones_cliente %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr style="border-bottom: 2px solid #fbcdd9;">
+                                    <th style="color: #ca6b86; font-weight: 600;">Solicitud</th>
+                                    <th style="color: #ca6b86; font-weight: 600;">Producto</th>
+                                    <th style="color: #ca6b86; font-weight: 600; text-align: center;">Cantidad</th>
+                                    <th style="color: #ca6b86; font-weight: 600;">Estado</th>
+                                    <th style="color: #ca6b86; font-weight: 600;">Motivo</th>
+                                    <th style="color: #ca6b86; font-weight: 600;">Respuesta Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for solicitud in devoluciones_cliente %}
+                                <tr style="border-bottom: 1px solid #ecf0f1;">
+                                    <td>
+                                        <strong style="color: #3b2b32;">Solicitud #{{ solicitud.id }}</strong>
+                                        <div style="font-size: 0.8rem; color: #666;">
+                                            {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}
+                                        </div>
+                                    </td>
+                                    <td>{{ solicitud.detalle_venta.producto.nombre }}</td>
+                                    <td style="text-align: center;">
+                                        <span class="badge bg-light text-dark">{{ solicitud.cantidad }}</span>
+                                    </td>
+                                    <td>
+                                        {% if solicitud.estado == "pendiente" %}
+                                        <span class="badge" style="background: #FFC107; color: #333;">
+                                            <i class="bi bi-clock-history"></i> En espera
+                                        </span>
+                                        {% elif solicitud.estado == "aprobada" %}
+                                        <span class="badge" style="background: #4CAF50; color: white;">
+                                            <i class="bi bi-check-circle"></i> Aprobada
+                                        </span>
+                                        {% else %}
+                                        <span class="badge" style="background: #F44336; color: white;">
+                                            <i class="bi bi-x-octagon"></i> Rechazada
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td style="min-width: 220px;">{{ solicitud.motivo }}</td>
+                                    <td style="min-width: 220px;">
+                                        {% if solicitud.comentario_admin %}
+                                        {{ solicitud.comentario_admin }}
+                                        {% else %}
+                                        <span class="text-muted">Pendiente de respuesta del administrador.</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0" style="border-radius: 0.75rem; border-left: 4px solid #ca6b86;">
+                        <i class="bi bi-info-circle"></i> Esta venta no tiene devoluciones registradas por el cliente.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
 
-        <!-- Resumen lateral -->
         <div class="col-lg-4">
-            <!-- Card Resumen Financiero -->
             <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem; border: 2px solid #fbcdd9;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
@@ -108,7 +207,6 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    {% with detalles=venta.detalles.all %}
                     <div class="d-flex justify-content-between mb-3 pb-3" style="border-bottom: 1px solid #ecf0f1;">
                         <span style="color: #666;">Subtotal:</span>
                         <strong style="color: #3b2b32;">{{ venta.total|currency }}</strong>
@@ -121,11 +219,9 @@
                         <span style="font-weight: 700; color: #3b2b32;">Total:</span>
                         <strong style="color: #ca6b86; font-size: 1.3rem;">{{ venta.total|currency }}</strong>
                     </div>
-                    {% endwith %}
                 </div>
             </div>
 
-            <!-- Card Información de Venta -->
             <div class="card shadow-lg border-0 mb-4" style="border-radius: 1rem;">
                 <div class="card-header border-0" style="background-color: #fbcdd9;">
                     <h5 class="mb-0" style="color: #3b2b32;">
@@ -141,24 +237,63 @@
                         <label style="color: #999; font-size: 0.9rem;">Fecha y Hora</label>
                         <h6 style="color: #3b2b32; font-weight: 600;">{{ venta.fecha|date:"d/m/Y H:i" }}</h6>
                     </div>
-                    <div class="mb-0">
-                        <label style="color: #999; font-size: 0.9rem;">Estado</label>
+                    <div class="mb-3">
+                        <label style="color: #999; font-size: 0.9rem;">Estado de compra</label>
                         <h6 style="color: #3b2b32; font-weight: 600;">
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle"></i> Completada
+                            {% if validacion_reciente %}
+                                {% if validacion_reciente.estado == "comprado" or validacion_reciente.estado == "validada" %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Comprada
+                                </span>
+                                {% elif validacion_reciente.estado == "pendiente" %}
+                                <span class="badge" style="background: #FFC107; color: #333;">
+                                    <i class="bi bi-clock-history"></i> Pendiente
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-x-circle"></i> Rechazada
+                                </span>
+                                {% endif %}
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-question-circle"></i> Sin validar
                             </span>
+                            {% endif %}
                         </h6>
+                    </div>
+                    <div class="mb-0">
+                        <label style="color: #999; font-size: 0.9rem;">Estado de devolución cliente</label>
+                        <h6 style="color: #3b2b32; font-weight: 600;">
+                            {% if devolucion_resumen.slug == "pendiente" %}
+                            <span class="badge" style="background: #FFC107; color: #333;">
+                                <i class="bi bi-clock-history"></i> {{ devolucion_resumen.label }}
+                            </span>
+                            {% elif devolucion_resumen.slug == "devuelta_total" %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-arrow-repeat"></i> {{ devolucion_resumen.label }}
+                            </span>
+                            {% elif devolucion_resumen.slug == "devuelta_parcial" %}
+                            <span class="badge bg-primary">
+                                <i class="bi bi-arrow-left-right"></i> {{ devolucion_resumen.label }}
+                            </span>
+                            {% elif devolucion_resumen.slug == "rechazada" %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-octagon"></i> {{ devolucion_resumen.label }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">
+                                <i class="bi bi-dash-circle"></i> {{ devolucion_resumen.label }}
+                            </span>
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted">{{ devolucion_resumen.detail }}</small>
                     </div>
                 </div>
             </div>
 
-            <!-- Botones de acción -->
             <div class="d-grid gap-2">
                 <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600;">
                     <i class="bi bi-check-square"></i> Validar Pago
-                </a>
-                <a href="{% url 'ventas:venta_lista' %}" class="btn btn-secondary btn-lg" style="background: #e9ecef; border: none; color: #3b2b32; font-weight: 600;">
-                    <i class="bi bi-arrow-left"></i> Volver
                 </a>
             </div>
         </div>

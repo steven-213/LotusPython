@@ -26,7 +26,74 @@
         <span class="services-chip"><i class="bi bi-credit-card-2-front"></i> Pago al momento o despues</span>
       </div>
     </div>
+  </header>
 
+  {% if servicios %}
+  <section class="services-catalog">
+    <div class="services-catalog-head">
+      <p class="services-eyebrow">Servicios disponibles</p>
+      <h2>Elige primero la experiencia que quieres reservar</h2>
+      <p>Explora cada servicio, compara precio y duracion, y despues revisa como funciona la reserva si lo necesitas.</p>
+    </div>
+
+    <div class="services-grid">
+      {% for s in servicios %}
+      <article class="service-card">
+        <div class="service-media">
+          {% if s.imagen %}
+          <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" loading="lazy" decoding="async">
+          {% else %}
+          <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}" loading="lazy" decoding="async">
+          {% endif %}
+          <span class="service-badge">
+            <i class="bi bi-person-heart"></i>
+            {{ s.profesional.nombre|default:"Profesional por definir" }}
+          </span>
+        </div>
+
+        <div class="service-body">
+          <div class="service-head">
+            <h3>{{ s.nombre }}</h3>
+            <div class="service-price">
+              <small>Desde</small>
+              <strong>{{ s.precio|currency }}</strong>
+            </div>
+          </div>
+
+          <p class="service-description">{{ s.descripcion|default:"Servicio disponible en el spa." }}</p>
+
+          <div class="service-meta">
+            <span><i class="bi bi-hourglass-split"></i> {{ s.duracion_minutos }} minutos</span>
+            <span><i class="bi bi-flower1"></i> Atencion personalizada</span>
+            <span><i class="bi bi-shield-check"></i> Reserva segura</span>
+          </div>
+
+          {% if request.session.usuario_id %}
+          <div class="service-actions">
+            <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
+              <i class="bi bi-calendar-plus"></i> Agendar y decidir pago
+            </a>
+            <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:agenda' %}">
+              <i class="bi bi-journal-check"></i> Ver mis citas
+            </a>
+          </div>
+          {% else %}
+          <div class="service-actions">
+            <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
+              <i class="bi bi-calendar-heart"></i> Agendar sin cuenta
+            </a>
+            <a class="catalog-btn catalog-btn-secondary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}%3Fservicio%3D{{ s.id }}">
+              <i class="bi bi-person-circle"></i> Iniciar sesion y agendar
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="services-guide">
     <aside class="services-hero-panel">
       <p class="services-panel-label">Como funciona</p>
       <div class="services-steps">
@@ -53,63 +120,6 @@
         </article>
       </div>
     </aside>
-  </header>
-
-  {% if servicios %}
-  <section class="services-grid">
-    {% for s in servicios %}
-    <article class="service-card">
-      <div class="service-media">
-        {% if s.imagen %}
-        <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" loading="lazy">
-        {% else %}
-        <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}">
-        {% endif %}
-        <span class="service-badge">
-          <i class="bi bi-person-heart"></i>
-          {{ s.profesional.nombre|default:"Profesional por definir" }}
-        </span>
-      </div>
-
-      <div class="service-body">
-        <div class="service-head">
-          <h3>{{ s.nombre }}</h3>
-          <div class="service-price">
-            <small>Desde</small>
-            <strong>{{ s.precio|currency }}</strong>
-          </div>
-        </div>
-
-        <p class="service-description">{{ s.descripcion|default:"Servicio disponible en el spa." }}</p>
-
-        <div class="service-meta">
-          <span><i class="bi bi-hourglass-split"></i> {{ s.duracion_minutos }} minutos</span>
-          <span><i class="bi bi-flower1"></i> Atencion personalizada</span>
-          <span><i class="bi bi-shield-check"></i> Reserva segura</span>
-        </div>
-
-        {% if request.session.usuario_id %}
-        <div class="service-actions">
-          <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
-            <i class="bi bi-calendar-plus"></i> Agendar y decidir pago
-          </a>
-          <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:agenda' %}">
-            <i class="bi bi-journal-check"></i> Ver mis citas
-          </a>
-        </div>
-        {% else %}
-        <div class="service-actions">
-          <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
-            <i class="bi bi-calendar-heart"></i> Agendar sin cuenta
-          </a>
-          <a class="catalog-btn catalog-btn-secondary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}%3Fservicio%3D{{ s.id }}">
-            <i class="bi bi-person-circle"></i> Iniciar sesion y agendar
-          </a>
-        </div>
-        {% endif %}
-      </div>
-    </article>
-    {% endfor %}
   </section>
   {% else %}
   <article class="services-empty">

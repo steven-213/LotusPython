@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.contrib import messages
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.common.currency import parse_money
@@ -7,8 +9,32 @@ from apps.citas.storage import subir_imagen_servicio
 from apps.sesiones.decorators import admin_required_session
 
 
+PUBLIC_SERVICES_CACHE_KEY = "public:servicios:activos"
+PUBLIC_SERVICES_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+
+
+def _cargar_servicios_publicos():
+    return list(
+        Servicio.objects.select_related("profesional")
+        .only(
+            "id",
+            "nombre",
+            "descripcion",
+            "imagen",
+            "precio",
+            "duracion_minutos",
+            "profesional__nombre",
+        )
+        .filter(activo=True)
+        .order_by("nombre")
+    )
+
+
 def servicios_publicos(request):
-    servicios = Servicio.objects.select_related("profesional").filter(activo=True).order_by("nombre")
+    servicios = cache.get(PUBLIC_SERVICES_CACHE_KEY)
+    if servicios is None:
+        servicios = _cargar_servicios_publicos()
+        cache.set(PUBLIC_SERVICES_CACHE_KEY, servicios, PUBLIC_SERVICES_CACHE_TIMEOUT)
     return render(request, "cliente/servicios.html", {"servicios": servicios})
 
 
@@ -45,6 +71,7 @@ def servicio_nuevo(request):
             duracion_minutos=request.POST.get("duracion_minutos") or 60,
             activo=request.POST.get("activo") == "on",
         )
+        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
         messages.success(request, "Servicio creado correctamente.")
         return redirect("citas:servicio_lista")
     return render(
@@ -82,6 +109,7 @@ def servicio_editar(request, servicio_id):
         servicio.activo = request.POST.get("activo") == "on"
         servicio.profesional = profesional
         servicio.save()
+        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
         messages.success(request, "Servicio actualizado.")
         return redirect("citas:servicio_lista")
     return render(
@@ -97,5 +125,6 @@ def servicio_eliminar(request, servicio_id):
     if request.method == "POST":
         servicio.activo = False
         servicio.save(update_fields=["activo"])
+        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
         messages.success(request, "Servicio desactivado.")
     return redirect("citas:servicio_lista")

@@ -1,0 +1,50 @@
+:root {
+    --ventas-nav-rose: #ca6b86;
+    --ventas-nav-rose-dark: #8b3d56;
+    --ventas-nav-ink: #3b2b32;
+    --ventas-nav-shell: rgba(255, 255, 255, 0.92);
+}
+
+.ventas-admin-backbar {
+    position: fixed;
+    right: 1.5rem;
+    bottom: 1.5rem;
+    z-index: 1030;
+}
+
+.ventas-admin-backlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1.15rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--ventas-nav-rose) 0%, var(--ventas-nav-rose-dark) 100%);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 700;
+    box-shadow: 0 10px 22px rgba(139, 61, 86, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ventas-admin-backlink:hover,
+.ventas-admin-backlink:focus {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(139, 61, 86, 0.28);
+}
+
+.ventas-admin-backlink i {
+    font-size: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    .ventas-admin-backbar {
+        right: 1rem;
+        bottom: 1rem;
+    }
+
+    .ventas-admin-backlink {
+        padding: 0.75rem 1rem;
+        font-size: 0.92rem;
+    }
+}

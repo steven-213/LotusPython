@@ -1,16 +1,20 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Devoluciones - Administración{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
-{% endblock %}
+{% block title %}Devoluciones de Compra - Administración{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    {% url 'inventario:dashboard' as inventario_dashboard_url %}
-    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Devoluciones" page_description="Consulta estados, registra una devolucion nueva y vuelve al dashboard de inventario en un clic." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="devoluciones" %}
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
+            <i class="bi bi-arrow-left"></i> Atrás
+        </a>
+        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
+            <i class="bi bi-arrow-return-left" style="color: #ca6b86;"></i> Gestión de Devoluciones de Compra
+        </h1>
+        <p class="text-muted">Registro y administración de retornos realizados a proveedores.</p>
+    </div>
 
     <!-- Estadísticas -->
     <div class="row mb-4 g-2">
@@ -40,7 +44,7 @@
         </div>
         <div class="col-md-3">
             <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-warning w-100 h-100 d-flex align-items-center justify-content-center">
-                <i class="bi bi-plus-circle me-2"></i> Nueva Devolución
+                <i class="bi bi-plus-circle me-2"></i> Nueva Devolución de Compra
             </a>
         </div>
     </div>
@@ -75,7 +79,7 @@
         </div>
     </div>
 
-    <!-- Tabla de Devoluciones -->
+    <!-- Tabla de Devoluciones de Compra -->
     <div class="card">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -128,7 +132,7 @@
                     {% empty %}
                     <tr>
                         <td colspan="7" class="text-center text-muted py-4">
-                            No hay devoluciones registradas
+                            No hay devoluciones de compra registradas
                         </td>
                     </tr>
                     {% endfor %}

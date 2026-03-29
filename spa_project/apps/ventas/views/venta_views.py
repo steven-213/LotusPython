@@ -12,8 +12,113 @@ from apps.common.currency import format_money, parse_money
 from apps.inventario.services import descontar_stock, obtener_stock_disponible
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
-from apps.ventas.models import ValidacionVenta, Venta
+from apps.ventas.models import SolicitudDevolucionVenta, ValidacionVenta, Venta
 from apps.ventas.telegram_notifier import notificar_compra_pendiente
+
+
+def _resumir_productos_devueltos(solicitudes):
+    productos = []
+    for solicitud in solicitudes:
+        nombre = solicitud.detalle_venta.producto.nombre
+        if nombre not in productos:
+            productos.append(nombre)
+    if not productos:
+        return "Sin devoluciones"
+    if len(productos) == 1:
+        return productos[0]
+    if len(productos) == 2:
+        return f"{productos[0]} y {productos[1]}"
+    return f"{productos[0]}, {productos[1]} y {len(productos) - 2} mas"
+
+
+def _resolver_resumen_devolucion_detalle(detalle, solicitudes):
+    solicitudes = list(solicitudes)
+    pendientes = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_PENDIENTE]
+    aprobadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_APROBADA]
+    rechazadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_RECHAZADA]
+
+    cantidad_aprobada = sum(s.cantidad for s in aprobadas)
+
+    if pendientes:
+        return {
+            "slug": "pendiente",
+            "label": "En espera",
+            "detail": f"{len(pendientes)} solicitud(es) del cliente",
+        }
+    if cantidad_aprobada >= detalle.cantidad and cantidad_aprobada > 0:
+        return {
+            "slug": "devuelta_total",
+            "label": "Devuelta total",
+            "detail": f"{cantidad_aprobada} unidad(es) aprobadas",
+        }
+    if cantidad_aprobada > 0:
+        return {
+            "slug": "devuelta_parcial",
+            "label": "Devuelta parcial",
+            "detail": f"{cantidad_aprobada} unidad(es) aprobadas",
+        }
+    if rechazadas:
+        return {
+            "slug": "rechazada",
+            "label": "Rechazada",
+            "detail": f"{len(rechazadas)} solicitud(es) rechazadas",
+        }
+    return {
+        "slug": "sin_devolucion",
+        "label": "Sin devolucion",
+        "detail": "Sin solicitudes del cliente",
+    }
+
+
+def _resolver_resumen_devolucion_venta(venta):
+    solicitudes = []
+    total_items = 0
+    total_aprobado = 0
+
+    for detalle in venta.detalles.all():
+        total_items += detalle.cantidad
+        detalle_solicitudes = list(detalle.solicitudes_devolucion.all())
+        solicitudes.extend(detalle_solicitudes)
+        total_aprobado += sum(
+            solicitud.cantidad
+            for solicitud in detalle_solicitudes
+            if solicitud.estado == SolicitudDevolucionVenta.ESTADO_APROBADA
+        )
+
+    pendientes = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_PENDIENTE]
+    rechazadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_RECHAZADA]
+    aprobadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_APROBADA]
+    productos = _resumir_productos_devueltos(solicitudes)
+
+    if pendientes:
+        return {
+            "slug": "pendiente",
+            "label": "En espera",
+            "detail": f"Cliente solicito devolucion de {productos}",
+        }
+    if total_aprobado >= total_items and total_aprobado > 0:
+        return {
+            "slug": "devuelta_total",
+            "label": "Devuelta total",
+            "detail": f"Devolucion aprobada de {productos}",
+        }
+    if aprobadas:
+        return {
+            "slug": "devuelta_parcial",
+            "label": "Devuelta parcial",
+            "detail": f"Devolucion aprobada de {productos}",
+        }
+    if rechazadas:
+        return {
+            "slug": "rechazada",
+            "label": "Rechazada",
+            "detail": f"Solicitud rechazada para {productos}",
+        }
+    return {
+        "slug": "sin_devolucion",
+        "label": "Sin devoluciones",
+        "detail": "El cliente no ha solicitado devoluciones",
+    }
 
 
 @admin_required_session
@@ -36,7 +141,11 @@ def venta_lista(request):
         except ValueError:
             fecha_fin = ""
 
-    ventas = Venta.objects.select_related("cliente").order_by("-fecha")
+    ventas = (
+        Venta.objects.select_related("cliente")
+        .prefetch_related("detalles__producto", "detalles__solicitudes_devolucion")
+        .order_by("-fecha")
+    )
     if query:
         ventas = ventas.filter(cliente__nombre__icontains=query)
     if cliente_id:
@@ -52,6 +161,7 @@ def venta_lista(request):
 
     for venta in ventas:
         venta.validacion_reciente = venta.validaciones.order_by("-fecha_validacion", "-id").first()
+        venta.devolucion_resumen = _resolver_resumen_devolucion_venta(venta)
 
     monto_total = Venta.objects.aggregate(Sum("total"))["total__sum"] or Decimal(0)
     promedio_venta = Venta.objects.aggregate(Avg("total"))["total__avg"] or Decimal(0)
@@ -71,6 +181,9 @@ def venta_lista(request):
         "validaciones_pendientes": ValidacionVenta.objects.filter(estado__iexact="pendiente").count(),
         "validaciones_comprado": ValidacionVenta.objects.filter(estado__iexact="comprado").count(),
         "validaciones_rechazado": ValidacionVenta.objects.filter(estado__iexact="rechazado").count(),
+        "devoluciones_pendientes": SolicitudDevolucionVenta.objects.filter(estado="pendiente").count(),
+        "devoluciones_aprobadas": SolicitudDevolucionVenta.objects.filter(estado="aprobada").count(),
+        "devoluciones_rechazadas": SolicitudDevolucionVenta.objects.filter(estado="rechazada").count(),
     }
     return render(request, "ventas/dashboard/lista.html", context)
 
@@ -88,8 +201,41 @@ def venta_nueva(request):
 
 @admin_required_session
 def venta_detalle(request, venta_id):
-    venta = get_object_or_404(Venta.objects.select_related("cliente"), id=venta_id)
-    return render(request, "ventas/dashboard/detalle.html", {"venta": venta})
+    venta = get_object_or_404(
+        Venta.objects.select_related("cliente").prefetch_related(
+            "detalles__producto",
+            "detalles__solicitudes_devolucion",
+        ),
+        id=venta_id,
+    )
+    validacion_reciente = venta.validaciones.order_by("-fecha_validacion", "-id").first()
+    detalles_venta = []
+    devoluciones_cliente = []
+
+    for detalle in venta.detalles.all():
+        solicitudes = list(detalle.solicitudes_devolucion.all().order_by("-fecha_solicitud", "-id"))
+        devoluciones_cliente.extend(solicitudes)
+        detalles_venta.append(
+            {
+                "detalle": detalle,
+                "subtotal": detalle.cantidad * detalle.precio_unitario,
+                "devolucion_resumen": _resolver_resumen_devolucion_detalle(detalle, solicitudes),
+                "solicitudes": solicitudes,
+            }
+        )
+
+    context = {
+        "venta": venta,
+        "validacion_reciente": validacion_reciente,
+        "detalles_venta": detalles_venta,
+        "devoluciones_cliente": sorted(
+            devoluciones_cliente,
+            key=lambda solicitud: (solicitud.fecha_solicitud, solicitud.id),
+            reverse=True,
+        ),
+        "devolucion_resumen": _resolver_resumen_devolucion_venta(venta),
+    }
+    return render(request, "ventas/dashboard/detalle.html", context)
 
 
 @admin_required_session
