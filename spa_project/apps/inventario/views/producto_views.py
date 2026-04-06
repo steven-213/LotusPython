@@ -1,5 +1,7 @@
+import csv
+import io
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from hashlib import md5
 
 from django.conf import settings
@@ -23,6 +25,150 @@ from apps.ventas.telegram_notifier import notificar_compra_pendiente
 
 
 PUBLIC_PRODUCTS_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+CSV_PRODUCT_COLUMN_ALIASES = {
+    "nombre": {"nombre", "name", "producto"},
+    "descripcion": {"descripcion", "description", "detalle"},
+    "precio_compra": {"precio_compra", "precio", "compra", "costo", "cost"},
+    "proveedor": {"proveedor", "supplier"},
+    "impuesto": {"impuesto", "iva", "tax"},
+    "margen_ganancia": {"margen_ganancia", "margen", "margin"},
+    "imagen": {"imagen", "image", "imagen_url"},
+}
+
+
+def _parse_decimal_csv(valor, etiqueta):
+    texto = str(valor or "").strip().replace("$", "").replace(" ", "")
+
+    if not texto:
+        raise ValueError(f"{etiqueta} vacío")
+
+    if "," in texto and "." in texto:
+        if texto.rfind(",") > texto.rfind("."):
+            texto = texto.replace(".", "").replace(",", ".")
+        else:
+            texto = texto.replace(",", "")
+    elif "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+
+    try:
+        return Decimal(texto)
+    except InvalidOperation as exc:
+        raise ValueError(f"{etiqueta} inválido") from exc
+
+
+def _calcular_precio_venta(precio_compra, impuesto, margen_ganancia):
+    impuesto_valor = precio_compra * (impuesto / Decimal("100"))
+    margen_valor = precio_compra * (margen_ganancia / Decimal("100"))
+    return (precio_compra + impuesto_valor + margen_valor).quantize(Decimal("0.01"))
+
+
+def _detectar_delimitador_csv(contenido):
+    muestra = contenido[:1024]
+
+    try:
+        return csv.Sniffer().sniff(muestra, delimiters=",;\t").delimiter
+    except csv.Error:
+        return ";" if muestra.count(";") > muestra.count(",") else ","
+
+
+def _mapear_encabezados_productos(encabezados):
+    mapping = {}
+
+    for index, encabezado in enumerate(encabezados):
+        normalizado = str(encabezado or "").strip().lower()
+
+        for campo, aliases in CSV_PRODUCT_COLUMN_ALIASES.items():
+            if normalizado in aliases and campo not in mapping:
+                mapping[campo] = index
+
+    return mapping
+
+
+def _leer_productos_desde_csv(archivo_csv):
+    if not archivo_csv:
+        raise ValueError("Selecciona un archivo CSV para importar.")
+
+    if not archivo_csv.name.lower().endswith(".csv"):
+        raise ValueError("El archivo debe tener extensión .csv.")
+
+    contenido_bytes = archivo_csv.read()
+
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            contenido = contenido_bytes.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            contenido = None
+
+    if contenido is None or not contenido.strip():
+        raise ValueError("No se pudo leer el archivo CSV o está vacío.")
+
+    lector = csv.reader(
+        io.StringIO(contenido),
+        delimiter=_detectar_delimitador_csv(contenido),
+    )
+    filas = [fila for fila in lector if any(str(celda).strip() for celda in fila)]
+
+    if not filas:
+        raise ValueError("El archivo CSV no contiene filas para importar.")
+
+    encabezados = _mapear_encabezados_productos(filas[0])
+    tiene_encabezados = "nombre" in encabezados and "precio_compra" in encabezados
+    filas_datos = filas[1:] if tiene_encabezados else filas
+    inicio_linea = 2 if tiene_encabezados else 1
+
+    if not filas_datos:
+        raise ValueError("El archivo CSV no contiene productos después del encabezado.")
+
+    productos = []
+
+    for numero_linea, fila in enumerate(filas_datos, start=inicio_linea):
+        if tiene_encabezados:
+            def obtener(campo):
+                index = encabezados.get(campo)
+                if index is None or len(fila) <= index:
+                    return ""
+                return fila[index]
+
+            productos.append(
+                {
+                    "linea": numero_linea,
+                    "nombre": str(obtener("nombre")).strip(),
+                    "descripcion": str(obtener("descripcion")).strip(),
+                    "precio_compra": str(obtener("precio_compra")).strip(),
+                    "proveedor": str(obtener("proveedor")).strip(),
+                    "impuesto": str(obtener("impuesto")).strip(),
+                    "margen_ganancia": str(obtener("margen_ganancia")).strip(),
+                    "imagen": str(obtener("imagen")).strip(),
+                }
+            )
+        else:
+            productos.append(
+                {
+                    "linea": numero_linea,
+                    "nombre": str(fila[0] if len(fila) > 0 else "").strip(),
+                    "descripcion": str(fila[1] if len(fila) > 1 else "").strip(),
+                    "precio_compra": str(fila[2] if len(fila) > 2 else "").strip(),
+                    "proveedor": str(fila[3] if len(fila) > 3 else "").strip(),
+                    "impuesto": str(fila[4] if len(fila) > 4 else "").strip(),
+                    "margen_ganancia": str(fila[5] if len(fila) > 5 else "").strip(),
+                    "imagen": str(fila[6] if len(fila) > 6 else "").strip(),
+                }
+            )
+
+    return productos
+
+
+def _resolver_proveedor_importacion(nombre_proveedor, proveedor_base_id):
+    nombre_proveedor = (nombre_proveedor or "").strip()
+
+    if nombre_proveedor:
+        return Proveedor.objects.filter(nombre__iexact=nombre_proveedor).first()
+
+    if proveedor_base_id:
+        return Proveedor.objects.filter(id=proveedor_base_id).first()
+
+    return None
 
 
 def _productos_publicos_cache_key(query):
@@ -302,6 +448,99 @@ def producto_lista(request):
         "proveedor_id": proveedor_id,
         "proveedores": proveedores,
     })
+
+
+@admin_required_session
+def producto_importar_csv(request):
+    if request.method != "POST":
+        return redirect("inventario:producto_lista")
+
+    try:
+        filas = _leer_productos_desde_csv(request.FILES.get("archivo_csv"))
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("inventario:producto_lista")
+
+    proveedor_base_id = request.POST.get("proveedor_base_id")
+    impuesto_default_raw = request.POST.get("impuesto_default") or "19"
+    margen_default_raw = request.POST.get("margen_default") or "20"
+
+    try:
+        impuesto_default = _parse_decimal_csv(impuesto_default_raw, "Impuesto por defecto")
+        margen_default = _parse_decimal_csv(margen_default_raw, "Margen por defecto")
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return redirect("inventario:producto_lista")
+
+    creados = 0
+    errores = []
+
+    for fila in filas:
+        nombre = fila["nombre"]
+        numero_linea = fila["linea"]
+
+        if not nombre:
+            errores.append(f"Fila {numero_linea}: falta el nombre del producto.")
+            continue
+
+        if Producto.objects.filter(nombre__iexact=nombre).exists():
+            errores.append(f"Fila {numero_linea}: ya existe un producto llamado {nombre}.")
+            continue
+
+        try:
+            precio_compra = _parse_decimal_csv(fila["precio_compra"], "Precio de compra")
+            impuesto = (
+                _parse_decimal_csv(fila["impuesto"], "Impuesto")
+                if fila["impuesto"]
+                else impuesto_default
+            )
+            margen_ganancia = (
+                _parse_decimal_csv(fila["margen_ganancia"], "Margen")
+                if fila["margen_ganancia"]
+                else margen_default
+            )
+        except ValueError as exc:
+            errores.append(f"Fila {numero_linea}: {exc}.")
+            continue
+
+        proveedor = _resolver_proveedor_importacion(
+            fila["proveedor"],
+            proveedor_base_id,
+        )
+
+        if proveedor is None:
+            errores.append(
+                f"Fila {numero_linea}: no se encontró proveedor y tampoco se seleccionó uno por defecto."
+            )
+            continue
+
+        Producto.objects.create(
+            nombre=nombre,
+            descripcion=fila["descripcion"],
+            imagen=fila["imagen"] or None,
+            proveedor=proveedor,
+            precio_compra=precio_compra,
+            impuesto=impuesto,
+            margen_ganancia=margen_ganancia,
+            precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia),
+        )
+        creados += 1
+
+    if creados:
+        messages.success(request, f"Se importaron {creados} producto(s) desde el archivo CSV.")
+
+    if errores:
+        resumen = " ".join(errores[:3])
+        sufijo = " ..." if len(errores) > 3 else ""
+        messages.warning(
+            request,
+            f"Se omitieron {len(errores)} fila(s) con errores. {resumen}{sufijo}",
+        )
+
+    if not creados and not errores:
+        messages.info(request, "El archivo CSV no contenía productos para importar.")
+
+    return redirect("inventario:producto_lista")
 
 
 @admin_required_session

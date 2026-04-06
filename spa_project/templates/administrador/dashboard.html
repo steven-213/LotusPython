@@ -9,19 +9,19 @@
 
 {% block content %}
 <div class="container-lg py-2 admin-dashboard">
-    <!-- ENCABEZADO PRINCIPAL -->
-    <div class="card border-0 shadow-sm text-white mb-2 dashboard-hero">
-        <div class="card-body py-2">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="text-white-50">Hola, Natalia Plazas</h1>
-                    <h1 class="h6 mb-1"><i class="bi bi-speedometer2 me-1"></i> Panel Admin</h1>
-                    <small class="text-white-50">Lotus Dream Spa</small>
-                    
-                </div>
+    <section class="admin-page-hero">
+        <div class="admin-page-copy">
+            <div class="admin-page-breadcrumbs">
+                <span>Panel admin</span>
+                <span>/</span>
+                <span>Resumen general</span>
             </div>
+            <h1 class="admin-page-title">Panel principal</h1>
+            <p class="admin-page-description">
+                Centraliza inventario, ventas, citas y devoluciones desde una sola vista operativa.
+            </p>
         </div>
-    </div>
+    </section>
 
     <!-- MÓDULOS PRINCIPALES -->
     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -124,35 +124,6 @@
         </div>
     </div>
 
-    <!-- ACCIONES RÁPIDAS -->
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <h2 class="h6 mb-0 section-title"><i class="bi bi-lightning-fill me-1"></i> Acciones Rápidas</h2>
-    </div>
-    <div class="row g-2">
-        <div class="col-6 col-md-3">
-            <a href="{% url 'inventario:producto_nuevo' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
-                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
-                <span class="small fw-semibold">Producto</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-3">
-            <a href="{% url 'inventario:compra_nueva' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
-                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
-                <span class="small fw-semibold">Compra</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-3">
-            <a href="{% url 'ventas:venta_nueva' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
-                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
-                <span class="small fw-semibold">Venta</span>
-            </a>
-        </div>
-        <div class="col-6 col-md-3">
-            <a href="{% url 'citas:calendario' %}" class="btn d-flex align-items-center gap-2 py-2 quick-action">
-                <span class="badge quick-icon"><i class="bi bi-plus-lg"></i></span>
-                <span class="small fw-semibold">Cita</span>
-            </a>
-        </div>
-    </div>
+
 </div>
 {% endblock %}

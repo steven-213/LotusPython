@@ -8,11 +8,6 @@
   --dash-ink-500: #6b5b62;
 }
 
-.admin-dashboard .dashboard-hero {
-  background: linear-gradient(135deg, var(--dash-rose-400), var(--dash-rose-600));
-  border-radius: 16px;
-}
-
 .admin-dashboard .section-title {
   color: var(--dash-ink-700);
 }

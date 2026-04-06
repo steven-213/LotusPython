@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.contrib import messages
@@ -173,7 +173,7 @@ def venta_lista(request):
         "fecha_fin": fecha_fin,
         "estado_filtro": estado_filtro,
         "cliente_id": cliente_id,
-        "clientes": Usuario.objects.all(),
+        "clientes": Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre"),
         "total_ventas": Venta.objects.count(),
         "monto_total": format_money(monto_total),
         "promedio_venta": format_money(promedio_venta),
@@ -190,12 +190,29 @@ def venta_lista(request):
 
 @admin_required_session
 def venta_nueva(request):
+    clientes = Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre")
+
     if request.method == "POST":
-        cliente = get_object_or_404(Usuario, id=request.POST.get("cliente_id"))
-        total = parse_money(request.POST.get("total"))
+        cliente_id = (request.POST.get("cliente_id") or "").strip()
+        if not cliente_id:
+            messages.error(request, "Debes seleccionar un cliente.")
+            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+
+        cliente = Usuario.objects.filter(id=cliente_id, rol=Usuario.ROL_CLIENTE).first()
+        if not cliente:
+            messages.error(request, "El cliente seleccionado no es válido.")
+            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+
+        try:
+            total = parse_money(request.POST.get("total"), default=None)
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, "Ingresa un total válido para la venta.")
+            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+
         venta = Venta.objects.create(cliente=cliente, total=total)
+        messages.success(request, "La venta fue creada correctamente.")
         return redirect("ventas:venta_detalle", venta_id=venta.id)
-    clientes = Usuario.objects.all()
+
     return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
 
 

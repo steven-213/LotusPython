@@ -77,29 +77,72 @@
   margin-top: 1.4rem;
   background: #ffffff;
   border: 1px solid #fee7ed;
-  border-radius: 18px;
+  border-radius: 22px;
   box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
+  padding: 1.2rem;
+}
+
+.horario-encabezado {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.horario-encabezado h2 {
+  margin: 0.35rem 0 0.2rem;
+}
+
+.horario-encabezado p:last-child {
+  margin: 0;
+  color: #5a4950;
+}
+
+.horario-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 999px;
+  background: #fff6f8;
+  border: 1px solid #fbcdd9;
+  color: #8b3d56;
+  font-weight: 700;
+}
+
+.grilla-horario {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.bloque-horario {
+  background: linear-gradient(135deg, #fffafc 0%, #ffffff 100%);
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
   padding: 1rem;
 }
 
-.tarjeta-horario h2 {
-  margin-top: 0;
+.bloque-horario-dia {
+  display: inline-block;
+  color: #8b3d56;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.tabla-horario {
-  width: 100%;
-  border-collapse: collapse;
+.bloque-horario strong {
+  display: block;
+  margin-top: 0.45rem;
+  font-size: 1.25rem;
+  color: #3b2b32;
 }
 
-.tabla-horario th,
-.tabla-horario td {
-  border: 1px solid #fee7ed;
-  padding: 0.7rem;
-  text-align: left;
-}
-
-.tabla-horario th {
-  background: #fff6f8;
+.bloque-horario p {
+  margin: 0.55rem 0 0;
+  color: #5a4950;
 }
 
 @media (max-width: 900px) {
@@ -113,5 +156,13 @@
 
   .grilla-destacados {
     grid-template-columns: 1fr;
+  }
+
+  .grilla-horario {
+    grid-template-columns: 1fr;
+  }
+
+  .horario-encabezado {
+    flex-direction: column;
   }
 }

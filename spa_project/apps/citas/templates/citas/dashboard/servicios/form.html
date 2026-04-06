@@ -4,7 +4,7 @@
 {% block title %}{% if servicio %}Editar servicio{% else %}Nuevo servicio{% endif %} | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}">
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
@@ -14,9 +14,6 @@
       <p class="eyebrow">Configuracion</p>
       <h1>{% if servicio %}Editar servicio{% else %}Nuevo servicio{% endif %}</h1>
       <p>Define precio, duracion y profesional para que la agenda pueda bloquear horarios correctamente.</p>
-    </div>
-    <div class="hero-actions">
-      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Volver al listado</a>
     </div>
   </header>
 
@@ -76,5 +73,9 @@
       </div>
     </form>
   </article>
+
+  <div class="dashboard-footer-actions">
+    <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Volver al listado</a>
+  </div>
 </section>
 {% endblock %}

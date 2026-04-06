@@ -5,7 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
-<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}">
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
@@ -15,10 +15,6 @@
       <p class="eyebrow">Dashboard admin</p>
       <h1>Gestion de citas</h1>
       <p>Controla horarios, seguimiento operativo, pagos y asistencia desde un solo panel.</p>
-    </div>
-    <div class="hero-actions">
-      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
-      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Gestionar servicios</a>
     </div>
   </header>
 
@@ -219,6 +215,11 @@
     </article>
     {% endif %}
   </section>
+
+  <div class="dashboard-footer-actions">
+    <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
+    <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Gestionar servicios</a>
+  </div>
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
@@ -241,6 +242,12 @@
       initialView: "dayGridMonth",
       locale: "es",
       height: "auto",
+      buttonText: {
+        today: "Hoy",
+        dayGridMonth: "Mes",
+        timeGridWeek: "Semana",
+        timeGridDay: "Día"
+      },
       headerToolbar: {
         left: "prev,next today",
         center: "title",

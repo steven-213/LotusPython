@@ -6,7 +6,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
-<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260324a">
+<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260406b">
 {% endblock %}
 
 {% block content %}
@@ -25,15 +25,57 @@
         <span class="services-chip"><i class="bi bi-calendar2-heart"></i> Agenda flexible</span>
         <span class="services-chip"><i class="bi bi-credit-card-2-front"></i> Pago al momento o despues</span>
       </div>
+
+      <div class="services-hero-actions">
+        <a class="catalog-btn catalog-btn-primary" href="#catalogo-servicios">
+          <i class="bi bi-grid-1x2"></i> Ver servicios
+        </a>
+        {% if request.session.usuario_id %}
+        <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:agenda' %}">
+          <i class="bi bi-journal-check"></i> Ver mis citas
+        </a>
+        {% else %}
+        <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:reserva_nueva' %}">
+          <i class="bi bi-calendar-plus"></i> Reservar ahora
+        </a>
+        {% endif %}
+      </div>
     </div>
+
+    <aside class="services-hero-panel services-hero-panel-compact">
+      <p class="services-panel-label">Como funciona</p>
+      <div class="services-steps">
+        <article class="services-step">
+          <span>1</span>
+          <div>
+            <strong>Explora y compara</strong>
+            <p>Revisa precio, duración y profesional antes de reservar.</p>
+          </div>
+        </article>
+        <article class="services-step">
+          <span>2</span>
+          <div>
+            <strong>Agenda en minutos</strong>
+            <p>Reserva con cuenta o como invitado según prefieras.</p>
+          </div>
+        </article>
+        <article class="services-step">
+          <span>3</span>
+          <div>
+            <strong>Haz seguimiento</strong>
+            <p>Consulta tu cita y el estado del pago cuando lo necesites.</p>
+          </div>
+        </article>
+      </div>
+    </aside>
   </header>
 
   {% if servicios %}
-  <section class="services-catalog">
+  <section class="services-catalog" id="catalogo-servicios">
     <div class="services-catalog-head">
       <p class="services-eyebrow">Servicios disponibles</p>
       <h2>Elige primero la experiencia que quieres reservar</h2>
-      <p>Explora cada servicio, compara precio y duracion, y despues revisa como funciona la reserva si lo necesitas.</p>
+      <p>Explora cada servicio, compara precio y duración y agenda el que mejor encaje contigo.</p>
     </div>
 
     <div class="services-grid">
@@ -91,35 +133,6 @@
       </article>
       {% endfor %}
     </div>
-  </section>
-
-  <section class="services-guide">
-    <aside class="services-hero-panel">
-      <p class="services-panel-label">Como funciona</p>
-      <div class="services-steps">
-        <article class="services-step">
-          <span>1</span>
-          <div>
-            <strong>Elige tu ritual</strong>
-            <p>Compara precios, duracion y profesional para encontrar el servicio ideal.</p>
-          </div>
-        </article>
-        <article class="services-step">
-          <span>2</span>
-          <div>
-            <strong>Agenda a tu ritmo</strong>
-            <p>Reserva con cuenta o sin cuenta, segun la experiencia que prefieras.</p>
-          </div>
-        </article>
-        <article class="services-step">
-          <span>3</span>
-          <div>
-            <strong>Sigue tu cita</strong>
-            <p>Consulta el estado, pagos y detalles desde tu agenda o con ayuda del equipo.</p>
-          </div>
-        </article>
-      </div>
-    </aside>
   </section>
   {% else %}
   <article class="services-empty">

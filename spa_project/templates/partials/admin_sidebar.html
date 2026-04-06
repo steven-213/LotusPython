@@ -1,0 +1,26 @@
+<aside class="admin-sidebar" aria-label="Navegación admin">
+    <div class="admin-sidebar-top">
+        <p class="admin-sidebar-eyebrow">Navegación admin</p>
+        <h2 class="admin-sidebar-title">Panel de gestión</h2>
+        <p class="admin-sidebar-copy">
+            Muévete entre módulos y tareas frecuentes sin perder el contexto de trabajo.
+        </p>
+    </div>
+
+    <div class="admin-sidebar-groups">
+        {% for section in admin_sidebar_sections %}
+        <section class="admin-sidebar-group {% if section.is_active %}is-current{% endif %}">
+            <p class="admin-sidebar-group-title">{{ section.title }}</p>
+
+            <nav class="admin-sidebar-links" aria-label="{{ section.title }}">
+                {% for item in section.items %}
+                <a href="{{ item.url }}" class="admin-sidebar-link {% if item.is_active %}is-active{% endif %}">
+                    <i class="bi {{ item.icon }}"></i>
+                    <span>{{ item.label }}</span>
+                </a>
+                {% endfor %}
+            </nav>
+        </section>
+        {% endfor %}
+    </div>
+</aside>

@@ -16,33 +16,6 @@
             {% endif %}
         </div>
 
-        <div class="inv-panel-actions">
-            {% if back_url %}
-            <a href="{{ back_url }}" class="inv-nav-button inv-nav-button-muted">
-                <i class="bi bi-arrow-left"></i> {{ back_label|default:"Volver" }}
-            </a>
-            {% endif %}
-            <a href="{% url 'inventario:dashboard' %}" class="inv-nav-button">
-                <i class="bi bi-grid-1x2"></i> Dashboard
-            </a>
-        </div>
     </div>
 
-    <nav class="inv-shortcuts" aria-label="Secciones de inventario">
-        <a href="{% url 'inventario:producto_lista' %}" class="inv-shortcut {% if active_section == 'productos' %}is-active{% endif %}">
-            <i class="bi bi-box-seam"></i> Productos
-        </a>
-        <a href="{% url 'inventario:compra_lista' %}" class="inv-shortcut {% if active_section == 'compras' %}is-active{% endif %}">
-            <i class="bi bi-cart-check"></i> Compras
-        </a>
-        <a href="{% url 'inventario:proveedor_lista' %}" class="inv-shortcut {% if active_section == 'proveedores' %}is-active{% endif %}">
-            <i class="bi bi-truck"></i> Proveedores
-        </a>
-        <a href="{% url 'inventario:devolucion_lista' %}" class="inv-shortcut {% if active_section == 'devoluciones' %}is-active{% endif %}">
-            <i class="bi bi-arrow-return-left"></i> Devoluciones compra
-        </a>
-        <a href="{% url 'inventario:sugerencia_pedido' %}" class="inv-shortcut {% if active_section == 'control' %}is-active{% endif %}">
-            <i class="bi bi-clipboard2-pulse"></i> Control
-        </a>
-    </nav>
 </section>

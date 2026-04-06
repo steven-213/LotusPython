@@ -1,103 +1,94 @@
-{% extends "base_public.html" %}
-{% load static %}
-
-{% block title %}Nueva Venta | Administración{% endblock %}
-
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Nueva Venta | Administración{% endblock %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'ventas/admin_nav.css' %}">
-<link rel="stylesheet" href="{% static 'ventas/nueva_style.css' %}">
+<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="ventas-admin-backbar">
-        <a href="{% url 'ventas:venta_lista' %}" class="ventas-admin-backlink">
-            <i class="bi bi-arrow-left"></i> Volver a Ventas
-        </a>
-    </div>
+<div class="container-fluid py-4 ventas-shell">
+    <section class="admin-page-hero">
+        <div class="admin-page-copy">
+            <div class="admin-page-breadcrumbs">
+                <a href="{% url 'sesiones:admin_dashboard' %}">Panel admin</a>
+                <span>/</span>
+                <a href="{% url 'ventas:venta_lista' %}">Ventas</a>
+                <span>/</span>
+                <span>Nueva venta</span>
+            </div>
+            <h1 class="admin-page-title">Registrar nueva venta</h1>
+            <p class="admin-page-description">
+                Crea la venta con una captura clara y consistente para continuar luego con la validación del pago.
+            </p>
+        </div>
+    </section>
 
-    <div class="mb-4">
-        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
-            <i class="bi bi-plus-circle" style="color: #ca6b86;"></i> Registrar Nueva Venta
-        </h1>
-        <p class="text-muted">Complete el formulario para crear una nueva transacción de venta</p>
-    </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Card Formulario -->
-            <div class="card shadow-lg border-0" style="border-radius: 1rem;">
-                <div class="card-header border-0" style="background-color: #fbcdd9;">
-                    <h5 class="mb-0" style="color: #3b2b32;">
-                        <i class="bi bi-file-earmark-text"></i> Datos de la Venta
-                    </h5>
-                </div>
-                <div class="card-body p-4">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-
-                        <!-- Sección: Cliente -->
-                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
-                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
-                                <i class="bi bi-person-fill" style="color: #ca6b86;"></i> Seleccionar Cliente
-                            </h6>
-                            <div class="form-group">
-                                <label for="cliente_id" class="form-label" style="color: #3b2b32; font-weight: 600;">Cliente *</label>
-                                <select class="form-select form-control" id="cliente_id" name="cliente_id" required style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
-                                    <option value="" selected disabled style="color: #999;">-- Selecciona un cliente --</option>
-                                    {% for cliente in clientes %}
-                                    <option value="{{ cliente.id }}" style="color: #3b2b32;">
-                                        {{ cliente.nombre }} ({{ cliente.email }})
-                                    </option>
-                                    {% empty %}
-                                    <option value="" disabled style="color: #999;">No hay clientes registrados</option>
-                                    {% endfor %}
-                                </select>
-                                <small class="form-text text-muted">Selecciona el cliente que realiza la compra</small>
-                            </div>
-                        </div>
-
-                        <!-- Sección: Monto -->
-                        <div class="mb-4 pb-3" style="border-bottom: 1px solid #ecf0f1;">
-                            <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 1rem;">
-                                <i class="bi bi-cash-coin" style="color: #ca6b86;"></i> Monto de la Venta
-                            </h6>
-                            <div class="form-group">
-                                <label for="total" class="form-label" style="color: #3b2b32; font-weight: 600;">Total *</label>
-                                <div class="input-group" style="border-radius: 0.5rem; overflow: hidden;">
-                                    <span class="input-group-text" style="background: #fbcdd9; border: 2px solid #fbcdd9; color: #ca6b86; font-weight: 600;">$</span>
-                                    <input type="text" class="form-control" id="total" name="total" inputmode="numeric" data-money="cop" placeholder="20.000" required style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
-                                </div>
-                                <small class="form-text text-muted">Ingresa el monto total de la venta</small>
-                            </div>
-                        </div>
-
-                        <!-- Botones de acción -->
-                        <div class="d-grid gap-2 mt-5">
-                            <button type="submit" class="btn btn-primary btn-lg" style="background: #ca6b86; border: none; font-weight: 600; padding: 0.75rem;">
-                                <i class="bi bi-check-circle"></i> Crear Venta
-                            </button>
-                        </div>
-                    </form>
+    <div class="ventas-split-grid">
+        <section class="ventas-surface-card">
+            <div class="ventas-surface-head">
+                <div>
+                    <h2>Datos de la venta</h2>
+                    <p>Selecciona el cliente y registra el valor total de la transacción.</p>
                 </div>
             </div>
-
-            <!-- Card de información -->
-            <div class="card shadow-sm border-0 mt-4" style="border-radius: 1rem; border-left: 4px solid #ca6b86; background-color: #fbcdd9; background-color: rgba(251, 205, 217, 0.3);">
-                <div class="card-body">
-                    <h6 style="color: #3b2b32; font-weight: 700; margin-bottom: 0.5rem;">
-                        <i class="bi bi-info-circle" style="color: #ca6b86;"></i> Información Importante
-                    </h6>
-                    <ul class="mb-0" style="color: #666; font-size: 0.95rem;">
-                        <li>Después de crear la venta, podrás agregar más detalles.</li>
-                        <li>Puedes ingresar valores como 20000 o 20.000 y se guardaran como pesos colombianos.</li>
-                        <li>La venta quedará en estado "Pendiente de Validación" hasta confirmar el pago.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
+            <div class="ventas-surface-body">
+                <form method="post" novalidate class="ventas-form-grid">
+                    {% csrf_token %}
+
+                    <div class="ventas-form-grid two-up">
+                        <label class="ventas-field is-wide">
+                            <span>Cliente *</span>
+                            <select class="ventas-select" id="cliente_id" name="cliente_id" required>
+                                <option value="" selected disabled>-- Selecciona un cliente --</option>
+                                {% for cliente in clientes %}
+                                <option value="{{ cliente.id }}">{{ cliente.nombre }} ({{ cliente.correo|default:"Sin correo" }})</option>
+                                {% empty %}
+                                <option value="" disabled>No hay clientes registrados</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+
+                        <label class="ventas-field">
+                            <span>Total *</span>
+                            <div class="ventas-money-group">
+                                <span class="ventas-money-addon">$</span>
+                                <input type="text" class="ventas-input" id="total" name="total" inputmode="numeric" data-money="cop" placeholder="20.000" required>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="ventas-inline-actions">
+                        <button type="submit" class="admin-action-button">
+                            <i class="bi bi-check-circle"></i> Crear venta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <aside class="ventas-surface-card">
+            <div class="ventas-surface-head">
+                <div>
+                    <h2>Guía rápida</h2>
+                    <p>Referencia corta para registrar la venta sin perder contexto.</p>
+                </div>
+            </div>
+            <div class="ventas-surface-body">
+                <ol class="ventas-note-list">
+                    <li>Después de crear la venta podrás seguir con detalle, productos y validación del pago.</li>
+                    <li>Puedes ingresar valores como `20000` o `20.000` y se guardarán como pesos colombianos.</li>
+                    <li>La venta quedará en estado pendiente hasta confirmar la validación correspondiente.</li>
+                </ol>
+            </div>
+        </aside>
+    </div>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'ventas:venta_lista' %}" class="admin-action-button is-muted is-compact">
+            <i class="bi bi-receipt"></i> Ver ventas
+        </a>
+    </div>
+</div>
+{% endblock %}

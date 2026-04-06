@@ -4,8 +4,8 @@
 {% block title %}Proveedores - Administración{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'inventario/proveedores/lista_style.css' %}">
-<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/proveedores/lista_style.css' %}?v=20260406c">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
@@ -13,23 +13,19 @@
     {% url 'inventario:dashboard' as inventario_dashboard_url %}
     {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Proveedores" page_description="Busca por nombre, empresa, NIT, pais o correo y navega rapido al detalle de cada proveedor." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="proveedores" %}
 
-
-    <!-- Estadísticas -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm bg-light">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">
-                        <i class="bi bi-building"></i> Total de Proveedores
-                    </h6>
-                    <h3 class="mb-0" style="color: #ca6b86;">
-                        {{ proveedores.count }}
-                    </h3>
-                </div>
+    <div class="inv-summary-row">
+        <article class="inv-summary-card">
+            <div class="inv-summary-icon">
+                <i class="bi bi-building"></i>
             </div>
-        </div>
-    </div>
+            <div class="inv-summary-copy">
+                <span class="inv-summary-label">Total de proveedores</span>
+                <strong class="inv-summary-value">{{ proveedores.count }}</strong>
+                <span class="inv-summary-meta">Directorio disponible para compras y abastecimiento.</span>
+            </div>
+        </article>
 
+    </div>
 
     <!-- Búsqueda -->
     <div class="card mb-4 shadow-sm border-0" style="border-radius: 1rem;">
@@ -66,17 +62,9 @@
     <div class="card shadow-lg border-0" style="border-radius: 1rem;">
 
         <div class="card-header border-0" style="background-color: #fbcdd9;">
-            <div class="d-flex justify-content-between align-items-center">
-
-                <h5 class="mb-0" style="color: #3b2b32;">
-                    <i class="bi bi-table"></i> Lista de Proveedores
-                </h5>
-
-                <a href="{% url 'inventario:proveedor_nuevo' %}" class="btn btn-primary btn-sm" style="background: #ca6b86; border: none;">
-                    <i class="bi bi-plus-circle"></i> Nuevo Proveedor
-                </a>
-
-            </div>
+            <h5 class="mb-0" style="color: #3b2b32;">
+                <i class="bi bi-table"></i> Lista de Proveedores
+            </h5>
         </div>
 
 
@@ -175,6 +163,12 @@
             </table>
         </div>
 
+    </div>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'inventario:proveedor_nuevo' %}" class="inv-nav-button">
+            <i class="bi bi-plus-circle"></i> Nuevo proveedor
+        </a>
     </div>
 
 </div>

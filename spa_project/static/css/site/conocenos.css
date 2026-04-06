@@ -13,9 +13,9 @@
 .grilla-conocenos {
   margin-top: 1rem;
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
   gap: 1rem;
-  align-items: center;
+  align-items: start;
 }
 
 .texto-conocenos,
@@ -28,7 +28,15 @@
 
 .media-conocenos img {
   width: 100%;
+  max-height: 320px;
+  object-fit: cover;
   border-radius: 12px;
+}
+
+.media-conocenos {
+  max-width: 420px;
+  justify-self: center;
+  padding: 0.85rem;
 }
 
 .grilla-valores {

@@ -1,6 +1,33 @@
 /* CONTENEDOR */
 .contenedor-productos {
-    padding: 2rem;
+    padding: 0.25rem 0 0;
+}
+
+.panel-productos-card {
+    border-radius: 18px;
+    border: 1px solid rgba(202, 107, 134, 0.12);
+    box-shadow: 0 12px 28px rgba(59, 43, 50, 0.06);
+}
+
+.panel-label {
+    color: #3b2b32;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.panel-addon {
+    background-color: #fbcdd9;
+    border-color: #ca6b86;
+}
+
+.panel-input {
+    border-color: #ca6b86;
+    border-radius: 14px;
+}
+
+.panel-btn-primary {
+    background: #ca6b86;
+    border: none;
 }
 
 /* ENCABEZADO */
@@ -66,9 +93,10 @@
 /* CARD */
 .card-producto {
     background: white;
-    border-radius: 12px;
+    border: 1px solid rgba(202, 107, 134, 0.12);
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 24px rgba(59, 43, 50, 0.08);
 }
 
 /* IMAGEN */
@@ -111,20 +139,37 @@
     display: flex;
     gap: 5px;
     padding: 1rem;
+    border-top: 1px solid rgba(202, 107, 134, 0.08);
 }
 
 .acciones a,
 .acciones button {
     flex: 1;
     text-align: center;
-    padding: 5px;
+    padding: 0.55rem 0.6rem;
     border: none;
     background: #ca6b86;
     color: white;
-    border-radius: 5px;
+    border-radius: 10px;
     text-decoration: none;
+    font-weight: 600;
 }
 
 .acciones button {
-    background: red;
+    background: #c9536f;
+}
+
+.grid-productos > p {
+    margin: 0;
+    padding: 1rem 1.2rem;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px dashed rgba(202, 107, 134, 0.26);
+    color: #6e5b63;
+}
+
+@media (max-width: 767px) {
+    .contenedor-productos {
+        padding-top: 0;
+    }
 }

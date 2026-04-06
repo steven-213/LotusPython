@@ -42,28 +42,33 @@
 </section>
 
 <section class="tarjeta-horario">
-  <h2>Horarios de atención</h2>
-  <table class="tabla-horario">
-    <thead>
-      <tr>
-        <th>Día</th>
-        <th>Horario</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Lunes a viernes</td>
-        <td>10:00 AM - 6:00 PM</td>
-      </tr>
-      <tr>
-        <td>Sábados</td>
-        <td>10:00 AM - 8:00 PM</td>
-      </tr>
-      <tr>
-        <td>Domingos y festivos</td>
-        <td>Cerrado</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="horario-encabezado">
+    <div>
+      <p class="etiqueta-superior">Visítanos</p>
+      <h2>Horarios de atención</h2>
+      <p>Te esperamos con espacios pensados para que reserves con tranquilidad durante toda la semana.</p>
+    </div>
+    <span class="horario-pill"><i class="bi bi-clock"></i> Atención actualizada</span>
+  </div>
+
+  <div class="grilla-horario">
+    <article class="bloque-horario">
+      <span class="bloque-horario-dia">Lunes a viernes</span>
+      <strong>10:00 AM - 6:00 PM</strong>
+      <p>Jornada ideal para pausas de bienestar y tratamientos de cuidado personal.</p>
+    </article>
+
+    <article class="bloque-horario">
+      <span class="bloque-horario-dia">Sábados</span>
+      <strong>10:00 AM - 8:00 PM</strong>
+      <p>Horario extendido para quienes prefieren venir con más calma el fin de semana.</p>
+    </article>
+
+    <article class="bloque-horario">
+      <span class="bloque-horario-dia">Domingos y festivos</span>
+      <strong>Cerrado</strong>
+      <p>Usamos este tiempo para preparación interna y cuidado de cada experiencia del spa.</p>
+    </article>
+  </div>
 </section>
 {% endblock %}

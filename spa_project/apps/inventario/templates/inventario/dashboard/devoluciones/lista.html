@@ -3,59 +3,63 @@
 
 {% block title %}Devoluciones de Compra - Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260406c">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
-    <!-- Encabezado -->
-    <div class="mb-4">
-        <a href="{% url 'sesiones:admin_dashboard' %}" class="btn btn-sm" style="background: #f0f0f0; color: #3b2b32; border: none;">
-            <i class="bi bi-arrow-left"></i> Atrás
-        </a>
-        <h1 style="color: #3b2b32; font-weight: 700; margin-top: 1rem;">
-            <i class="bi bi-arrow-return-left" style="color: #ca6b86;"></i> Gestión de Devoluciones de Compra
-        </h1>
-        <p class="text-muted">Registro y administración de retornos realizados a proveedores.</p>
+    {% url 'inventario:dashboard' as inventario_dashboard_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Devoluciones de Compra" page_description="Haz seguimiento a devoluciones pendientes, aprobadas y rechazadas sin salir del modulo de inventario." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="devoluciones" %}
+
+    <div class="inv-summary-row">
+        <article class="inv-summary-card">
+            <div class="inv-summary-icon">
+                <i class="bi bi-arrow-return-left"></i>
+            </div>
+            <div class="inv-summary-copy">
+                <span class="inv-summary-label">Devoluciones visibles</span>
+                <strong class="inv-summary-value">{{ devoluciones|length }}</strong>
+                <span class="inv-summary-meta">Resultado actual según los filtros aplicados.</span>
+            </div>
+        </article>
+
     </div>
 
-    <!-- Estadísticas -->
-    <div class="row mb-4 g-2">
-        <div class="col-md-3">
-            <div class="card bg-light border-0">
-                <div class="card-body">
-                    <h6 class="card-title text-warning"><i class="bi bi-clock"></i> Pendientes</h6>
-                    <h2 class="mb-0">{{ devoluciones_pendientes }}</h2>
-                </div>
+    <div class="inv-kpi-grid is-triad">
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Pendientes</div>
+            <div class="inv-kpi-value">{{ devoluciones_pendientes }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-status-badge is-warning"><i class="bi bi-clock"></i> En revisión</span>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-light border-0">
-                <div class="card-body">
-                    <h6 class="card-title text-success"><i class="bi bi-check-circle"></i> Aprobadas</h6>
-                    <h2 class="mb-0">{{ devoluciones_aprobadas }}</h2>
-                </div>
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Aprobadas</div>
+            <div class="inv-kpi-value">{{ devoluciones_aprobadas }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-status-badge is-success"><i class="bi bi-check-circle"></i> Procesadas</span>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-light border-0">
-                <div class="card-body">
-                    <h6 class="card-title text-danger"><i class="bi bi-x-circle"></i> Rechazadas</h6>
-                    <h2 class="mb-0">{{ devoluciones_rechazadas }}</h2>
-                </div>
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Rechazadas</div>
+            <div class="inv-kpi-value">{{ devoluciones_rechazadas }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-status-badge is-danger"><i class="bi bi-x-circle"></i> No aprobadas</span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-warning w-100 h-100 d-flex align-items-center justify-content-center">
-                <i class="bi bi-plus-circle me-2"></i> Nueva Devolución de Compra
-            </a>
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
+    <div class="inv-surface-card mb-4">
+        <div class="inv-surface-head">
+            <h5><i class="bi bi-funnel"></i> Filtrar devoluciones</h5>
+            <p>Ubica más rápido cada devolución por estado y rango de fechas.</p>
+        </div>
+        <div class="card-body p-4">
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">Estado</label>
-                    <select class="form-select" name="estado">
+                    <label class="form-label inv-form-label">Estado</label>
+                    <select class="form-select inv-form-input" name="estado">
                         <option value="">-- Todos los estados --</option>
                         <option value="pendiente" {% if estado_filtro == "pendiente" %}selected{% endif %}>Pendiente</option>
                         <option value="aprobada" {% if estado_filtro == "aprobada" %}selected{% endif %}>Aprobada</option>
@@ -63,15 +67,15 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Desde</label>
-                    <input type="date" class="form-control" name="fecha_inicio" value="{{ fecha_inicio }}">
+                    <label class="form-label inv-form-label">Desde</label>
+                    <input type="date" class="form-control inv-form-input" name="fecha_inicio" value="{{ fecha_inicio }}">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Hasta</label>
-                    <input type="date" class="form-control" name="fecha_fin" value="{{ fecha_fin }}">
+                    <label class="form-label inv-form-label">Hasta</label>
+                    <input type="date" class="form-control inv-form-input" name="fecha_fin" value="{{ fecha_fin }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100 inv-filter-button">
                         <i class="bi bi-search"></i> Filtrar
                     </button>
                 </div>
@@ -79,11 +83,14 @@
         </div>
     </div>
 
-    <!-- Tabla de Devoluciones de Compra -->
-    <div class="card">
+    <div class="inv-surface-card inv-table-card">
+        <div class="inv-surface-head">
+            <h5><i class="bi bi-table"></i> Historial de devoluciones</h5>
+            <p>Consulta rápidamente el estado y la compra asociada de cada registro.</p>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
-                <thead style="background: #f8f9fa;">
+                <thead>
                     <tr>
                         <th>ID</th>
                         <th>Compra</th>
@@ -103,22 +110,22 @@
                         <td>Compra #{{ devolucion.compra.id }}</td>
                         <td>{{ devolucion.producto.nombre }}</td>
                         <td>
-                            <span class="badge rounded-pill" style="background: #f0f7ff; color: #0052cc;">
+                            <span class="inv-pill">
                                 {{ devolucion.cantidad }} unid.
                             </span>
                         </td>
                         <td>
                             {% if devolucion.estado == "pendiente" %}
-                            <span class="badge bg-warning">Pendiente</span>
+                            <span class="inv-status-badge is-warning">Pendiente</span>
                             {% elif devolucion.estado == "aprobada" %}
-                            <span class="badge bg-success">Aprobada</span>
+                            <span class="inv-status-badge is-success">Aprobada</span>
                             {% else %}
-                            <span class="badge bg-danger">Rechazada</span>
+                            <span class="inv-status-badge is-danger">Rechazada</span>
                             {% endif %}
                         </td>
                         <td>{{ devolucion.fecha|date:"d/m/Y H:i" }}</td>
                         <td>
-                            <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-info">
+                            <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i>
                             </a>
                             <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display: inline;" onsubmit="return confirm('¿Eliminar esta devolución?');">
@@ -139,6 +146,12 @@
                 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'inventario:devolucion_nueva' %}" class="inv-nav-button">
+            <i class="bi bi-plus-circle"></i> Nueva devolución
+        </a>
     </div>
 </div>
 {% endblock %}

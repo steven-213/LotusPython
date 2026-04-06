@@ -22,8 +22,6 @@
 
       <div class="shop-chip-row">
         <span class="shop-chip"><i class="bi bi-bag-heart"></i> {{ productos|length }} referencias disponibles</span>
-        <span class="shop-chip"><i class="bi bi-patch-check"></i> Catalogo actualizado</span>
-        <span class="shop-chip"><i class="bi bi-truck"></i> Compra guiada por validacion</span>
       </div>
     </div>
 
@@ -36,15 +34,6 @@
           <button type="submit">Buscar</button>
         </div>
       </form>
-
-      <div class="shop-search-meta">
-        <span class="shop-search-pill"><i class="bi bi-grid-3x3-gap"></i> Catalogo publico</span>
-        {% if query %}
-        <span class="shop-search-pill shop-search-pill-accent">Resultados para "{{ query }}"</span>
-        {% else %}
-        <span class="shop-search-pill shop-search-pill-accent">Listo para comprar</span>
-        {% endif %}
-      </div>
     </aside>
   </header>
 

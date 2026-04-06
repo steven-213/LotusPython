@@ -4,8 +4,8 @@
 {% block title %}Productos{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'inventario/productos/productos.css' %}">
-<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/productos/productos.css' %}?v=20260406c">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
@@ -13,61 +13,135 @@
     {% url 'inventario:dashboard' as inventario_dashboard_url %}
     {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Productos" page_description="Consulta existencias, entra al detalle y crea nuevos productos sin salir del modulo de inventario." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="productos" %}
 
-    <!-- ESTADÍSTICAS -->
-    <div class="estadisticas">
-        <div class="card-estadistica">
-            <p>Total</p>
-            <h3>{{ productos|length }}</h3>
-        </div>
+    <div class="inv-summary-row">
+        <article class="inv-summary-card">
+            <div class="inv-summary-icon">
+                <i class="bi bi-box-seam"></i>
+            </div>
+            <div class="inv-summary-copy">
+                <span class="inv-summary-label">Total de productos</span>
+                <strong class="inv-summary-value">{{ productos|length }}</strong>
+                <span class="inv-summary-meta">Resultados visibles con los filtros actuales.</span>
+            </div>
+        </article>
+
     </div>
 
-    <!-- FILTROS -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
-            <form method="get" class="row g-3">
-
-                <!-- Búsqueda -->
-                <div class="col-md-6">
-                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">
-                        Buscar
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">
-                            <i class="bi bi-search"></i>
-                        </span>
-                        <input type="text" name="q" class="form-control"
-                            placeholder="Buscar por nombre o descripción..."
-                            value="{{ query }}" style="border-color: #ca6b86;">
+    <div class="row g-4 align-items-stretch mb-4">
+        <div class="col-12 col-xl-6">
+            <!-- FILTROS -->
+            <div class="card border-0 shadow-sm h-100 panel-productos-card">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3">
+                        <h4 class="mb-1">Buscar productos</h4>
+                        <p class="text-muted mb-0">
+                            Filtra por nombre, descripción o proveedor para encontrar un producto más rápido.
+                        </p>
                     </div>
-                </div>
 
-                <!-- Proveedor -->
-                <div class="col-md-3">
-                    <label class="form-label" style="color: #3b2b32; font-weight: 600; font-size: 0.85rem;">
-                        Proveedor
-                    </label>
-                    <select name="proveedor_id" class="form-select" style="border-color: #ca6b86;">
-                        <option value="">-- Todos --</option>
-                        {% for proveedor in proveedores %}
-                        <option value="{{ proveedor.id }}"
-                            {% if proveedor.id|stringformat:"s" == proveedor_id %}selected{% endif %}>
-                            {{ proveedor.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                    <form method="get" class="row g-3 flex-grow-1 align-content-start">
 
-                <!-- Botones -->
-                <div class="col-12">
-                    <button class="btn btn-primary" style="background: #ca6b86; border: none;" type="submit">
-                        Buscar
-                    </button>
-                    <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary">
-                        Limpiar
-                    </a>
-                </div>
+                        <div class="col-12">
+                            <label class="form-label panel-label">
+                                Buscar
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text panel-addon">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" name="q" class="form-control panel-input"
+                                    placeholder="Buscar por nombre o descripción..."
+                                    value="{{ query }}">
+                            </div>
+                        </div>
 
-            </form>
+                        <div class="col-12">
+                            <label class="form-label panel-label">
+                                Proveedor
+                            </label>
+                            <select name="proveedor_id" class="form-select panel-input">
+                                <option value="">-- Todos --</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}"
+                                    {% if proveedor.id|stringformat:"s" == proveedor_id %}selected{% endif %}>
+                                    {{ proveedor.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 d-flex flex-wrap gap-2 mt-auto">
+                            <button class="btn btn-primary panel-btn-primary" type="submit">
+                                Buscar
+                            </button>
+                            <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary">
+                                Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card border-0 shadow-sm h-100 panel-productos-card">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3">
+                        <h4 class="mb-1">Importar productos desde CSV</h4>
+                        <p class="text-muted mb-0">
+                            Usa columnas como <code>nombre</code>, <code>descripcion</code>,
+                            <code>precio_compra</code>, <code>proveedor</code>,
+                            <code>impuesto</code> y <code>margen_ganancia</code>.
+                            Si no envías proveedor, se usará el proveedor por defecto del formulario.
+                        </p>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{% url 'inventario:producto_importar_csv' %}"
+                        enctype="multipart/form-data"
+                        class="row g-3 flex-grow-1 align-content-start"
+                    >
+                        {% csrf_token %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold panel-label">Archivo CSV</label>
+                            <input
+                                type="file"
+                                name="archivo_csv"
+                                accept=".csv,text/csv"
+                                class="form-control panel-input"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold panel-label">Proveedor por defecto</label>
+                            <select name="proveedor_base_id" class="form-select panel-input">
+                                <option value="">-- Selecciona --</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold panel-label">IVA</label>
+                            <input type="number" name="impuesto_default" class="form-control panel-input" value="19" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold panel-label">Margen</label>
+                            <input type="number" name="margen_default" class="form-control panel-input" value="20" step="0.01">
+                        </div>
+
+                        <div class="col-12 d-flex justify-content-end mt-auto">
+                            <button class="btn btn-primary panel-btn-primary" type="submit">
+                                Importar CSV
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -144,9 +218,10 @@
         <p>No hay productos</p>
         {% endfor %}
     </div>
-    <div class="d-flex gap-2 justify-content-end mt-4">
-        <a href="{% url 'inventario:producto_nuevo' %}" class="btn btn-rosa btn-lg">
-            <i class="bi bi-plus-circle"></i> Nuevo Producto
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'inventario:producto_nuevo' %}" class="inv-nav-button">
+            <i class="bi bi-plus-circle"></i> Nuevo producto
         </a>
     </div>
 </div>

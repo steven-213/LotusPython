@@ -137,16 +137,141 @@
   margin-bottom: 1.5rem;
 }
 
+.inv-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+}
+
+.inv-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.95rem 1.05rem;
+  min-width: min(320px, 100%);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff 0%, #fff6f8 100%);
+  border: 1px solid var(--rose-100);
+  box-shadow: 0 10px 24px rgba(59, 43, 50, 0.06);
+}
+
+.inv-summary-icon {
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: var(--rose-100);
+  color: var(--rose-600);
+  font-size: 1.18rem;
+}
+
+.inv-summary-copy {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.inv-summary-label {
+  color: var(--ink-500);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.inv-summary-value {
+  color: var(--ink-700);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.inv-summary-meta {
+  color: var(--ink-500);
+  font-size: 0.9rem;
+}
+
+.inv-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.inv-ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.72rem 1rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  color: var(--ink-700);
+  background: #fff;
+  border: 1px solid var(--rose-200);
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.inv-ghost-button:hover {
+  color: var(--ink-700);
+  background: var(--rose-50);
+  border-color: var(--rose-300);
+  transform: translateY(-1px);
+}
+
+.inv-surface-head {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--rose-100);
+  background: linear-gradient(135deg, #fff8fb 0%, #fdeaf0 100%);
+}
+
+.inv-surface-head h3,
+.inv-surface-head h5 {
+  margin: 0;
+  color: var(--ink-700);
+  font-weight: 800;
+}
+
+.inv-surface-head p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-500);
+}
+
+.inv-form-label {
+  color: var(--ink-700);
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.inv-form-input {
+  border: 1px solid var(--rose-200);
+  border-radius: 14px;
+}
+
+.inv-form-input:focus {
+  border-color: var(--rose-500);
+  box-shadow: 0 0 0 0.2rem rgba(202, 107, 134, 0.16);
+}
+
+.inv-filter-button {
+  height: 100%;
+}
+
 .inv-panel-header {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   align-items: flex-start;
-  padding: 1.25rem 1.35rem;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #fff7f9 0%, #f9e3ea 100%);
+  padding: 1.1rem 1.25rem;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff9fb 0%, #fcecf2 100%);
   border: 1px solid var(--rose-200);
-  box-shadow: 0 10px 24px rgba(106, 66, 80, 0.1);
+  box-shadow: 0 14px 30px rgba(114, 50, 69, 0.08);
 }
 
 .inv-panel-copy {
@@ -171,7 +296,7 @@
 .inv-panel-title {
   margin: 0;
   color: var(--ink-700);
-  font-size: clamp(1.35rem, 2.4vw, 2rem);
+  font-size: clamp(1.28rem, 1.8vw, 1.82rem);
   font-weight: 800;
 }
 
@@ -193,21 +318,22 @@
   align-items: center;
   gap: 0.45rem;
   border-radius: 999px;
-  padding: 0.7rem 1rem;
+  padding: 0.44rem 0.78rem;
   text-decoration: none;
   font-weight: 700;
+  font-size: 0.85rem;
   color: #fff;
   background: var(--rose-500);
   border: 1px solid var(--rose-500);
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 10px 22px rgba(202, 107, 134, 0.18);
+  box-shadow: 0 8px 18px rgba(202, 107, 134, 0.16);
 }
 
 .inv-nav-button:hover {
   color: #fff;
   transform: translateY(-1px);
   background: var(--rose-600);
-  box-shadow: 0 12px 24px rgba(202, 107, 134, 0.24);
+  box-shadow: 0 10px 20px rgba(202, 107, 134, 0.2);
 }
 
 .inv-nav-button-muted {
@@ -269,6 +395,10 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1.25rem;
+}
+
+.inv-kpi-grid.is-triad {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .inv-kpi-card {
@@ -392,6 +522,10 @@
     flex-direction: column;
   }
 
+  .inv-summary-actions {
+    margin-left: 0;
+  }
+
   .rejilla-estadisticas {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -410,7 +544,12 @@
   }
 
   .inv-panel-actions,
-  .inv-shortcuts {
+  .inv-shortcuts,
+  .inv-summary-actions {
+    width: 100%;
+  }
+
+  .inv-summary-card {
     width: 100%;
   }
 }

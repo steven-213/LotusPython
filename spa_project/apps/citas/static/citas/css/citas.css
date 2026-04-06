@@ -1,12 +1,12 @@
 :root {
-  --citas-primary: #d946aa;
-  --citas-primary-dark: #b61d82;
-  --citas-secondary: #fff1f8;
-  --citas-border: #f6cde0;
-  --citas-text: #3e2332;
-  --citas-muted: #735666;
+  --citas-primary: #ca6b86;
+  --citas-primary-dark: #8b3d56;
+  --citas-secondary: #fff4f8;
+  --citas-border: #f0d7e0;
+  --citas-text: #2f2529;
+  --citas-muted: #6e5b63;
   --citas-surface: #ffffff;
-  --citas-shadow: 0 20px 42px rgba(134, 46, 92, 0.12);
+  --citas-shadow: 0 14px 30px rgba(59, 43, 50, 0.07);
 }
 
 .citas-page-shell {
@@ -20,9 +20,9 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.4rem;
+  padding: 1.1rem 1.25rem;
   border-radius: 24px;
-  background: linear-gradient(120deg, #fff8fd 0%, #ffe6f5 55%, #ffd2eb 100%);
+  background: linear-gradient(135deg, #fff9fb 0%, #fcecf2 100%);
   border: 1px solid var(--citas-border);
   box-shadow: var(--citas-shadow);
 }
@@ -31,7 +31,7 @@
 .confirmation-surface h1 {
   margin: 0;
   color: var(--citas-text);
-  font-size: clamp(1.6rem, 2.2vw, 2.4rem);
+  font-size: clamp(1.28rem, 1.8vw, 1.82rem);
   font-weight: 800;
 }
 
@@ -88,9 +88,9 @@
 }
 
 .btn-primary-strong {
-  background: linear-gradient(135deg, var(--citas-primary) 0%, #ed5da6 100%);
+  background: linear-gradient(135deg, var(--citas-primary) 0%, #b95676 100%);
   color: #fff;
-  box-shadow: 0 14px 28px rgba(217, 70, 170, 0.24);
+  box-shadow: 0 10px 22px rgba(202, 107, 134, 0.18);
 }
 
 .btn-secondary-soft {
@@ -100,15 +100,15 @@
 }
 
 .btn-danger-soft {
-  background: #fff1f3;
-  color: #9a2748;
-  border: 1px solid #f4bccd;
+  background: #fff2f4;
+  color: var(--citas-primary-dark);
+  border: 1px solid #f0d7e0;
 }
 
 .btn-warning-soft {
-  background: #fff7dd;
-  color: #8a6400;
-  border: 1px solid #f1df9b;
+  background: #fff4f8;
+  color: var(--citas-primary-dark);
+  border: 1px solid #f0d7e0;
 }
 
 .btn-primary-strong:hover,
@@ -134,43 +134,43 @@
 }
 
 .mode-pill-auth {
-  background: #eff7ff;
-  color: #1c5b95;
+  background: #fdebf1;
+  color: var(--citas-primary-dark);
 }
 
 .mode-pill-guest {
-  background: #fff1dc;
-  color: #885f00;
+  background: #f7f2f4;
+  color: #5f4a53;
 }
 
 .estado-programada {
-  background: #fff0bf;
-  color: #775800;
+  background: #fff2f6;
+  color: var(--citas-primary-dark);
 }
 
 .estado-confirmada {
-  background: #e5f6ec;
-  color: #17603a;
+  background: #fdebf1;
+  color: var(--citas-primary-dark);
 }
 
 .estado-en_proceso {
-  background: #e8f2ff;
-  color: #1f5a9b;
+  background: var(--citas-text);
+  color: #fff;
 }
 
 .estado-finalizada {
-  background: #efe8ff;
-  color: #5c35aa;
+  background: #f4eef1;
+  color: #5d4951;
 }
 
 .estado-cancelada {
-  background: #ffe5ec;
-  color: #9d3055;
+  background: #fff0f4;
+  color: var(--citas-primary-dark);
 }
 
 .estado-no_asistio {
-  background: #f3e8da;
-  color: #7a5535;
+  background: #f4eef1;
+  color: #5d4951;
 }
 
 .info-grid,
@@ -383,15 +383,15 @@ textarea.form-control {
 }
 
 .payment-callout.required {
-  background: #fff7e9;
-  border-color: #f3dfad;
+  background: #fff4f8;
+  border-color: #f0d7e0;
 }
 
 .payment-callout.success {
   justify-content: space-between;
   align-items: center;
-  background: #eff9f3;
-  border-color: #c8e8d1;
+  background: #fff8fb;
+  border-color: #f0d7e0;
 }
 
 .payment-callout i,
@@ -494,11 +494,11 @@ textarea.form-control {
 }
 
 .text-paid {
-  color: #1e7345;
+  color: var(--citas-primary-dark);
 }
 
 .text-pending {
-  color: #8d6400;
+  color: var(--citas-text);
 }
 
 .inline-danger-form,

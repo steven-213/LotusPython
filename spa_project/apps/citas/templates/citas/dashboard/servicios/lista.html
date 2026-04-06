@@ -4,7 +4,7 @@
 {% block title %}Servicios de citas | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}">
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}?v=20260406c">
 {% endblock %}
 
 {% block content %}
@@ -14,10 +14,6 @@
       <p class="eyebrow">Catalogo interno</p>
       <h1>Servicios del modulo de citas</h1>
       <p>Administra precios, duracion y profesional asignada de cada servicio disponible en agenda.</p>
-    </div>
-    <div class="hero-actions">
-      <a class="btn-primary-strong" href="{% url 'citas:servicio_nuevo' %}"><i class="bi bi-plus-lg"></i> Nuevo servicio</a>
-      <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Volver al dashboard</a>
     </div>
   </header>
 
@@ -75,5 +71,10 @@
     <a class="btn-primary-strong" href="{% url 'citas:servicio_nuevo' %}">Crear servicio</a>
   </article>
   {% endif %}
+
+  <div class="dashboard-footer-actions">
+    <a class="btn-primary-strong" href="{% url 'citas:servicio_nuevo' %}"><i class="bi bi-plus-lg"></i> Nuevo servicio</a>
+    <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Volver al dashboard</a>
+  </div>
 </section>
 {% endblock %}

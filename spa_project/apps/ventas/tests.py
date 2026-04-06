@@ -91,6 +91,22 @@ class VentasViewsTest(TestCase):
         response = self.client.get(reverse("ventas:venta_lista"))
         self.assertEqual(response.status_code, 200)
 
+    def test_venta_nueva_get_ok(self):
+        response = self.client.get(reverse("ventas:venta_nueva"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Registrar nueva venta")
+
+    def test_venta_nueva_post_crea_venta(self):
+        response = self.client.post(
+            reverse("ventas:venta_nueva"),
+            data={"cliente_id": self.cliente.id, "total": "20.000"},
+        )
+
+        venta = Venta.objects.get()
+        self.assertRedirects(response, reverse("ventas:venta_detalle", args=[venta.id]))
+        self.assertEqual(venta.cliente, self.cliente)
+        self.assertEqual(venta.total, Decimal("20000"))
+
     def test_api_ventas_get_post(self):
         post = self.client.post(
             reverse("ventas:api_ventas"),
