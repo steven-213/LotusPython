@@ -1,8 +1,9 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from decimal import Decimal
 
-from apps.inventario.models import Producto, Proveedor
+from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
 from apps.sesiones.models import Usuario
 
 
@@ -28,6 +29,23 @@ class InventarioUrlsTest(TestCase):
         response = self.client.get(reverse("inventario:producto_lista"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Navegación admin")
+
+    def test_informe_muestra_sidebar_admin(self):
+        response = self.client.get(reverse("inventario:informe_inventario"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Navegación admin")
+
+    def test_informe_redirige_a_login_sin_sesion(self):
+        self.client.session.flush()
+
+        response = self.client.get(reverse("inventario:informe_inventario"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('sesiones:login')}?next={reverse('inventario:informe_inventario')}",
+            fetch_redirect_response=False,
+        )
 
     def test_reverse_importar_csv(self):
         self.assertEqual(
@@ -95,3 +113,167 @@ class InventarioUrlsTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Navegación admin")
+
+    def test_compra_nueva_rechaza_valores_negativos_o_en_cero(self):
+        producto = Producto.objects.create(
+            nombre="Aceite de prueba",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+
+        response = self.client.post(
+            reverse("inventario:compra_nueva"),
+            {
+                "proveedor_id": str(self.proveedor.id),
+                "numero_factura": "FAC-100",
+                "productos_ids[]": [str(producto.id)],
+                "cantidades[]": ["0"],
+                "precios[]": ["-50"],
+                "impuestos[]": ["19"],
+                "margenes[]": ["20"],
+                "lotes[]": ["L-001"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "mayor a cero")
+        self.assertEqual(Compra.objects.count(), 0)
+        self.assertEqual(DetalleCompra.objects.count(), 0)
+
+    def test_compra_nueva_rechaza_factura_duplicada_sin_importar_mayusculas(self):
+        producto = Producto.objects.create(
+            nombre="Locion duplicada",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        compra = Compra.objects.create(
+            proveedor=self.proveedor,
+            total=10000,
+            numero_factura="Fac-200",
+        )
+        DetalleCompra.objects.create(
+            compra=compra,
+            producto=producto,
+            cantidad=1,
+            precio_compra=Decimal("10000"),
+            impuesto=Decimal("19"),
+            margen_ganancia=Decimal("20"),
+            lote="L-BASE",
+        )
+
+        response = self.client.post(
+            reverse("inventario:compra_nueva"),
+            {
+                "proveedor_id": str(self.proveedor.id),
+                "numero_factura": "fac-200",
+                "productos_ids[]": [str(producto.id)],
+                "cantidades[]": ["1"],
+                "precios[]": ["10000"],
+                "impuestos[]": ["19"],
+                "margenes[]": ["20"],
+                "lotes[]": ["L-002"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ya existe esa factura para este proveedor")
+        self.assertEqual(Compra.objects.count(), 1)
+
+    def test_proveedor_nuevo_rechaza_duplicados_por_nombre_o_nit(self):
+        Proveedor.objects.create(nombre="Proveedor duplicado", nit="900123")
+
+        response = self.client.post(
+            reverse("inventario:proveedor_nuevo"),
+            {
+                "nombre": "proveedor DUPLICADO",
+                "nit": "900123",
+                "correo": "proveedor2@test.com",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ya existe un proveedor con ese nombre o NIT.")
+        self.assertEqual(Proveedor.objects.filter(nombre__iexact="Proveedor duplicado").count(), 1)
+
+    def test_devolucion_nueva_incluye_productos_disponibles_de_la_compra(self):
+        producto = Producto.objects.create(
+            nombre="Serum retorno",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        compra = Compra.objects.create(
+            proveedor=self.proveedor,
+            total=10000,
+            numero_factura="DEV-100",
+        )
+        DetalleCompra.objects.create(
+            compra=compra,
+            producto=producto,
+            cantidad=3,
+            precio_compra=Decimal("10000"),
+            impuesto=Decimal("19"),
+            margen_ganancia=Decimal("20"),
+            lote="L-DEV-1",
+        )
+
+        response = self.client.get(reverse("inventario:devolucion_nueva"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "compras-devolucion-data")
+        self.assertContains(response, "Serum retorno")
+        self.assertContains(response, "cantidad_disponible")
+
+    def test_devolucion_nueva_rechaza_producto_que_no_pertenece_a_compra(self):
+        producto_compra = Producto.objects.create(
+            nombre="Crema comprada",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        producto_ajeno = Producto.objects.create(
+            nombre="Producto ajeno",
+            proveedor=self.proveedor,
+            precio_compra=12000,
+            precio_venta=18000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        compra = Compra.objects.create(
+            proveedor=self.proveedor,
+            total=10000,
+            numero_factura="DEV-200",
+        )
+        DetalleCompra.objects.create(
+            compra=compra,
+            producto=producto_compra,
+            cantidad=2,
+            precio_compra=Decimal("10000"),
+            impuesto=Decimal("19"),
+            margen_ganancia=Decimal("20"),
+            lote="L-DEV-2",
+        )
+
+        response = self.client.post(
+            reverse("inventario:devolucion_nueva"),
+            {
+                "compra_id": str(compra.id),
+                "producto_id": str(producto_ajeno.id),
+                "cantidad": "1",
+                "motivo": "Producto incorrecto",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Debes seleccionar un producto válido de la compra elegida.")
+        self.assertEqual(DevolucionCompra.objects.count(), 0)

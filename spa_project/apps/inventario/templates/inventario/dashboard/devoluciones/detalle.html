@@ -3,123 +3,102 @@
 
 {% block title %}Devolución de Compra #{{ devolucion.id }} - Administración{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <!-- Botón de Atrás -->
-            <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary mb-3">
-                <i class="bi bi-arrow-left"></i> Atrás
-            </a>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260410a">
+{% endblock %}
 
-            <div class="card mb-4">
-                <div class="card-header" style="background: #f0f7ff; color: #0052cc;">
-                    <h4 class="mb-0"><i class="bi bi-arrow-return-left"></i> Devolución de Compra #{{ devolucion.id }}</h4>
+{% block content %}
+<div class="container-fluid py-4">
+    {% url 'inventario:devolucion_lista' as devolucion_lista_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Detalle de Devolución de Compra" page_description="Consulta la compra original, el producto devuelto y el contexto del registro en un formato más claro." back_url=devolucion_lista_url back_label="Volver a devoluciones" active_section="devoluciones" %}
+
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-9">
+            <div class="inv-surface-card mb-4 overflow-hidden">
+                <div class="inv-surface-head">
+                    <h5><i class="bi bi-arrow-return-left"></i> Devolución #{{ devolucion.id }}</h5>
+                    <p>Resumen principal del estado y fecha de registro.</p>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-3">
+                <div class="card-body p-4">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <strong>Estado:</strong><br>
+                            <strong>Estado</strong><br>
                             {% if devolucion.estado == "pendiente" %}
-                            <span class="badge bg-warning">Pendiente de aprobación</span>
+                            <span class="inv-pill"><i class="bi bi-clock"></i> Pendiente de aprobación</span>
                             {% elif devolucion.estado == "aprobada" %}
-                            <span class="badge bg-success">Aprobada</span>
+                            <span class="inv-status-badge is-success">Aprobada</span>
                             {% else %}
-                            <span class="badge bg-danger">Rechazada</span>
+                            <span class="inv-status-badge is-danger">Rechazada</span>
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <strong>Fecha de Registro:</strong><br>
+                            <strong>Fecha de registro</strong><br>
                             {{ devolucion.fecha|date:"d/m/Y H:i" }}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Información de Compra -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-bag-check"></i> Información de la Compra Original</h5>
+            <div class="inv-surface-card mb-4 overflow-hidden">
+                <div class="inv-surface-head">
+                    <h5><i class="bi bi-bag-check"></i> Compra original</h5>
+                    <p>Datos base de la compra asociada con esta devolución.</p>
                 </div>
-                <div class="card-body">
-                    <div class="row">
+                <div class="card-body p-4">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <strong>Compra #{{ devolucion.compra.id }}</strong><br>
-                            <small class="text-muted">{{ devolucion.compra.fecha|date:"d/m/Y" }}</small>
+                            <strong>Compra</strong><br>
+                            #{{ devolucion.compra.id }} · {{ devolucion.compra.fecha|date:"d/m/Y" }}
                         </div>
                         <div class="col-md-6">
-                            <strong>Proveedor:</strong><br>
+                            <strong>Proveedor</strong><br>
                             {{ devolucion.compra.proveedor.nombre }}
                         </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <strong>Número de Factura:</strong><br>
+                        <div class="col-12">
+                            <strong>Número de factura</strong><br>
                             {{ devolucion.compra.numero_factura|default:"N/A" }}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Información del Producto -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-box"></i> Producto Devuelto</h5>
+            <div class="inv-surface-card mb-4 overflow-hidden">
+                <div class="inv-surface-head">
+                    <h5><i class="bi bi-box"></i> Producto devuelto</h5>
+                    <p>Información puntual del artículo y la cantidad registrada.</p>
                 </div>
-                <div class="card-body">
-                    <div class="row">
+                <div class="card-body p-4">
+                    <div class="row g-3">
                         <div class="col-md-6">
-                            <strong>Producto:</strong><br>
+                            <strong>Producto</strong><br>
                             {{ devolucion.producto.nombre }}
                         </div>
                         <div class="col-md-6">
-                            <strong>Cantidad Devuelta:</strong><br>
-                            <span class="badge" style="background: #fef5f9; color: #c7007c;">
-                                {{ devolucion.cantidad }} unidades
-                            </span>
+                            <strong>Cantidad devuelta</strong><br>
+                            <span class="inv-pill"><i class="bi bi-box-seam"></i> {{ devolucion.cantidad }} unidades</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Motivo de Devolución de Compra -->
             {% if devolucion.motivo %}
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Motivo de Devolución</h5>
+            <div class="inv-surface-card mb-4 overflow-hidden">
+                <div class="inv-surface-head">
+                    <h5><i class="bi bi-chat-left-text"></i> Motivo de devolución</h5>
+                    <p>Observación registrada al momento de crear la devolución.</p>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <p class="mb-0">{{ devolucion.motivo }}</p>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Información Adicional -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Detalles Adicionales</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <strong>Autorizado por:</strong><br>
-                            {{ devolucion.autorizado_por|default:"Pendiente autorización" }}
-                        </div>
-                        <div class="col-md-6">
-                            <strong>Registrado:</strong><br>
-                            {{ devolucion.created_at|date:"d/m/Y H:i" }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Botones de Acción -->
-            <div class="d-flex gap-2 justify-content-end mb-4">
-                <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary">
+            <div class="d-flex flex-wrap gap-2 justify-content-end mb-4">
+                <a href="{% url 'inventario:devolucion_lista' %}" class="admin-action-button is-muted">
                     <i class="bi bi-arrow-left"></i> Volver
                 </a>
                 {% if devolucion.estado == "pendiente" %}
-                <form method="post" style="display: inline;">
+                <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger" onclick="return confirm('¿Eliminar esta devolución?');">
                         <i class="bi bi-trash"></i> Eliminar

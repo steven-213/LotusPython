@@ -34,24 +34,24 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="nombre" class="form-label" style="color: #3b2b32; font-weight: 600;">Nombre *</label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Proveedor XYZ" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="text" class="form-control" id="nombre" name="nombre" value="{{ request.POST.nombre|default:'' }}" required placeholder="Ej: Proveedor XYZ" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">Nombre del contacto o representante</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="empresa" class="form-label" style="color: #3b2b32; font-weight: 600;">Empresa</label>
-                                    <input type="text" class="form-control" id="empresa" name="empresa" placeholder="Ej: Empresa Comercial S.A." style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="text" class="form-control" id="empresa" name="empresa" value="{{ request.POST.empresa|default:'' }}" placeholder="Ej: Empresa Comercial S.A." style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">Razón social de la empresa</small>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-0">
                                     <label for="nit" class="form-label" style="color: #3b2b32; font-weight: 600;">NIT / Documento</label>
-                                    <input type="text" class="form-control" id="nit" name="nit" placeholder="Ej: 123456789" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="text" class="form-control" id="nit" name="nit" value="{{ request.POST.nit|default:'' }}" placeholder="Ej: 123456789" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">Número de identificación tributaria</small>
                                 </div>
                                 <div class="col-md-6 mb-0">
                                     <label for="pais" class="form-label" style="color: #3b2b32; font-weight: 600;">País</label>
-                                    <input type="text" class="form-control" id="pais" name="pais" placeholder="Ej: Colombia" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="text" class="form-control" id="pais" name="pais" value="{{ request.POST.pais|default:'' }}" placeholder="Ej: Colombia" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">País de procedencia</small>
                                 </div>
                             </div>
@@ -65,18 +65,18 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="telefono" class="form-label" style="color: #3b2b32; font-weight: 600;">Teléfono</label>
-                                    <input type="tel" class="form-control" id="telefono" name="telefono" placeholder="Ej: +57 1 2345678" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="tel" class="form-control" id="telefono" name="telefono" value="{{ request.POST.telefono|default:'' }}" placeholder="Ej: +57 1 2345678" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">Número de teléfono de contacto</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="correo" class="form-label" style="color: #3b2b32; font-weight: 600;">Correo Electrónico</label>
-                                    <input type="email" class="form-control" id="correo" name="correo" placeholder="Ej: contacto@proveedor.com" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                    <input type="email" class="form-control" id="correo" name="correo" value="{{ request.POST.correo|default:'' }}" placeholder="Ej: contacto@proveedor.com" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                     <small class="form-text text-muted">Email de contacto principal</small>
                                 </div>
                             </div>
                             <div class="mb-0">
                                 <label for="direccion" class="form-label" style="color: #3b2b32; font-weight: 600;">Dirección</label>
-                                <input type="text" class="form-control" id="direccion" name="direccion" placeholder="Ej: Calle 10 #20-30" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
+                                <input type="text" class="form-control" id="direccion" name="direccion" value="{{ request.POST.direccion|default:'' }}" placeholder="Ej: Calle 10 #20-30" style="border-color: #fbcdd9; border-width: 2px; font-size: 1rem;">
                                 <small class="form-text text-muted">Dirección física del proveedor</small>
                             </div>
                         </div>

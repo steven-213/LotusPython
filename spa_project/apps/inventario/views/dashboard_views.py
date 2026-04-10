@@ -1,9 +1,10 @@
 from django.shortcuts import render
-from django.db.models import Count, Q
+from django.db.models import Count, Sum, F, DecimalField, IntegerField,Q
+from django.db.models.functions import Coalesce
 from datetime import datetime, timedelta
-
+from django.db.models import OuterRef, Subquery
 from apps.inventario.models import (
-    Producto, Proveedor, Compra, DevolucionCompra
+    Producto, Proveedor, Compra, DevolucionCompra,Inventario, MovimientoInventario
 )
 from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session
@@ -63,35 +64,58 @@ def inventario_dashboard(request):
         .order_by("-total")[:5]
     )
 
-    productos_con_stock = anotar_stock_disponible(
-        Producto.objects.filter(activo=True).select_related("proveedor").order_by("nombre")
-    )
+    ultimo_precio = Inventario.objects.filter(
+        producto=OuterRef("producto__id")
+    ).order_by("-fecha_ingreso").values("precio_venta")[:1]
 
-    inventario = [
-        {
-            "producto": producto,
-            "stock": producto.stock_disponible,
-            "precio": producto.precio_venta,
-        }
-        for producto in productos_con_stock
-    ]
+    inventario = (
+        Inventario.objects.filter(producto__activo=True)
+        .values(
+            "producto__id",
+            "producto__nombre",
+            "producto__proveedor__nombre",
+        )
+        .annotate(
+            stock_total=Sum("stock"),
+            precio_venta=Subquery(ultimo_precio)
+        )
+        .filter(stock_total__gt=0)
+        .order_by("producto__nombre")
+    )
+    productos_disponibles = sum(1 for i in inventario if i["stock_total"] >= 10)
+    productos_bajos = sum(1 for i in inventario if i["stock_total"] < 10)
+    productos_sinstock = 0  
+    inventario_critico = [item for item in inventario if item["stock_total"] < 10][:6]
+
+    # --- NUEVA PARTE: calcular Top 5 Productos ---
+    movimientos = MovimientoInventario.objects.filter(tipo="SALIDA", producto__activo=True)
+
+    productos_stats = (
+        movimientos.values("producto_id", "producto__nombre")
+        .annotate(
+            unidades_vendidas=Coalesce(Sum("cantidad"), 0, output_field=IntegerField()),
+            ingreso_total=Coalesce(Sum(F("cantidad") * F("inventario__precio_venta")), 0, output_field=DecimalField())
+        )
+        .order_by("-unidades_vendidas")
+    )
+    mas_vendidos = productos_stats[:5]
 
     productos_disponibles = 0
     productos_bajos = 0
     productos_sinstock = 0
 
     for item in inventario:
-        stock = item["stock"]
+        stock_total = item["stock_total"]
 
-        if stock == 0:
+        if stock_total == 0:
             productos_sinstock += 1
-        elif stock < 10:
+        elif stock_total < 10:
             productos_bajos += 1
         else:
             productos_disponibles += 1
 
     inventario_critico = [
-        item for item in inventario if item["stock"] < 10
+        item for item in inventario if item["stock_total"] < 10
     ][:6]
 
     context = {
@@ -117,6 +141,8 @@ def inventario_dashboard(request):
         "inventario_critico": inventario_critico,
 
         "proveedores": Proveedor.objects.all(),
+        "productos_por_proveedor": productos_por_proveedor,
+
         "fecha_inicio": fecha_inicio,
         "fecha_fin": fecha_fin,
         "proveedor_id": proveedor_id,

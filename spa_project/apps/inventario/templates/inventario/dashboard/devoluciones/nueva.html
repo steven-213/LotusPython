@@ -3,66 +3,143 @@
 
 {% block title %}Nueva Devolución de Compra - Administración{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260410a">
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0"><i class="bi bi-arrow-return-left"></i> Nueva Devolución de Compra</h4>
+<div class="container-fluid py-4">
+    {% url 'inventario:devolucion_lista' as devolucion_lista_url %}
+    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Nueva Devolución de Compra" page_description="Selecciona la compra, filtra sus productos disponibles y registra la devolución con el inventario correcto." back_url=devolucion_lista_url back_label="Volver a devoluciones" active_section="devoluciones" %}
+
+    <div class="row justify-content-center">
+        <div class="col-xl-8 col-lg-9">
+            <div class="inv-surface-card overflow-hidden">
+                <div class="inv-surface-head">
+                    <h5><i class="bi bi-arrow-return-left"></i> Registrar devolución</h5>
+                    <p>Solo se muestran productos realmente asociados a la compra elegida y con unidades disponibles para devolver.</p>
                 </div>
-                <div class="card-body">
-                    <form method="post">
+                <div class="card-body p-4">
+                    <form method="post" class="row g-3">
                         {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="compra_id" class="form-label">Compra <span class="text-danger">*</span></label>
-                            <select class="form-select" id="compra_id" name="compra_id" required onchange="actualizarProductos()">
-                                <option value="">-- Seleccionar Compra --</option>
+
+                        <div class="col-12">
+                            <label for="compra_id" class="form-label inv-form-label">Compra</label>
+                            <select class="form-select inv-form-input" id="compra_id" name="compra_id" required>
+                                <option value="">-- Seleccionar compra --</option>
                                 {% for compra in compras %}
-                                <option value="{{ compra.id }}" data-proveedor="{{ compra.proveedor.nombre }}" data-fecha="{{ compra.fecha|date:'d/m/Y' }}">
-                                    Compra #{{ compra.id }} - {{ compra.proveedor.nombre }} ({{ compra.fecha|date:'d/m/Y' }})
+                                <option value="{{ compra.id }}" {% if request.POST.compra_id == compra.id|stringformat:"s" %}selected{% endif %}>
+                                    Compra #{{ compra.id }} · {{ compra.proveedor.nombre }} · {{ compra.fecha|date:'d/m/Y' }}
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="producto_id" class="form-label">Producto <span class="text-danger">*</span></label>
-                            <select class="form-select" id="producto_id" name="producto_id" required>
-                                <option value="">-- Seleccionar Producto --</option>
+                        <div class="col-md-8">
+                            <label for="producto_id" class="form-label inv-form-label">Producto</label>
+                            <select class="form-select inv-form-input" id="producto_id" name="producto_id" required>
+                                <option value="">-- Seleccionar producto --</option>
                             </select>
+                            <small id="producto-ayuda" class="text-muted d-block mt-2">
+                                Elige primero una compra para cargar sus productos.
+                            </small>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="cantidad" class="form-label">Cantidad a Devolver <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="cantidad" name="cantidad" min="1" value="1" required>
+                        <div class="col-md-4">
+                            <label for="cantidad" class="form-label inv-form-label">Cantidad a devolver</label>
+                            <input type="number" class="form-control inv-form-input" id="cantidad" name="cantidad" min="1" value="{{ request.POST.cantidad|default:'1' }}" required>
+                            <small id="cantidad-ayuda" class="text-muted d-block mt-2">
+                                La cantidad máxima depende del producto seleccionado.
+                            </small>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="motivo" class="form-label">Motivo de Devolución</label>
-                            <textarea class="form-control" id="motivo" name="motivo" rows="4" placeholder="Describe el motivo de la devolución..."></textarea>
+                        <div class="col-12">
+                            <label for="motivo" class="form-label inv-form-label">Motivo de devolución</label>
+                            <textarea class="form-control inv-form-input" id="motivo" name="motivo" rows="4" placeholder="Describe el motivo de la devolución...">{{ request.POST.motivo|default:'' }}</textarea>
                         </div>
 
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-secondary">
+                        <div class="col-12 d-flex flex-wrap gap-2 justify-content-end mt-2">
+                            <a href="{% url 'inventario:devolucion_lista' %}" class="admin-action-button is-muted">
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-warning">
-                                <i class="bi bi-check-circle"></i> Registrar Devolución
+                            <button type="submit" class="admin-action-button">
+                                <i class="bi bi-check-circle"></i> Registrar devolución
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
 
+{{ data_compras|json_script:"compras-devolucion-data" }}
+
 <script>
-function actualizarProductos() {
-    // Esta función podría cargar dinámicamente los productos de la compra
-    // Por ahora es un placeholder
+const comprasData = JSON.parse(document.getElementById("compras-devolucion-data").textContent);
+const compraSelect = document.getElementById("compra_id");
+const productoSelect = document.getElementById("producto_id");
+const cantidadInput = document.getElementById("cantidad");
+const productoAyuda = document.getElementById("producto-ayuda");
+const cantidadAyuda = document.getElementById("cantidad-ayuda");
+const selectedProductId = "{{ request.POST.producto_id|default:''|escapejs }}";
+
+function actualizarCantidadMaxima() {
+    const selectedOption = productoSelect.selectedOptions[0];
+    const maximo = selectedOption ? parseInt(selectedOption.dataset.max || "0", 10) : 0;
+
+    if (maximo > 0) {
+        cantidadInput.max = String(maximo);
+        if (!cantidadInput.value || parseInt(cantidadInput.value, 10) > maximo) {
+            cantidadInput.value = String(maximo);
+        }
+        cantidadAyuda.textContent = `Máximo disponible para devolución: ${maximo} unidad(es).`;
+        return;
+    }
+
+    cantidadInput.removeAttribute("max");
+    cantidadAyuda.textContent = "La cantidad máxima depende del producto seleccionado.";
 }
+
+function actualizarProductos() {
+    const compraId = compraSelect.value;
+    const productos = comprasData[compraId] || [];
+
+    productoSelect.innerHTML = '<option value="">-- Seleccionar producto --</option>';
+
+    if (!productos.length) {
+        productoAyuda.textContent = compraId
+            ? "Esta compra ya no tiene productos disponibles para devolución."
+            : "Elige primero una compra para cargar sus productos.";
+        actualizarCantidadMaxima();
+        return;
+    }
+
+    productos.forEach((producto) => {
+        const option = document.createElement("option");
+        option.value = String(producto.id);
+        option.dataset.max = String(producto.cantidad_disponible);
+        option.textContent = `${producto.nombre} · ${producto.cantidad_disponible} disponible(s)`;
+        if (selectedProductId && selectedProductId === String(producto.id)) {
+            option.selected = true;
+        }
+        productoSelect.appendChild(option);
+    });
+
+    productoAyuda.textContent = "Selecciona el producto exacto que será devuelto al proveedor.";
+    actualizarCantidadMaxima();
+}
+
+compraSelect.addEventListener("change", () => {
+    if (cantidadInput.value === "" || parseInt(cantidadInput.value, 10) < 1) {
+        cantidadInput.value = "1";
+    }
+    actualizarProductos();
+});
+
+productoSelect.addEventListener("change", actualizarCantidadMaxima);
+
+document.addEventListener("DOMContentLoaded", actualizarProductos);
 </script>
 {% endblock %}

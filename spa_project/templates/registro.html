@@ -40,7 +40,10 @@
       </div>
       <div>
         <label for="correo">Correo</label>
-        <input id="correo" type="email" name="correo" value="{{ form_data.correo|default:'' }}" required>
+        <input id="correo" type="email" name="correo" value="{{ form_data.correo|default:'' }}" class="{% if duplicate_correo %}campo-invalido{% endif %}" required>
+        {% if duplicate_correo %}
+        <p class="campo-alerta" role="alert">Ese correo ya tiene una cuenta registrada.</p>
+        {% endif %}
       </div>
       <div>
         <label for="fechaNacimiento">Fecha de nacimiento</label>

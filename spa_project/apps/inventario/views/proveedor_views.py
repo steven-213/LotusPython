@@ -1,9 +1,22 @@
+from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.inventario.models import Proveedor
 from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session
+
+
+def _proveedor_duplicado(*, nombre, nit="", exclude_id=None):
+    filtros = Q(nombre__iexact=nombre)
+    nit = (nit or "").strip()
+    if nit:
+        filtros |= Q(nit__iexact=nit)
+
+    proveedores = Proveedor.objects.filter(filtros)
+    if exclude_id:
+        proveedores = proveedores.exclude(id=exclude_id)
+    return proveedores.first()
 
 
 @admin_required_session
@@ -24,13 +37,25 @@ def proveedor_lista(request):
 @admin_required_session
 def proveedor_nuevo(request):
     if request.method == "POST":
+        nombre = (request.POST.get("nombre") or "").strip()
+        nit = (request.POST.get("nit") or "").strip()
+
+        if not nombre:
+            messages.error(request, "El nombre del proveedor es obligatorio.")
+            return render(request, "inventario/dashboard/proveedores/nuevo.html")
+
+        proveedor_existente = _proveedor_duplicado(nombre=nombre, nit=nit)
+        if proveedor_existente:
+            messages.error(request, "Ya existe un proveedor con ese nombre o NIT.")
+            return render(request, "inventario/dashboard/proveedores/nuevo.html")
+
         Proveedor.objects.create(
-            nombre=request.POST.get("nombre"),
+            nombre=nombre,
             empresa=request.POST.get("empresa", ""),
             telefono=request.POST.get("telefono", ""),
             correo=request.POST.get("correo", ""),
             direccion=request.POST.get("direccion", ""),
-            nit=request.POST.get("nit", ""),
+            nit=nit,
             pais=request.POST.get("pais", ""),
         )
         return redirect("inventario:proveedor_lista")
@@ -52,12 +77,28 @@ def proveedor_detalle(request, proveedor_id):
 def proveedor_editar(request, proveedor_id):
     proveedor = get_object_or_404(Proveedor, id=proveedor_id)
     if request.method == "POST":
-        proveedor.nombre = request.POST.get("nombre")
+        nombre = (request.POST.get("nombre") or "").strip()
+        nit = (request.POST.get("nit") or "").strip()
+
+        if not nombre:
+            messages.error(request, "El nombre del proveedor es obligatorio.")
+            return render(request, "inventario/dashboard/proveedores/editar.html", {"proveedor": proveedor})
+
+        proveedor_existente = _proveedor_duplicado(
+            nombre=nombre,
+            nit=nit,
+            exclude_id=proveedor.id,
+        )
+        if proveedor_existente:
+            messages.error(request, "Ya existe otro proveedor con ese nombre o NIT.")
+            return render(request, "inventario/dashboard/proveedores/editar.html", {"proveedor": proveedor})
+
+        proveedor.nombre = nombre
         proveedor.empresa = request.POST.get("empresa", "")
         proveedor.telefono = request.POST.get("telefono", "")
         proveedor.correo = request.POST.get("correo", "")
         proveedor.direccion = request.POST.get("direccion", "")
-        proveedor.nit = request.POST.get("nit", "")
+        proveedor.nit = nit
         proveedor.pais = request.POST.get("pais", "")
         proveedor.save()
         return redirect("inventario:proveedor_lista")

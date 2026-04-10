@@ -107,6 +107,16 @@ class VentasViewsTest(TestCase):
         self.assertEqual(venta.cliente, self.cliente)
         self.assertEqual(venta.total, Decimal("20000"))
 
+    def test_venta_nueva_rechaza_total_negativo(self):
+        response = self.client.post(
+            reverse("ventas:venta_nueva"),
+            data={"cliente_id": self.cliente.id, "total": "-20.000"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El total de la venta debe ser mayor a cero.")
+        self.assertEqual(Venta.objects.count(), 0)
+
     def test_api_ventas_get_post(self):
         post = self.client.post(
             reverse("ventas:api_ventas"),

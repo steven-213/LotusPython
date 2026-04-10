@@ -58,7 +58,7 @@
                             id="nombre"
                             name="nombre"
                             class="form-control form-control-lg"
-                            value="{{ producto.nombre|default:'' }}"
+                            value="{% if request.POST.nombre %}{{ request.POST.nombre }}{% elif producto %}{{ producto.nombre }}{% endif %}"
                             placeholder="Ej: Shampoo profesional"
                             required
                         >
@@ -75,7 +75,7 @@
                             class="form-control"
                             rows="3"
                             placeholder="Describe el producto..."
-                        >{{ producto.descripcion|default:'' }}</textarea>
+                        >{% if request.POST.descripcion %}{{ request.POST.descripcion }}{% elif producto %}{{ producto.descripcion }}{% endif %}</textarea>
                     </div>
 
                     <div class="mb-4">
@@ -111,7 +111,7 @@
 
                             {% for prov in proveedores %}
                                 <option value="{{ prov.id }}"
-                                    {% if producto.proveedor_id == prov.id %}selected{% endif %}>
+                                    {% if request.POST.proveedor_id == prov.id|stringformat:"s" %}selected{% elif producto.proveedor_id == prov.id %}selected{% endif %}>
                                     {{ prov.nombre }}
                                 </option>
                             {% endfor %}

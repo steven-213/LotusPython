@@ -48,12 +48,23 @@ def servicio_lista(request):
 def servicio_nuevo(request):
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
+        nombre = (request.POST.get("nombre") or "").strip()
+        if not nombre:
+            messages.error(request, "Debes ingresar el nombre del servicio.")
+            return render(
+                request,
+                "citas/dashboard/servicios/form.html",
+                {"profesionales": profesionales},
+            )
+
         profesional_id = request.POST.get("profesional_id")
         profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
         if profesional_id:
             profesional = get_object_or_404(Profesional, id=profesional_id)
         elif profesional_nombre:
-            profesional, _ = Profesional.objects.get_or_create(nombre=profesional_nombre)
+            profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
+            if not profesional:
+                profesional = Profesional.objects.create(nombre=profesional_nombre)
         else:
             messages.error(request, "Debes seleccionar o crear una profesional.")
             return render(
@@ -61,9 +72,20 @@ def servicio_nuevo(request):
                 "citas/dashboard/servicios/form.html",
                 {"profesionales": profesionales},
             )
+
+        if Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional).exists():
+            messages.error(
+                request,
+                "Ya existe un servicio con ese nombre para la profesional seleccionada.",
+            )
+            return render(
+                request,
+                "citas/dashboard/servicios/form.html",
+                {"profesionales": profesionales},
+            )
         imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
         Servicio.objects.create(
-            nombre=request.POST.get("nombre"),
+            nombre=nombre,
             descripcion=request.POST.get("descripcion", ""),
             imagen=imagen_url,
             precio=parse_money(request.POST.get("precio")),
@@ -86,12 +108,23 @@ def servicio_editar(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
+        nombre = (request.POST.get("nombre") or "").strip()
+        if not nombre:
+            messages.error(request, "Debes ingresar el nombre del servicio.")
+            return render(
+                request,
+                "citas/dashboard/servicios/form.html",
+                {"servicio": servicio, "profesionales": profesionales},
+            )
+
         profesional_id = request.POST.get("profesional_id")
         profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
         if profesional_id:
             profesional = get_object_or_404(Profesional, id=profesional_id)
         elif profesional_nombre:
-            profesional, _ = Profesional.objects.get_or_create(nombre=profesional_nombre)
+            profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
+            if not profesional:
+                profesional = Profesional.objects.create(nombre=profesional_nombre)
         else:
             messages.error(request, "Debes seleccionar o crear una profesional.")
             return render(
@@ -99,7 +132,23 @@ def servicio_editar(request, servicio_id):
                 "citas/dashboard/servicios/form.html",
                 {"servicio": servicio, "profesionales": profesionales},
             )
-        servicio.nombre = request.POST.get("nombre")
+
+        if (
+            Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional)
+            .exclude(id=servicio.id)
+            .exists()
+        ):
+            messages.error(
+                request,
+                "Ya existe otro servicio con ese nombre para la profesional seleccionada.",
+            )
+            return render(
+                request,
+                "citas/dashboard/servicios/form.html",
+                {"servicio": servicio, "profesionales": profesionales},
+            )
+
+        servicio.nombre = nombre
         servicio.descripcion = request.POST.get("descripcion", "")
         imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
         if imagen_url:

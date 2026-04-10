@@ -57,31 +57,25 @@
                                     <th>Precio venta</th>
                                     <th>Stock</th>
                                     <th>Estado</th>
-                                    <th class="pe-4 text-end">Accion</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for item in inventario %}
                                 <tr>
                                     <td class="ps-4">
-                                        <strong>{{ item.producto.nombre }}</strong>
+                                        <strong>{{ item.producto__nombre }}</strong>
                                     </td>
-                                    <td>{{ item.producto.proveedor.nombre|default:"Sin proveedor" }}</td>
-                                    <td>${{ item.precio|floatformat:2 }}</td>
-                                    <td>{{ item.stock }}</td>
+                                    <td>{{ item.producto__proveedor__nombre|default:"Sin proveedor" }}</td>
+                                    <td>${{ item.precio_venta|default:"0.00"|floatformat:2 }}</td>
+                                    <td>{{ item.stock_total }}</td>
                                     <td>
-                                        {% if item.stock == 0 %}
+                                        {% if item.stock_total == 0 %}
                                         <span class="inv-status-badge is-danger">Sin stock</span>
-                                        {% elif item.stock < 10 %}
+                                        {% elif item.stock_total < 10 %}
                                         <span class="inv-status-badge is-warning">Bajo</span>
                                         {% else %}
                                         <span class="inv-status-badge is-success">Disponible</span>
                                         {% endif %}
-                                    </td>
-                                    <td class="pe-4 text-end">
-                                        <a href="{% url 'inventario:producto_detalle' item.producto.id %}" class="btn btn-sm btn-outline-secondary">
-                                            Ver
-                                        </a>
                                     </td>
                                 </tr>
                                 {% empty %}

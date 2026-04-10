@@ -33,6 +33,8 @@ from apps.inventario.views.proveedor_views import (
 )
 from apps.inventario.views.control_views import (
     sugerencia_pedido,
+    informe_inventario,
+    detalle_inventario_json,
 )
 
 app_name = "inventario"
@@ -69,6 +71,8 @@ urlpatterns = [
 
     # Control
     path("control/", sugerencia_pedido, name="sugerencia_pedido"),
+    path('informe/', informe_inventario, name='informe_inventario'),
+    path('detalle-lotes/<int:producto_id>/', detalle_inventario_json, name='detalle_inventario_json'),
     
     # Devoluciones
     path("devoluciones/", devolucion_lista, name="devolucion_lista"),

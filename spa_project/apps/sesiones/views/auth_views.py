@@ -44,11 +44,12 @@ def login_view(request):
 def registro(request):
     if request.method == "POST":
         documento = request.POST.get("documento")
+        correo = (request.POST.get("correo") or "").strip()
         form_data = {
             "documento": documento,
             "nombre": request.POST.get("nombre", ""),
             "apellido": request.POST.get("apellido", ""),
-            "correo": request.POST.get("correo", ""),
+            "correo": correo,
             "fecha_nacimiento": request.POST.get("fecha_nacimiento") or request.POST.get("fechaNacimiento", ""),
         }
 
@@ -60,6 +61,17 @@ def registro(request):
                 {
                     "form_data": form_data,
                     "duplicate_documento": True,
+                },
+            )
+
+        if correo and Usuario.objects.filter(correo__iexact=correo).exists():
+            messages.error(request, "Ya existe una cuenta registrada con ese correo.")
+            return render(
+                request,
+                "registro.html",
+                {
+                    "form_data": form_data,
+                    "duplicate_correo": True,
                 },
             )
 

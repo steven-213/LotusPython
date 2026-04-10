@@ -31,7 +31,7 @@
             <div class="inv-kpi-label">Pendientes</div>
             <div class="inv-kpi-value">{{ devoluciones_pendientes }}</div>
             <div class="inv-kpi-meta">
-                <span class="inv-status-badge is-warning"><i class="bi bi-clock"></i> En revisión</span>
+                <span class="inv-pill"><i class="bi bi-clock"></i> En revisión</span>
             </div>
         </div>
         <div class="inv-kpi-card">
@@ -116,7 +116,7 @@
                         </td>
                         <td>
                             {% if devolucion.estado == "pendiente" %}
-                            <span class="inv-status-badge is-warning">Pendiente</span>
+                            <span class="inv-pill">Pendiente</span>
                             {% elif devolucion.estado == "aprobada" %}
                             <span class="inv-status-badge is-success">Aprobada</span>
                             {% else %}

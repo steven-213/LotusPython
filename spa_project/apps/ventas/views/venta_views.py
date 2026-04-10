@@ -209,6 +209,10 @@ def venta_nueva(request):
             messages.error(request, "Ingresa un total válido para la venta.")
             return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
 
+        if total <= 0:
+            messages.error(request, "El total de la venta debe ser mayor a cero.")
+            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+
         venta = Venta.objects.create(cliente=cliente, total=total)
         messages.success(request, "La venta fue creada correctamente.")
         return redirect("ventas:venta_detalle", venta_id=venta.id)

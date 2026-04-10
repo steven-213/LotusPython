@@ -12,8 +12,9 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone  # CORRECCIÓN: Importación necesaria para MovimientoInventario
 
-from apps.inventario.models import Producto, Proveedor
+from apps.inventario.models import Producto, Proveedor, Inventario, MovimientoInventario
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
 from apps.inventario.storage import subir_imagen_producto
 
@@ -180,16 +181,29 @@ def _productos_publicos_cache_key(query):
 
 
 def _cargar_productos_publicos(query):
-    productos = anotar_stock_disponible(
-        Producto.objects.filter(activo=True)
-        .only("id", "nombre", "descripcion", "imagen", "precio_venta")
-        .order_by("nombre")
-    )
+    # 1. Consultamos directamente la tabla inventario_inventario (modelo Inventario)
+    # Filtramos solo registros con stock mayor a 0 y que el producto esté activo
+    items_en_inventario = Inventario.objects.filter(
+        stock__gt=0,
+        producto__activo=True
+    ).select_related('producto')
 
     if query:
-        productos = productos.filter(nombre__icontains=query)
+        items_en_inventario = items_en_inventario.filter(producto__nombre__icontains=query)
 
-    return list(productos)
+    productos_unicos = {}
+    for item in items_en_inventario:
+        p_id = item.producto.id
+        if p_id not in productos_unicos:
+            # Creamos un objeto "virtual" que el template entienda
+            productos_unicos[p_id] = item.producto
+            # Seteamos el stock total sumando los lotes de esta consulta
+            productos_unicos[p_id].stock_disponible = item.stock
+        else:
+            # Si el producto ya está, solo sumamos el stock del nuevo lote encontrado
+            productos_unicos[p_id].stock_disponible += item.stock
+
+    return list(productos_unicos.values())
 
 
 def productos_publicos(request):
@@ -210,34 +224,21 @@ def productos_publicos(request):
 def procesar_pago(request):
     if "usuario_id" not in request.session:
         return JsonResponse(
-            {
-                "status": "error",
-                "message": "Debes iniciar sesion para comprar.",
-                "redirect_url": reverse("sesiones:login"),
-            },
+            {"status": "error", "message": "Debes iniciar sesion para comprar.", "redirect_url": reverse("sesiones:login")},
             status=401,
         )
 
     if request.method != "POST":
-        return JsonResponse(
-            {"status": "error", "message": "Metodo no permitido."},
-            status=405,
-        )
+        return JsonResponse({"status": "error", "message": "Metodo no permitido."}, status=405)
 
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse(
-            {"status": "error", "message": "No se pudo leer el carrito enviado."},
-            status=400,
-        )
+        return JsonResponse({"status": "error", "message": "No se pudo leer el carrito enviado."}, status=400)
 
     carrito = payload.get("carrito") or []
     if not isinstance(carrito, list) or not carrito:
-        return JsonResponse(
-            {"status": "error", "message": "Agrega al menos un producto al carrito."},
-            status=400,
-        )
+        return JsonResponse({"status": "error", "message": "Agrega al menos un producto al carrito."}, status=400)
 
     cliente = get_object_or_404(Usuario, id=request.session.get("usuario_id"))
 
@@ -248,48 +249,28 @@ def procesar_pago(request):
             producto_id = int(item.get("id"))
             cantidad = int(item.get("cantidad") or 0)
         except (TypeError, ValueError):
-            return JsonResponse(
-                {"status": "error", "message": "Hay productos invalidos en el carrito."},
-                status=400,
-            )
+            return JsonResponse({"status": "error", "message": "Hay productos invalidos en el carrito."}, status=400)
 
         if cantidad <= 0:
-            return JsonResponse(
-                {"status": "error", "message": "La cantidad debe ser mayor a cero."},
-                status=400,
-            )
+            return JsonResponse({"status": "error", "message": "La cantidad debe ser mayor a cero."}, status=400)
 
         productos_ids.append(producto_id)
-        cantidades_por_producto[producto_id] = (
-            cantidades_por_producto.get(producto_id, 0) + cantidad
-        )
+        cantidades_por_producto[producto_id] = cantidades_por_producto.get(producto_id, 0) + cantidad
 
     productos = {
         producto.id: producto
-        for producto in Producto.objects.filter(
-            id__in=productos_ids,
-            activo=True,
-        )
+        for producto in Producto.objects.filter(id__in=productos_ids, activo=True)
     }
 
     if len(productos) != len(cantidades_por_producto):
-        return JsonResponse(
-            {
-                "status": "error",
-                "message": "Uno o varios productos ya no estan disponibles.",
-            },
-            status=400,
-        )
+        return JsonResponse({"status": "error", "message": "Uno o varios productos ya no estan disponibles."}, status=400)
 
     for producto_id, cantidad_total in cantidades_por_producto.items():
         producto = productos[producto_id]
         stock_disponible = obtener_stock_disponible(producto)
         if stock_disponible < cantidad_total:
             return JsonResponse(
-                {
-                    "status": "error",
-                    "message": f"Solo quedan {stock_disponible} unidades de {producto.nombre}.",
-                },
+                {"status": "error", "message": f"Solo quedan {stock_disponible} unidades de {producto.nombre}."},
                 status=400,
             )
 
@@ -303,48 +284,58 @@ def procesar_pago(request):
     direccion = (payload.get("direccion") or "").strip()
 
     observaciones = ["Compra creada desde catalogo web."]
-    if telefono:
-        observaciones.append(f"Telefono: {telefono}")
-    if direccion:
-        observaciones.append(f"Direccion: {direccion}")
+    if telefono: observaciones.append(f"Telefono: {telefono}")
+    if direccion: observaciones.append(f"Direccion: {direccion}")
 
     with transaction.atomic():
-        venta = Venta.objects.create(
-            cliente=cliente,
-            total=total,
-        )
+        venta = Venta.objects.create(cliente=cliente, total=total)
 
         for producto_id, cantidad_total in cantidades_por_producto.items():
             producto = productos[producto_id]
             DetalleVenta.objects.create(
-                venta=venta,
-                producto=producto,
-                cantidad=cantidad_total,
-                precio_unitario=producto.precio_venta,
+                venta=venta, producto=producto, cantidad=cantidad_total, precio_unitario=producto.precio_venta
             )
 
+            items_inventario = Inventario.objects.filter(
+                producto=producto, stock__gt=0
+            ).order_by('fecha_ingreso')
+            
+            quedan_por_descontar = cantidad_total
+
+            for item in items_inventario:
+                if quedan_por_descontar <= 0:
+                    break
+                
+                sacar = min(item.stock, quedan_por_descontar)
+                item.stock -= sacar
+                item.save()
+
+                # Registro del movimiento (CORRECCIÓN: timezone.now() ahora funciona)
+                MovimientoInventario.objects.create(
+                    inventario=item,
+                    producto=producto,
+                    lote=item.lote,
+                    cantidad=sacar,
+                    tipo='SALIDA',
+                    fecha=timezone.now()
+                )
+                quedan_por_descontar -= sacar
+
+            if quedan_por_descontar > 0:
+                raise ValueError(f"Inconsistencia de stock para {producto.nombre}")
+
         validacion = ValidacionVenta.objects.create(
-            venta=venta,
-            cliente=cliente,
-            metodo_pago=metodo_pago,
-            referencia_pago=f"WEB-{venta.id}",
-            monto=total,
-            estado="pendiente",
-            observaciones="\n".join(observaciones),
+            venta=venta, cliente=cliente, metodo_pago=metodo_pago,
+            referencia_pago=f"WEB-{venta.id}", monto=total,
+            estado="pendiente", observaciones="\n".join(observaciones),
         )
 
     sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
-    warning = ""
-    if not sent:
-        warning = "La compra fue registrada, pero no se pudo enviar la notificacion."
-
-    return JsonResponse(
-        {
-            "status": "success",
-            "redirect_url": reverse("inventario:resultado"),
-            "warning": warning,
-        }
-    )
+    return JsonResponse({
+        "status": "success",
+        "redirect_url": reverse("inventario:resultado"),
+        "warning": "" if sent else "No se pudo enviar la notificacion."
+    })
 
 
 def resultado_compra(request):
@@ -353,66 +344,58 @@ def resultado_compra(request):
 
 @login_required_session
 def producto_comprar(request, producto_id):
-
     if request.method != "POST":
         return redirect("inventario:productos_publicos")
 
     producto = get_object_or_404(Producto, id=producto_id)
-
     try:
         cantidad = int(request.POST.get("cantidad") or 1)
     except ValueError:
         cantidad = 1
 
-    if cantidad < 1:
-        cantidad = 1
-
     cliente = get_object_or_404(Usuario, id=request.session.get("usuario_id"))
-
     total = producto.precio_venta * cantidad
 
-    venta = Venta.objects.create(
-        cliente=cliente,
-        total=total
-    )
+    with transaction.atomic():
+        venta = Venta.objects.create(cliente=cliente, total=total)
+        DetalleVenta.objects.create(
+            venta=venta, producto=producto, cantidad=cantidad, precio_unitario=producto.precio_venta
+        )
 
-    DetalleVenta.objects.create(
-        venta=venta,
-        producto=producto,
-        cantidad=cantidad,
-        precio_unitario=producto.precio_venta,
-    )
+        items_inventario = Inventario.objects.filter(producto=producto, stock__gt=0).order_by('fecha_ingreso')
+        quedan = cantidad
+        for item in items_inventario:
+            if quedan <= 0: break
+            sacar = min(item.stock, quedan)
+            item.stock -= sacar
+            item.save()
+            MovimientoInventario.objects.create(
+                inventario=item, producto=producto, lote=item.lote,
+                cantidad=sacar, tipo='SALIDA', fecha=timezone.now()
+            )
+            quedan -= sacar
 
-    validacion, created = ValidacionVenta.objects.get_or_create(
-        venta_id=venta.id,
-        defaults={
-            "venta": venta,
-            "cliente": cliente,
-            "metodo_pago": "por_confirmar",
-            "referencia_pago": f"WEB-{venta.id}",
-            "monto": total,
-            "estado": "pendiente",
-            "observaciones": "Compra creada desde catalogo web.",
-        }
-    )
+        if quedan > 0:
+            messages.error(request, "No hay stock suficiente.")
+            raise ValueError("Stock insuficiente")
+
+        validacion, created = ValidacionVenta.objects.get_or_create(
+            venta_id=venta.id,
+            defaults={
+                "venta": venta, "cliente": cliente, "metodo_pago": "por_confirmar",
+                "referencia_pago": f"WEB-{venta.id}", "monto": total,
+                "estado": "pendiente", "observaciones": "Compra directa web.",
+            }
+        )
 
     if created:
-        sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
-
-        if sent:
-            messages.success(request, "Compra registrada. Pendiente de confirmación.")
-        else:
-            messages.warning(request, "Compra creada, pero no se pudo notificar.")
-
-    else:
-        messages.warning(request, "Ya existe una validación pendiente.")
-
+        notificar_compra_pendiente(venta=venta, validacion=validacion)
+        messages.success(request, "Compra registrada.")
     return redirect("sesiones:perfil")
 
 
 @admin_required_session
 def producto_lista(request):
-
     query = request.GET.get("q", "")
     estado_filtro = request.GET.get("estado", "")
     proveedor_id = request.GET.get("proveedor_id", "")
@@ -421,14 +404,12 @@ def producto_lista(request):
         Producto.objects.filter(activo=True).select_related("proveedor")
     )
 
-    # búsqueda
     if query:
         productos = productos.filter(
             Q(nombre__icontains=query) |
             Q(descripcion__icontains=query)
         )
 
-    # proveedor
     if proveedor_id:
         productos = productos.filter(proveedor_id=proveedor_id)
 
@@ -537,147 +518,87 @@ def producto_importar_csv(request):
             f"Se omitieron {len(errores)} fila(s) con errores. {resumen}{sufijo}",
         )
 
-    if not creados and not errores:
-        messages.info(request, "El archivo CSV no contenía productos para importar.")
-
     return redirect("inventario:producto_lista")
 
 
 @admin_required_session
 def producto_nuevo(request):
-
     if request.method == "POST":
-
         nombre = request.POST.get("nombre", "").strip()
         descripcion = request.POST.get("descripcion", "")
-        precio_compra = request.POST.get("precio_compra") or 0
-        impuesto = request.POST.get("impuesto") or 19
-        margen_ganancia = request.POST.get("margen_ganancia") or 20
+        precio_compra = Decimal(request.POST.get("precio_compra") or 0)
+        impuesto = Decimal(request.POST.get("impuesto") or 19)
+        margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
         proveedor_id = request.POST.get("proveedor_id")
 
-        if not nombre:
-            messages.error(request, "El nombre del producto es obligatorio")
-
-            proveedores = Proveedor.objects.all()
-            return render(request, "inventario/dashboard/productos/form.html", {
-                "proveedores": proveedores
-            })
+        if not nombre or not proveedor_id:
+            messages.error(request, "Nombre y Proveedor son obligatorios")
+            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
 
         if Producto.objects.filter(nombre__iexact=nombre).exists():
             messages.error(request, "Ya existe un producto con ese nombre")
-
-            proveedores = Proveedor.objects.all()
-            return render(request, "inventario/dashboard/productos/form.html", {
-                "proveedores": proveedores,
-                "nombre": nombre,
-                "descripcion": descripcion,
-                "precio_compra": precio_compra,
-                "impuesto": impuesto,
-                "margen_ganancia": margen_ganancia,
-            })
-
-        if not proveedor_id:
-            messages.error(request, "Debes seleccionar un proveedor")
-
-            proveedores = Proveedor.objects.all()
-            return render(request, "inventario/dashboard/productos/form.html", {
-                "proveedores": proveedores,
-                "nombre": nombre,
-                "descripcion": descripcion,
-                "precio_compra": precio_compra,
-                "impuesto": impuesto,
-                "margen_ganancia": margen_ganancia,
-            })
-
-        proveedor = get_object_or_404(Proveedor, id=proveedor_id)
-
-        imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
+            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
 
         Producto.objects.create(
             nombre=nombre,
             descripcion=descripcion,
-            imagen=imagen_url,
-            proveedor=proveedor,
+            imagen=subir_imagen_producto(request.FILES.get("imagen")),
+            proveedor_id=proveedor_id,
             precio_compra=precio_compra,
             impuesto=impuesto,
             margen_ganancia=margen_ganancia,
+            precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia) # CORRECCIÓN: Cálculo de precio
         )
 
         messages.success(request, "Producto creado correctamente")
         return redirect("inventario:producto_lista")
 
-    proveedores = Proveedor.objects.all()
+    return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
 
-    return render(request, "inventario/dashboard/productos/form.html", {
-        "proveedores": proveedores
-    })
 
 @admin_required_session
 def producto_editar(request, producto_id):
-
     producto = get_object_or_404(Producto, id=producto_id)
 
     if request.method == "POST":
-
-        nombre = request.POST.get("nombre")
-
+        nombre = (request.POST.get("nombre") or "").strip()
         if Producto.objects.filter(nombre__iexact=nombre).exclude(id=producto.id).exists():
             messages.error(request, "Ya existe otro producto con ese nombre")
-
-            proveedores = Proveedor.objects.all()
-            return render(request, "inventario/dashboard/productos/form.html", {
-                "producto": producto,
-                "proveedores": proveedores
-            })
-
-        proveedor_id = request.POST.get("proveedor_id")
+            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
 
         producto.nombre = nombre
         producto.descripcion = request.POST.get("descripcion", "")
-
         producto.precio_compra = Decimal(request.POST.get("precio_compra") or 0)
         producto.impuesto = Decimal(request.POST.get("impuesto") or 19)
         producto.margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        producto.precio_venta = _calcular_precio_venta(producto.precio_compra, producto.impuesto, producto.margen_ganancia)
 
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
         if imagen_url:
             producto.imagen = imagen_url
 
+        proveedor_id = request.POST.get("proveedor_id")
         producto.proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
-
         producto.save()
 
         return redirect("inventario:producto_lista")
 
-    proveedores = Proveedor.objects.all()
+    return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
 
-    return render(request, "inventario/dashboard/productos/form.html", {
-        "producto": producto,
-        "proveedores": proveedores
-    })
 
 @admin_required_session
 def producto_detalle(request, producto_id):
-
     producto = get_object_or_404(
         anotar_stock_disponible(Producto.objects.select_related("proveedor")),
         id=producto_id,
     )
-
-    return render(request, "inventario/dashboard/productos/detalle.html", {
-        "producto": producto,
-        "margen": producto.margen_ganancia
-    })
-
+    return render(request, "inventario/dashboard/productos/detalle.html", {"producto": producto, "margen": producto.margen_ganancia})
 
 
 @admin_required_session
 def producto_eliminar(request, producto_id):
-
     producto = get_object_or_404(Producto, id=producto_id)
-
     if request.method == "POST":
         producto.activo = False
         producto.save()
-
     return redirect("inventario:producto_lista")

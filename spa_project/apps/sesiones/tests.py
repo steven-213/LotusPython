@@ -68,6 +68,30 @@ class SesionesAuthFlowTest(TestCase):
         )
         self.assertEqual(Usuario.objects.filter(documento=12345).count(), 1)
 
+    def test_registro_duplicate_correo_shows_alert(self):
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "54321",
+                "nombre": "Nuevo",
+                "apellido": "Correo",
+                "correo": "ADMIN@test.com",
+                "fechaNacimiento": "1995-05-10",
+                "clave": "abcd",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Ya existe una cuenta registrada con ese correo.",
+        )
+        self.assertContains(
+            response,
+            "Ese correo ya tiene una cuenta registrada.",
+        )
+        self.assertEqual(Usuario.objects.filter(correo__iexact="admin@test.com").count(), 1)
+
 
 class PerfilClienteTest(TestCase):
     def setUp(self):

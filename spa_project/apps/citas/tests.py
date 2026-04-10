@@ -277,3 +277,34 @@ class CitasFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_servicio_nuevo_rechaza_duplicado_para_misma_profesional(self):
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:servicio_nuevo"),
+            {
+                "nombre": "facial",
+                "descripcion": "Duplicado",
+                "precio": "50.000",
+                "duracion_minutos": "60",
+                "profesional_id": str(self.profesional.id),
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Ya existe un servicio con ese nombre para la profesional seleccionada.",
+        )
+        self.assertEqual(Servicio.objects.filter(nombre__iexact="Facial", profesional=self.profesional).count(), 1)
+
+    def test_calendario_admin_redirige_a_login_sin_sesion(self):
+        response = self.client.get(reverse("citas:calendario"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('sesiones:login')}?next={reverse('citas:calendario')}",
+            fetch_redirect_response=False,
+        )

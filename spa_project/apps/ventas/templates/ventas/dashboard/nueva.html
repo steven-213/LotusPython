@@ -43,7 +43,7 @@
                             <select class="ventas-select" id="cliente_id" name="cliente_id" required>
                                 <option value="" selected disabled>-- Selecciona un cliente --</option>
                                 {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.nombre }} ({{ cliente.correo|default:"Sin correo" }})</option>
+                                <option value="{{ cliente.id }}" {% if request.POST.cliente_id == cliente.id|stringformat:"s" %}selected{% endif %}>{{ cliente.nombre }} ({{ cliente.correo|default:"Sin correo" }})</option>
                                 {% empty %}
                                 <option value="" disabled>No hay clientes registrados</option>
                                 {% endfor %}
@@ -54,7 +54,7 @@
                             <span>Total *</span>
                             <div class="ventas-money-group">
                                 <span class="ventas-money-addon">$</span>
-                                <input type="text" class="ventas-input" id="total" name="total" inputmode="numeric" data-money="cop" placeholder="20.000" required>
+                                <input type="text" class="ventas-input" id="total" name="total" inputmode="numeric" data-money="cop" value="{{ request.POST.total|default:'' }}" placeholder="20.000" required>
                             </div>
                         </label>
                     </div>
