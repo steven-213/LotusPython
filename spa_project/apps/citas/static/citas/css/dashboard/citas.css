@@ -299,6 +299,11 @@ textarea.form-control {
   border: 1px dashed #eed1df;
 }
 
+.field-help {
+  color: var(--dashboard-muted);
+  font-size: 0.88rem;
+}
+
 .admin-detail-toggle {
   border-radius: 18px;
   border: 1px solid #ecd2e0;
@@ -330,6 +335,81 @@ textarea.form-control {
   color: var(--dashboard-text);
   font-size: 1rem;
   font-weight: 800;
+}
+
+.product-cart-panel {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border-radius: 18px;
+  background: #fffdfd;
+  border: 1px solid #f1d9e4;
+}
+
+.cart-inline-action {
+  align-content: end;
+}
+
+.invoice-summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  padding: 0.95rem;
+  border-radius: 18px;
+  background: #fff8fb;
+  border: 1px solid #efd6e2;
+}
+
+.invoice-summary-card strong {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--dashboard-text);
+}
+
+.existing-sale {
+  background: #fff9fc;
+}
+
+.product-cart-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: #fff8fb;
+  border: 1px dashed #edd3e0;
+}
+
+.product-cart-empty i {
+  font-size: 1.4rem;
+  color: var(--dashboard-primary);
+}
+
+.product-cart-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.product-cart-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.9rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: #fff8fb;
+  border: 1px solid #efd6e2;
+}
+
+.product-cart-actions {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: end;
+}
+
+.product-cart-remove {
+  min-height: 36px;
+  padding: 0.45rem 0.8rem;
 }
 
 .danger-surface {
@@ -521,7 +601,12 @@ textarea.form-control {
   .stats-grid,
   .filter-panel,
   .two-up,
-  .admin-reserva-grid {
+  .admin-reserva-grid,
+  .invoice-summary-card {
     grid-template-columns: 1fr;
+  }
+
+  .product-cart-line {
+    flex-direction: column;
   }
 }

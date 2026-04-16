@@ -1,14 +1,56 @@
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
 
 class Venta(models.Model):
-    cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT)
+    cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT, null=True, blank=True)
+    cliente_invitado = models.ForeignKey(
+        "citas.ClienteInvitado",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="ventas",
+    )
+    reserva = models.OneToOneField(
+        "citas.Reserva",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="venta_asociada",
+    )
     fecha = models.DateTimeField(auto_now_add=True)
+    subtotal_servicios = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):
         return f"Venta {self.id}"
+
+    @property
+    def cliente_facturacion(self):
+        return self.cliente or self.cliente_invitado
+
+    @property
+    def cliente_nombre_completo(self):
+        cliente = self.cliente_facturacion
+        if not cliente:
+            return "Cliente no disponible"
+        return f"{cliente.nombre} {cliente.apellido}".strip()
+
+    @property
+    def cliente_correo(self):
+        cliente = self.cliente_facturacion
+        return cliente.correo if cliente else ""
+
+    @property
+    def cliente_documento(self):
+        cliente = self.cliente_facturacion
+        return cliente.documento if cliente else ""
+
+    @property
+    def total_factura(self):
+        return (self.subtotal_servicios or Decimal("0")) + (self.total or Decimal("0"))
 
 
 class DetalleVenta(models.Model):
@@ -20,7 +62,14 @@ class DetalleVenta(models.Model):
 
 class ValidacionVenta(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name="validaciones")
-    cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT)
+    cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT, null=True, blank=True)
+    cliente_invitado = models.ForeignKey(
+        "citas.ClienteInvitado",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="validaciones_venta",
+    )
     metodo_pago = models.CharField(max_length=50, blank=True)
     referencia_pago = models.CharField(max_length=100, blank=True)
     monto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -28,6 +77,10 @@ class ValidacionVenta(models.Model):
     validado_por = models.BigIntegerField(null=True, blank=True)
     fecha_validacion = models.DateTimeField(auto_now_add=True)
     observaciones = models.TextField(blank=True)
+
+    @property
+    def cliente_facturacion(self):
+        return self.cliente or self.cliente_invitado
 
 
 class SolicitudDevolucionVenta(models.Model):

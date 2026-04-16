@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sitemaps",
     "django.contrib.staticfiles",
     "apps.sesiones.apps.SesionesConfig",
     "apps.inventario",
@@ -195,6 +196,7 @@ CACHES = {
 }
 
 PUBLIC_CATALOG_CACHE_TIMEOUT = _env_int("PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+PUBLIC_PAGE_CACHE_TIMEOUT = _env_int("PUBLIC_PAGE_CACHE_TIMEOUT", 300)
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]

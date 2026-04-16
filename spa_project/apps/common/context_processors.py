@@ -1,3 +1,4 @@
+from apps.common.seo import build_site_meta
 from django.urls import reverse
 
 
@@ -234,4 +235,5 @@ def admin_shell(request):
         if show_admin_sidebar
         else [],
         "admin_sidebar_module": namespace if show_admin_sidebar else "",
+        **build_site_meta(request, show_admin_sidebar=show_admin_sidebar),
     }

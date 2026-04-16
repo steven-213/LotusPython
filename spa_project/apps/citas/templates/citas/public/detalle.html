@@ -51,6 +51,13 @@
           <strong>{{ reserva.total_pagado|currency }}</strong>
           <p>Saldo pendiente: {{ reserva.saldo_pendiente|currency }}</p>
         </div>
+        {% if venta_asociada %}
+        <div class="summary-card">
+          <span class="summary-label">Factura mixta</span>
+          <strong>{{ reserva.total_factura|currency }}</strong>
+          <p>Productos: {{ reserva.total_productos_facturados|currency }}</p>
+        </div>
+        {% endif %}
         <div class="summary-card">
           <span class="summary-label">Origen</span>
           <strong>{{ reserva.get_origen_reserva_display }}</strong>
@@ -141,15 +148,48 @@
       </div>
       {% endif %}
 
+      {% if venta_asociada %}
+      <div class="embedded-form">
+        <h3>Productos ya facturados en esta cita</h3>
+        <div class="payments-list">
+          {% for item in venta_detalles %}
+          <article class="payment-card">
+            <div>
+              <span class="summary-label">Producto</span>
+              <strong>{{ item.detalle.producto.nombre }}</strong>
+              <p>{{ item.detalle.cantidad }} unidad{{ item.detalle.cantidad|pluralize }} · {{ item.detalle.precio_unitario|currency }} c/u</p>
+            </div>
+            <strong>{{ item.subtotal|currency }}</strong>
+          </article>
+          {% endfor %}
+        </div>
+        <div class="invoice-summary-card">
+          <div>
+            <span class="summary-label">Servicio</span>
+            <strong>{{ venta_asociada.subtotal_servicios|currency }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Productos</span>
+            <strong>{{ venta_asociada.total|currency }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Total factura</span>
+            <strong>{{ venta_asociada.total_factura|currency }}</strong>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       {% if reserva.estado != "cancelada" and reserva.estado != "no_asistio" %}
         {% if usuario.rol == "admin" %}
         <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
           {% csrf_token %}
-          <h3>Registrar pago desde admin</h3>
+          <h3>Registrar pago y facturar productos</h3>
           <div class="form-grid two-up">
             <label class="field">
               <span>Monto</span>
               <input class="form-control" type="number" name="monto" min="0" step="0.01" value="{{ reserva.saldo_pendiente }}">
+              <small class="field-help">Usa este valor para el pago del servicio. Los productos se agregan abajo al mismo flujo de facturacion.</small>
             </label>
             <label class="field">
               <span>Tipo</span>
@@ -173,7 +213,8 @@
               <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
             </label>
           </div>
-          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Registrar pago</button>
+          {% include "citas/partials/productos_carrito.html" %}
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Guardar gestion completa</button>
         </form>
         {% elif not reserva.esta_pagada and reserva.estado != "finalizada" %}
         <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
@@ -272,4 +313,5 @@
     </article>
   </section>
 </section>
+<script src="{% static 'citas/js/product_cart.js' %}?v=20260414a"></script>
 {% endblock %}

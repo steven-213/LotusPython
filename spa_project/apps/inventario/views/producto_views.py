@@ -8,12 +8,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import IntegerField, Q, Sum, Value
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone  # CORRECCIÓN: Importación necesaria para MovimientoInventario
 
+from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.inventario.models import Producto, Proveedor, Inventario, MovimientoInventario
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
 from apps.inventario.storage import subir_imagen_producto
@@ -26,6 +28,7 @@ from apps.ventas.telegram_notifier import notificar_compra_pendiente
 
 
 PUBLIC_PRODUCTS_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+PUBLIC_PRODUCTS_CACHE_VERSION_KEY = "public:productos:version"
 CSV_PRODUCT_COLUMN_ALIASES = {
     "nombre": {"nombre", "name", "producto"},
     "descripcion": {"descripcion", "description", "detalle"},
@@ -164,7 +167,9 @@ def _resolver_proveedor_importacion(nombre_proveedor, proveedor_base_id):
     nombre_proveedor = (nombre_proveedor or "").strip()
 
     if nombre_proveedor:
-        return Proveedor.objects.filter(nombre__iexact=nombre_proveedor).first()
+        proveedor_csv = Proveedor.objects.filter(nombre__iexact=nombre_proveedor).first()
+        if proveedor_csv is not None:
+            return proveedor_csv
 
     if proveedor_base_id:
         return Proveedor.objects.filter(id=proveedor_base_id).first()
@@ -174,36 +179,46 @@ def _resolver_proveedor_importacion(nombre_proveedor, proveedor_base_id):
 
 def _productos_publicos_cache_key(query):
     normalized_query = (query or "").strip().lower()
+    version = cache.get_or_set(PUBLIC_PRODUCTS_CACHE_VERSION_KEY, 1, None)
     if not normalized_query:
-        return "public:productos:all"
+        return f"public:productos:v{version}:all"
     digest = md5(normalized_query.encode("utf-8")).hexdigest()
-    return f"public:productos:{digest}"
+    return f"public:productos:v{version}:{digest}"
+
+
+def _invalidar_cache_productos_publicos():
+    try:
+        cache.incr(PUBLIC_PRODUCTS_CACHE_VERSION_KEY)
+    except ValueError:
+        cache.set(PUBLIC_PRODUCTS_CACHE_VERSION_KEY, 2, None)
 
 
 def _cargar_productos_publicos(query):
     # 1. Consultamos directamente la tabla inventario_inventario (modelo Inventario)
     # Filtramos solo registros con stock mayor a 0 y que el producto esté activo
-    items_en_inventario = Inventario.objects.filter(
-        stock__gt=0,
-        producto__activo=True
-    ).select_related('producto')
+    productos = (
+        Producto.objects.filter(activo=True)
+        .annotate(
+            stock_disponible=Coalesce(
+                Sum("inventario__stock", filter=Q(inventario__stock__gt=0)),
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .filter(stock_disponible__gt=0)
+        .only("id", "nombre", "descripcion", "imagen", "precio_venta")
+        .order_by("nombre")
+    )
 
     if query:
-        items_en_inventario = items_en_inventario.filter(producto__nombre__icontains=query)
+        productos = productos.filter(
+            Q(nombre__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
 
-    productos_unicos = {}
-    for item in items_en_inventario:
-        p_id = item.producto.id
-        if p_id not in productos_unicos:
-            # Creamos un objeto "virtual" que el template entienda
-            productos_unicos[p_id] = item.producto
-            # Seteamos el stock total sumando los lotes de esta consulta
-            productos_unicos[p_id].stock_disponible = item.stock
-        else:
+    productos = list(productos)
             # Si el producto ya está, solo sumamos el stock del nuevo lote encontrado
-            productos_unicos[p_id].stock_disponible += item.stock
-
-    return list(productos_unicos.values())
+    return list(productos)
 
 
 def productos_publicos(request):
@@ -215,10 +230,48 @@ def productos_publicos(request):
         productos = _cargar_productos_publicos(query)
         cache.set(cache_key, productos, PUBLIC_PRODUCTS_CACHE_TIMEOUT)
 
-    return render(request, "cliente/compra.html", {
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Productos Lotus Dream Spa",
+        "description": (
+            "Tienda pública de Lotus Dream Spa con productos de cuidado personal, "
+            "bienestar y belleza disponibles para compra."
+        ),
+        "mainEntity": {
+            "@type": "ItemList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": posicion,
+                    "item": {
+                        "@type": "Product",
+                        "name": producto.nombre,
+                        "description": producto.descripcion or "Producto disponible en Lotus Dream Spa.",
+                        "offers": {
+                            "@type": "Offer",
+                            "price": producto.precio_venta,
+                            "priceCurrency": "COP",
+                            "availability": "https://schema.org/InStock",
+                        },
+                    },
+                }
+                for posicion, producto in enumerate(productos[:12], start=1)
+            ],
+        },
+    }
+
+    response = render(request, "cliente/compra.html", {
         "productos": productos,
-        "query": query
+        "query": query,
+        "meta_title": "Tienda | Lotus Dream Spa",
+        "meta_description": (
+            "Compra productos de bienestar y cuidado personal en Lotus Dream Spa. "
+            "Busca por nombre, revisa disponibilidad y procesa tu pedido en línea."
+        ),
+        "structured_data_json": serialize_structured_data(structured_data),
     })
+    return apply_public_page_cache_headers(response)
 
 
 def procesar_pago(request):
@@ -331,6 +384,7 @@ def procesar_pago(request):
         )
 
     sent = notificar_compra_pendiente(venta=venta, validacion=validacion)
+    _invalidar_cache_productos_publicos()
     return JsonResponse({
         "status": "success",
         "redirect_url": reverse("inventario:resultado"),
@@ -339,7 +393,14 @@ def procesar_pago(request):
 
 
 def resultado_compra(request):
-    return render(request, "cliente/resultado.html")
+    return render(
+        request,
+        "cliente/resultado.html",
+        {
+            "meta_title": "Resultado de compra | Lotus Dream Spa",
+            "meta_robots": "noindex,nofollow",
+        },
+    )
 
 
 @login_required_session
@@ -391,6 +452,7 @@ def producto_comprar(request, producto_id):
     if created:
         notificar_compra_pendiente(venta=venta, validacion=validacion)
         messages.success(request, "Compra registrada.")
+        _invalidar_cache_productos_publicos()
     return redirect("sesiones:perfil")
 
 
@@ -518,6 +580,9 @@ def producto_importar_csv(request):
             f"Se omitieron {len(errores)} fila(s) con errores. {resumen}{sufijo}",
         )
 
+    if creados:
+        _invalidar_cache_productos_publicos()
+
     return redirect("inventario:producto_lista")
 
 
@@ -551,6 +616,7 @@ def producto_nuevo(request):
         )
 
         messages.success(request, "Producto creado correctamente")
+        _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
     return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
@@ -581,6 +647,7 @@ def producto_editar(request, producto_id):
         producto.proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
         producto.save()
 
+        _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
     return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
@@ -601,4 +668,5 @@ def producto_eliminar(request, producto_id):
     if request.method == "POST":
         producto.activo = False
         producto.save()
+        _invalidar_cache_productos_publicos()
     return redirect("inventario:producto_lista")

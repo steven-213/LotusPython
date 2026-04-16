@@ -1,0 +1,55 @@
+<section class="product-cart-panel" data-product-cart data-service-balance="{{ reserva.saldo_pendiente|default:0 }}">
+  <div class="section-heading">
+    <h4>Productos para esta factura</h4>
+    <p>Agrega productos del inventario y el sistema los asociara a la cita como una venta ligada a esta atencion.</p>
+  </div>
+
+  <div class="form-grid two-up">
+    <label class="field field-full">
+      <span>Producto</span>
+      <select class="form-select" data-product-picker>
+        <option value="">Selecciona un producto</option>
+        {% for producto in productos_facturables %}
+        <option
+          value="{{ producto.id }}"
+          data-name="{{ producto.nombre|escape }}"
+          data-price="{{ producto.precio_venta }}"
+          data-stock="{{ producto.stock_disponible }}"
+        >
+          {{ producto.nombre }} · {{ producto.precio_venta|currency }} · Stock {{ producto.stock_disponible }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Cantidad</span>
+      <input class="form-control" type="number" min="1" value="1" data-product-quantity>
+    </label>
+    <div class="field cart-inline-action">
+      <span>Accion</span>
+      <button type="button" class="btn-secondary-soft" data-add-product><i class="bi bi-plus-circle"></i> Agregar</button>
+    </div>
+  </div>
+
+  <div class="invoice-summary-card">
+    <div>
+      <span class="summary-label">Saldo servicio</span>
+      <strong data-service-balance-label>{{ reserva.saldo_pendiente|currency }}</strong>
+    </div>
+    <div>
+      <span class="summary-label">Productos</span>
+      <strong data-product-total-label>{{ 0|currency }}</strong>
+    </div>
+    <div>
+      <span class="summary-label">Total sugerido</span>
+      <strong data-invoice-total-label>{{ reserva.saldo_pendiente|currency }}</strong>
+    </div>
+  </div>
+
+  <div class="product-cart-empty" data-product-empty>
+    <i class="bi bi-bag-plus"></i>
+    <p>Aun no has agregado productos al carrito de la cita.</p>
+  </div>
+  <div class="product-cart-list" data-product-list></div>
+  <div data-product-hidden-inputs></div>
+</section>

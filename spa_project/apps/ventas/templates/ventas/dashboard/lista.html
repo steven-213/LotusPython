@@ -176,7 +176,10 @@
                                 <span class="ventas-status-badge is-rose">#{{ venta.id }}</span>
                             </td>
                             <td>
-                                <strong>{{ venta.cliente.nombre }}</strong>
+                                <strong>{{ venta.cliente_nombre_completo }}</strong>
+                                {% if venta.reserva %}
+                                <p class="ventas-note">Cita #{{ venta.reserva.id }} · {{ venta.reserva.servicio.nombre }}</p>
+                                {% endif %}
                             </td>
                             <td>{{ venta.fecha|date:"d/m/Y H:i" }}</td>
                             <td><span class="ventas-price">{{ venta.total|currency }}</span></td>

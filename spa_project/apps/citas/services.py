@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from decimal import Decimal, InvalidOperation
 from django.core import signing
 from django.core.exceptions import ValidationError
@@ -33,6 +33,50 @@ TRANSICIONES_VALIDAS = {
     },
 }
 
+HORARIOS_ATENCION = {
+    0: (time(hour=10, minute=0), time(hour=18, minute=0)),
+    1: (time(hour=10, minute=0), time(hour=18, minute=0)),
+    2: (time(hour=10, minute=0), time(hour=18, minute=0)),
+    3: (time(hour=10, minute=0), time(hour=18, minute=0)),
+    4: (time(hour=10, minute=0), time(hour=18, minute=0)),
+    5: (time(hour=10, minute=0), time(hour=20, minute=0)),
+}
+
+
+def resumen_horario_atencion():
+    return "Lunes a viernes de 10:00 AM a 6:00 PM. Sabados de 10:00 AM a 8:00 PM. Domingos sin atencion."
+
+
+def obtener_horario_atencion(fecha_inicio):
+    fecha_local = timezone.localtime(fecha_inicio)
+    return HORARIOS_ATENCION.get(fecha_local.weekday())
+
+
+def _formatear_horario(apertura, cierre):
+    return f"{apertura.strftime('%I:%M %p')} - {cierre.strftime('%I:%M %p')}"
+
+
+def validar_horario_reserva(*, fecha_inicio, fecha_fin):
+    fecha_inicio_local = timezone.localtime(fecha_inicio)
+    fecha_fin_local = timezone.localtime(fecha_fin)
+    horario = obtener_horario_atencion(fecha_inicio)
+    if not horario:
+        raise ValidationError("No hay atencion disponible para la fecha seleccionada. Los domingos permanecemos cerrados.")
+
+    if fecha_inicio_local.date() != fecha_fin_local.date():
+        raise ValidationError("La cita debe iniciar y finalizar el mismo dia dentro del horario de atencion.")
+
+    apertura, cierre = horario
+    horario_legible = _formatear_horario(apertura, cierre)
+    if fecha_inicio_local.time() < apertura or fecha_inicio_local.time() >= cierre:
+        raise ValidationError(
+            f"La hora de inicio esta fuera del horario de atencion. Horario permitido: {horario_legible}."
+        )
+    if fecha_fin_local.time() > cierre:
+        raise ValidationError(
+            f"La duracion del servicio supera la hora de cierre. Horario permitido: {horario_legible}."
+        )
+
 
 def calcular_fecha_fin(servicio: Servicio, fecha_inicio):
     return fecha_inicio + timedelta(minutes=servicio.duracion_minutos or 60)
@@ -57,6 +101,8 @@ def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, 
         fecha_nacimiento_valor = date.fromisoformat(fecha_nacimiento_raw)
     except ValueError as exc:
         raise ValidationError("La fecha de nacimiento no es valida.") from exc
+    if fecha_nacimiento_valor > timezone.localdate():
+        raise ValidationError("La fecha de nacimiento no puede estar en el futuro.")
 
     invitado = ClienteInvitado.objects.filter(documento=documento).first()
     if invitado:
@@ -106,6 +152,7 @@ def validar_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=Non
         raise ValidationError("No se pueden crear citas en el pasado.")
     if fecha_fin <= fecha_inicio:
         raise ValidationError("La fecha de fin debe ser posterior a la fecha de inicio.")
+    validar_horario_reserva(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
 
     conflicto = obtener_conflicto_reserva(
         servicio=servicio,

@@ -1,20 +1,49 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
+from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
 
 
 def index(request):
-    usuario = None
-    usuario_id = request.session.get("usuario_id")
-    if usuario_id:
-        usuario = Usuario.objects.filter(id=usuario_id).first()
-    return render(request, "index.html", {"usuario": usuario})
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Inicio | Lotus Dream Spa",
+        "description": (
+            "Explora servicios de spa, agenda tu cita y descubre productos "
+            "para continuar tu ritual de bienestar en casa."
+        ),
+    }
+    response = render(
+        request,
+        "index.html",
+        {
+            "meta_title": "Inicio | Lotus Dream Spa",
+            "meta_description": (
+                "Reserva servicios de spa, conoce Lotus Dream Spa y descubre "
+                "productos de bienestar y cuidado personal."
+            ),
+            "structured_data_json": serialize_structured_data(structured_data),
+        },
+    )
+    return apply_public_page_cache_headers(response)
 
 
 def conocenos(request):
-    return render(request, "conocenos.html")
+    response = render(
+        request,
+        "conocenos.html",
+        {
+            "meta_title": "Conócenos | Lotus Dream Spa",
+            "meta_description": (
+                "Conoce la esencia de Lotus Dream Spa, nuestro enfoque en "
+                "bienestar, cuidado personalizado y atención profesional."
+            ),
+        },
+    )
+    return apply_public_page_cache_headers(response)
 
 
 def login_view(request):

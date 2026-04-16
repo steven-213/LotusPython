@@ -108,7 +108,7 @@ def notificar_compra_pendiente(venta, validacion):
     text = (
         "Nueva compra pendiente de confirmacion\n"
         f"Venta: #{venta.id}\n"
-        f"Cliente: {venta.cliente.nombre} {venta.cliente.apellido}\n"
+        f"Cliente: {venta.cliente_nombre_completo}\n"
         f"Monto: {format_money(validacion.monto)}\n"
         f"Metodo: {validacion.metodo_pago or 'N/A'}\n"
         f"Referencia: {validacion.referencia_pago or 'N/A'}\n"

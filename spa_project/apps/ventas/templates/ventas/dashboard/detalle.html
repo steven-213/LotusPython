@@ -38,20 +38,30 @@
                     <div class="ventas-form-grid two-up">
                         <div class="ventas-detail-block">
                             <span class="ventas-summary-label">Nombre</span>
-                            <strong>{{ venta.cliente.nombre }} {{ venta.cliente.apellido|default:"" }}</strong>
+                            <strong>{{ venta.cliente_nombre_completo }}</strong>
                         </div>
                         <div class="ventas-detail-block">
                             <span class="ventas-summary-label">Correo</span>
-                            <strong>{{ venta.cliente.correo|default:"No registrado" }}</strong>
+                            <strong>{{ venta.cliente_correo|default:"No registrado" }}</strong>
                         </div>
                         <div class="ventas-detail-block">
                             <span class="ventas-summary-label">Documento</span>
-                            <strong>{{ venta.cliente.documento|default:"No registrado" }}</strong>
+                            <strong>{{ venta.cliente_documento|default:"No registrado" }}</strong>
                         </div>
                         <div class="ventas-detail-block">
-                            <span class="ventas-summary-label">Rol</span>
-                            <strong>{{ venta.cliente.rol|title }}</strong>
+                            <span class="ventas-summary-label">Origen</span>
+                            <strong>{% if venta.reserva %}Cita #{{ venta.reserva.id }}{% else %}Venta directa{% endif %}</strong>
                         </div>
+                        {% if reserva_asociada %}
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Servicio asociado</span>
+                            <strong>{{ reserva_asociada.servicio.nombre }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Fecha de la cita</span>
+                            <strong>{{ reserva_asociada.fecha_inicio|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </section>
@@ -175,17 +185,19 @@
                 </div>
                 <div class="ventas-surface-body">
                     <div class="ventas-summary-box">
+                        {% if venta.subtotal_servicios %}
                         <div class="ventas-summary-line">
-                            <span>Subtotal</span>
+                            <span>Servicio asociado</span>
+                            <strong>{{ venta.subtotal_servicios|currency }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="ventas-summary-line">
+                            <span>Productos</span>
                             <strong>{{ venta.total|currency }}</strong>
                         </div>
-                        <div class="ventas-summary-line">
-                            <span>Impuesto (IVA)</span>
-                            <strong>{{ 0|currency }}</strong>
-                        </div>
                         <div class="ventas-highlight-total">
-                            <span><strong>Total</strong></span>
-                            <strong class="ventas-price">{{ venta.total|currency }}</strong>
+                            <span><strong>Total factura</strong></span>
+                            <strong class="ventas-price">{{ venta.total_factura|currency }}</strong>
                         </div>
                     </div>
                 </div>

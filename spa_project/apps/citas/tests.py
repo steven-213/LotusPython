@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, Servicio
 from apps.citas.services import cambiar_estado_reserva, crear_reserva
+from apps.inventario.models import Producto, Proveedor
+from apps.inventario.services import obtener_stock_disponible, registrar_ingreso
 from apps.sesiones.models import Usuario
 
 
@@ -63,6 +65,18 @@ class CitasFlowTest(TestCase):
 
     def _future_input(self, days=2, hour=10):
         return self._future_start(days=days, hour=hour).strftime("%Y-%m-%dT%H:%M")
+
+    def _future_weekday_start(self, weekday, hour, minute=0):
+        fecha = timezone.localtime(timezone.now())
+        dias = (weekday - fecha.weekday()) % 7
+        if dias == 0:
+            dias = 7
+        return (fecha + timedelta(days=dias)).replace(
+            hour=hour,
+            minute=minute,
+            second=0,
+            microsecond=0,
+        )
 
     def _force_session(self, usuario):
         session = self.client.session
@@ -201,7 +215,7 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.pagos.count(), 1)
 
     def test_same_professional_overlap_is_rejected(self):
-        fecha = self._future_start(days=5, hour=9)
+        fecha = self._future_weekday_start(0, 10)
         self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
 
         with self.assertRaises(ValidationError):
@@ -216,11 +230,39 @@ class CitasFlowTest(TestCase):
             )
 
     def test_different_professional_same_time_is_allowed(self):
-        fecha = self._future_start(days=6, hour=9)
+        fecha = self._future_weekday_start(1, 10)
         self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
         reserva = self._crear_reserva(cliente=self.otro_cliente, servicio=self.servicio_2, fecha_inicio=fecha)
         self.assertEqual(reserva.servicio_id, self.servicio_2.id)
         self.assertEqual(Reserva.objects.count(), 2)
+
+    def test_rejects_appointment_at_one_am(self):
+        fecha = self._future_weekday_start(0, 1)
+
+        with self.assertRaises(ValidationError):
+            crear_reserva(
+                cliente=self.cliente,
+                servicio=self.servicio,
+                fecha_inicio=fecha,
+                notas="Horario invalido",
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=self.cliente,
+                pago_data=None,
+            )
+
+    def test_rejects_service_that_exceeds_closing_time(self):
+        fecha = self._future_weekday_start(0, 17, 30)
+
+        with self.assertRaises(ValidationError):
+            crear_reserva(
+                cliente=self.cliente,
+                servicio=self.servicio,
+                fecha_inicio=fecha,
+                notas="Se pasa del cierre",
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=self.cliente,
+                pago_data=None,
+            )
 
     def test_client_cannot_view_other_user_reservation(self):
         reserva = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=7, hour=14))
@@ -254,6 +296,42 @@ class CitasFlowTest(TestCase):
         reserva.refresh_from_db()
         self.assertEqual(reserva.estado, Reserva.ESTADO_NO_ASISTIO)
         self.assertTrue(reserva.historial_estados.filter(estado_nuevo=Reserva.ESTADO_NO_ASISTIO).exists())
+
+    def test_admin_can_register_products_from_reservation(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(1, 11))
+        proveedor = Proveedor.objects.create(nombre="Proveedor Spa", nit="900100100")
+        producto = Producto.objects.create(
+            nombre="Serum Premium",
+            proveedor=proveedor,
+            precio_compra=20000,
+            precio_venta=35000,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        registrar_ingreso(producto, 5, lote="TEST-CITA")
+
+        self._force_session(self.admin)
+        response = self.client.post(
+            reverse("citas:reserva_registrar_pago", kwargs={"reserva_id": reserva.id}),
+            {
+                "monto": str(self.servicio.precio),
+                "tipo_pago": PagoReserva.TIPO_TOTAL,
+                "metodo_pago": PagoReserva.METODO_EFECTIVO,
+                "referencia_pago": "FACTURA-CITA-1",
+                "producto_id[]": [str(producto.id)],
+                "cantidad_producto[]": ["2"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:calendario"))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.pagos.count(), 1)
+        self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
+        self.assertIsNotNone(reserva.venta_asociada_segura)
+        self.assertEqual(reserva.venta_asociada_segura.detalles.count(), 1)
+        self.assertEqual(reserva.venta_asociada_segura.total, producto.precio_venta * 2)
+        self.assertEqual(obtener_stock_disponible(producto), 3)
 
     def test_cannot_finalize_without_being_in_process(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=10, hour=16))

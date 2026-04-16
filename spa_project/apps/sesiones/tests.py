@@ -20,6 +20,24 @@ class SesionesUrlsTest(TestCase):
         response = self.client.get(reverse("sesiones:login"))
         self.assertEqual(response.status_code, 200)
 
+    def test_robots_txt_expone_sitemap_y_rutas_privadas(self):
+        response = self.client.get(reverse("robots_txt"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sitemap:")
+        self.assertContains(response, "sitemap.xml")
+        self.assertContains(response, "Disallow: /login/")
+        self.assertContains(response, "Disallow: /inventario/productos/")
+
+    def test_sitemap_incluye_paginas_publicas_principales(self):
+        response = self.client.get(reverse("sitemap"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "http://testserver/")
+        self.assertContains(response, "http://testserver/conocenos/")
+        self.assertContains(response, "http://testserver/citas/catalogo/")
+        self.assertContains(response, "http://testserver/inventario/catalogo/")
+
 
 class SesionesAuthFlowTest(TestCase):
     def setUp(self):

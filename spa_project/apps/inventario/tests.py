@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from decimal import Decimal
 
-from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
+from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Inventario, Producto, Proveedor
 from apps.sesiones.models import Usuario
 
 
@@ -108,11 +108,68 @@ class InventarioUrlsTest(TestCase):
         self.assertTrue(Producto.objects.filter(nombre="Mascarilla").exists())
         self.assertContains(response, "Se omitieron 1 fila(s) con errores")
 
+    def test_importa_con_proveedor_por_defecto_si_el_csv_trae_un_proveedor_inexistente(self):
+        archivo = SimpleUploadedFile(
+            "productos.csv",
+            (
+                "nombre;descripcion;precio_compra;proveedor\n"
+                "Ampolleta;Nutricion intensa;35000;Proveedor que no existe\n"
+            ).encode("utf-8"),
+            content_type="text/csv",
+        )
+
+        response = self.client.post(
+            reverse("inventario:producto_importar_csv"),
+            {
+                "archivo_csv": archivo,
+                "proveedor_base_id": str(self.proveedor.id),
+                "impuesto_default": "19",
+                "margen_default": "20",
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Producto.objects.count(), 1)
+        producto = Producto.objects.get(nombre="Ampolleta")
+        self.assertEqual(producto.proveedor_id, self.proveedor.id)
+        self.assertContains(response, "Se importaron 1 producto(s)")
+
     def test_catalogo_publico_no_muestra_sidebar_admin(self):
         response = self.client.get(reverse("inventario:productos_publicos"))
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Navegación admin")
+
+    def test_catalogo_publico_agrupa_stock_por_producto(self):
+        producto = Producto.objects.create(
+            nombre="Serum publico",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=18000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        Inventario.objects.create(producto=producto, lote="L-1", stock=2, precio_venta=18000)
+        Inventario.objects.create(producto=producto, lote="L-2", stock=3, precio_venta=18000)
+
+        agotado = Producto.objects.create(
+            nombre="Producto agotado",
+            proveedor=self.proveedor,
+            precio_compra=9000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        Inventario.objects.create(producto=agotado, lote="L-0", stock=0, precio_venta=15000)
+
+        response = self.client.get(reverse("inventario:productos_publicos"))
+
+        self.assertEqual(response.status_code, 200)
+        productos = list(response.context["productos"])
+        self.assertEqual(len(productos), 1)
+        self.assertEqual(productos[0].nombre, "Serum publico")
+        self.assertEqual(productos[0].stock_disponible, 5)
 
     def test_compra_nueva_rechaza_valores_negativos_o_en_cero(self):
         producto = Producto.objects.create(

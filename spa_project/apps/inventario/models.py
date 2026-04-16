@@ -35,6 +35,11 @@ class Producto(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["activo", "nombre"], name="inv_prod_act_nom_idx"),
+        ]
+
     def __str__(self):
         return self.nombre
 
@@ -115,6 +120,11 @@ class Inventario(models.Model):
     stock = models.IntegerField(default=0)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_ingreso = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["producto", "fecha_ingreso"], name="inv_stock_prod_fecha_idx"),
+        ]
 
     def __str__(self):
         return f"{self.producto.nombre} - {self.lote}"

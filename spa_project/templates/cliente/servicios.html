@@ -3,8 +3,6 @@
 
 {% block title %}Servicios | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
 <link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260406b">
 {% endblock %}
@@ -83,9 +81,9 @@
       <article class="service-card">
         <div class="service-media">
           {% if s.imagen %}
-          <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" loading="lazy" decoding="async">
+          <img src="{{ s.imagen }}" alt="Imagen de {{ s.nombre }}" width="640" height="480" loading="lazy" decoding="async">
           {% else %}
-          <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}" loading="lazy" decoding="async">
+          <img src="{% static 'img/error.png' %}" alt="Sin imagen de {{ s.nombre }}" width="640" height="480" loading="lazy" decoding="async">
           {% endif %}
           <span class="service-badge">
             <i class="bi bi-person-heart"></i>

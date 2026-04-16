@@ -15,6 +15,7 @@
       <p class="eyebrow">Dashboard admin</p>
       <h1>Gestion de citas</h1>
       <p>Controla horarios, seguimiento operativo, pagos y asistencia desde un solo panel.</p>
+      <p class="tracking-note">{{ horario_atencion }}</p>
     </div>
   </header>
 
@@ -116,6 +117,11 @@
             <p>Saldo: {{ reserva.saldo_pendiente|currency }}</p>
           </div>
           <div>
+            <span class="summary-label">Factura total</span>
+            <strong>{{ reserva.total_factura|currency }}</strong>
+            <p>Productos: {{ reserva.total_productos_facturados|currency }}</p>
+          </div>
+          <div>
             <span class="summary-label">Atencion real</span>
             {% if reserva.fecha_inicio_real %}
             <strong>{{ reserva.fecha_inicio_real|date:"d/m H:i" }}</strong>
@@ -160,11 +166,12 @@
           <div class="detail-toggle-grid">
             <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form compact">
               {% csrf_token %}
-              <h4>Registrar pago</h4>
+              <h4>Registrar pago y venta de productos</h4>
               <div class="form-grid two-up">
                 <label class="field">
                   <span>Monto</span>
                   <input class="form-control" type="text" name="monto" inputmode="numeric" data-money="cop" value="{{ reserva.saldo_pendiente|money_input }}">
+                  <small class="field-help">Corresponde al pago del servicio. Si agregas productos, quedaran asociados a la misma cita.</small>
                 </label>
                 <label class="field">
                   <span>Tipo</span>
@@ -188,7 +195,24 @@
                   <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
                 </label>
               </div>
-              <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-cash-coin"></i> Guardar pago</button>
+              {% if reserva.venta_asociada_segura %}
+              <div class="invoice-summary-card existing-sale">
+                <div>
+                  <span class="summary-label">Productos ya cargados</span>
+                  <strong>{{ reserva.venta_asociada_segura.total|currency }}</strong>
+                </div>
+                <div>
+                  <span class="summary-label">Servicio</span>
+                  <strong>{{ reserva.venta_asociada_segura.subtotal_servicios|currency }}</strong>
+                </div>
+                <div>
+                  <span class="summary-label">Factura mixta</span>
+                  <strong>{{ reserva.venta_asociada_segura.total_factura|currency }}</strong>
+                </div>
+              </div>
+              {% endif %}
+              {% include "citas/partials/productos_carrito.html" %}
+              <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-cash-coin"></i> Guardar gestion</button>
             </form>
 
             <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact danger-surface">
@@ -223,6 +247,7 @@
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="{% static 'citas/js/product_cart.js' %}?v=20260414a"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const calendarEl = document.getElementById("calendar");

@@ -40,7 +40,7 @@
                     <div class="ventas-form-grid three-up">
                         <div class="ventas-detail-block">
                             <span class="ventas-summary-label">Cliente</span>
-                            <strong>{{ venta.cliente.nombre }}</strong>
+                            <strong>{{ venta.cliente_nombre_completo }}</strong>
                         </div>
                         <div class="ventas-detail-block">
                             <span class="ventas-summary-label">Monto total</span>
@@ -127,7 +127,7 @@
                         <div class="ventas-history-top">
                             <div>
                                 <strong>{{ validacion.metodo_pago|title }}</strong>
-                                <p class="ventas-note">{{ validacion.fecha|date:"d/m/Y H:i" }}</p>
+                                <p class="ventas-note">{{ validacion.fecha_validacion|date:"d/m/Y H:i" }}</p>
                             </div>
                             {% if validacion.estado == 'validada' or validacion.estado == 'comprado' %}
                             <span class="ventas-status-badge is-dark">{{ validacion.estado|title }}</span>

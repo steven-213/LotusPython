@@ -25,11 +25,11 @@ def api_ventas(request):
     if denied:
         return denied
     if request.method == "GET":
-        ventas = Venta.objects.select_related("cliente").all()
+        ventas = Venta.objects.select_related("cliente", "cliente_invitado").all()
         data = [
             {
                 "id": venta.id,
-                "cliente": venta.cliente.nombre,
+                "cliente": venta.cliente_nombre_completo,
                 "total": float(venta.total),
                 "fecha": venta.fecha.isoformat(),
             }
@@ -48,7 +48,7 @@ def api_ventas(request):
         return JsonResponse(
             {
                 "id": venta.id,
-                "cliente": venta.cliente.nombre,
+                "cliente": venta.cliente_nombre_completo,
                 "total": float(venta.total),
                 "fecha": venta.fecha.isoformat(),
             },

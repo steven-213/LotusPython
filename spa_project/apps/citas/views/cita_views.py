@@ -4,6 +4,7 @@ from io import BytesIO
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -23,10 +24,13 @@ from apps.citas.services import (
     puede_editar_reserva,
     reservas_visibles_para_usuario,
     resolver_token_comprobante,
+    resumen_horario_atencion,
     resumen_dashboard_admin,
 )
+from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
+from apps.ventas.services import registrar_venta_desde_reserva
 
 
 def _usuario_actual(request):
@@ -44,10 +48,23 @@ def _usuario_admin(request):
 def _parse_datetime_local(value: str):
     if not value:
         raise ValidationError("Debes seleccionar una fecha y hora.")
-    fecha = datetime.fromisoformat(value)
+    try:
+        fecha = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValidationError("La fecha y hora seleccionadas no son validas.") from exc
     if timezone.is_naive(fecha):
         fecha = timezone.make_aware(fecha, timezone.get_current_timezone())
     return fecha
+
+
+def _productos_facturables():
+    from apps.inventario.models import Producto
+
+    return (
+        anotar_stock_disponible(Producto.objects.filter(activo=True))
+        .filter(stock_disponible__gt=0)
+        .order_by("nombre")
+    )
 
 
 def _extraer_pago_publico(request, servicio, requerido=False):
@@ -73,7 +90,7 @@ def _extraer_pago_admin(request, reserva):
     if not metodo_pago:
         raise ValidationError("Debes seleccionar un metodo de pago.")
 
-    monto_raw = (request.POST.get("monto") or "").strip() or str(reserva.servicio.precio)
+    monto_raw = (request.POST.get("monto") or "").strip() or str(reserva.saldo_pendiente)
     try:
         monto = parse_money(monto_raw, default=None)
     except InvalidOperation as exc:
@@ -85,6 +102,51 @@ def _extraer_pago_admin(request, reserva):
         "referencia": (request.POST.get("referencia_pago") or "").strip(),
         "tipo": (request.POST.get("tipo_pago") or PagoReserva.TIPO_TOTAL).strip() or PagoReserva.TIPO_TOTAL,
     }
+
+
+def _extraer_productos_admin(request):
+    producto_ids = request.POST.getlist("producto_id[]") or request.POST.getlist("producto_id")
+    cantidades = request.POST.getlist("cantidad_producto[]") or request.POST.getlist("cantidad_producto")
+    if not producto_ids and not cantidades:
+        return []
+    if len(producto_ids) != len(cantidades):
+        raise ValidationError("No fue posible leer correctamente los productos seleccionados.")
+
+    producto_ids_limpios = [valor.strip() for valor in producto_ids if (valor or "").strip()]
+    if not producto_ids_limpios:
+        return []
+
+    productos_disponibles = {
+        producto.id: producto
+        for producto in _productos_facturables().filter(id__in=producto_ids_limpios)
+    }
+    items_por_producto = {}
+    for producto_id_raw, cantidad_raw in zip(producto_ids, cantidades):
+        producto_id_raw = (producto_id_raw or "").strip()
+        if not producto_id_raw:
+            continue
+        try:
+            producto_id = int(producto_id_raw)
+            cantidad = int((cantidad_raw or "").strip())
+        except (TypeError, ValueError) as exc:
+            raise ValidationError("Cada producto del carrito debe tener una cantidad valida.") from exc
+
+        producto = productos_disponibles.get(producto_id)
+        if not producto:
+            raise ValidationError("Uno de los productos seleccionados no esta disponible para facturar.")
+        if cantidad <= 0:
+            raise ValidationError(f"La cantidad para {producto.nombre} debe ser mayor a cero.")
+
+        item = items_por_producto.setdefault(
+            producto.id,
+            {
+                "producto": producto,
+                "cantidad": 0,
+            },
+        )
+        item["cantidad"] += cantidad
+
+    return list(items_por_producto.values())
 
 
 def _asegurar_propiedad_reserva(request, reserva):
@@ -105,8 +167,8 @@ def _estado_puede_pasar_a(reserva, nuevo_estado):
 @admin_required_session
 def calendario(request):
     reservas = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional"
-    ).prefetch_related("pagos", "historial_estados")
+        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "venta_asociada"
+    ).prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto")
 
     estado = (request.GET.get("estado") or "").strip()
     profesional_id = (request.GET.get("profesional_id") or "").strip()
@@ -149,6 +211,8 @@ def calendario(request):
             "estados_reserva": Reserva.ESTADOS,
             "metodos_pago": PagoReserva.METODOS,
             "tipos_pago": PagoReserva.TIPOS,
+            "productos_facturables": _productos_facturables(),
+            "horario_atencion": resumen_horario_atencion(),
             **resumen,
         },
     )
@@ -234,6 +298,7 @@ def reserva_nueva(request):
             "reserva": None,
             "servicio_preseleccionado": servicio_preseleccionado,
             "metodos_pago": PagoReserva.METODOS,
+            "horario_atencion": resumen_horario_atencion(),
         },
     )
 
@@ -274,6 +339,7 @@ def reserva_editar(request, reserva_id):
             "servicios": servicios,
             "usuario": usuario,
             "metodos_pago": PagoReserva.METODOS,
+            "horario_atencion": resumen_horario_atencion(),
         },
     )
 
@@ -282,14 +348,24 @@ def reserva_editar(request, reserva_id):
 def reserva_detalle(request, reserva_id):
     reserva = get_object_or_404(
         Reserva.objects.select_related(
-            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "creada_por"
+            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "creada_por", "venta_asociada"
         )
-        .prefetch_related("pagos", "historial_estados"),
+        .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
     historial = reserva.historial_estados.select_related("usuario_actor").all()
     pagos = pagos_reserva_por_validos(reserva)
+    venta_asociada = reserva.venta_asociada_segura
+    venta_detalles = []
+    if venta_asociada:
+        for detalle in venta_asociada.detalles.select_related("producto").all():
+            venta_detalles.append(
+                {
+                    "detalle": detalle,
+                    "subtotal": detalle.cantidad * detalle.precio_unitario,
+                }
+            )
     return render(
         request,
         "citas/public/detalle.html",
@@ -298,6 +374,10 @@ def reserva_detalle(request, reserva_id):
             "usuario": usuario,
             "historial": historial,
             "pagos": pagos,
+            "venta_asociada": venta_asociada,
+            "venta_detalles": venta_detalles,
+            "productos_facturables": _productos_facturables() if usuario.rol == Usuario.ROL_ADMIN else [],
+            "horario_atencion": resumen_horario_atencion(),
             "metodos_pago": PagoReserva.METODOS,
             "tipos_pago": PagoReserva.TIPOS,
             "puede_confirmar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CONFIRMADA),
@@ -436,27 +516,57 @@ def reserva_registrar_pago(request, reserva_id):
         from apps.citas.services import registrar_pago
 
         es_admin = usuario.rol == Usuario.ROL_ADMIN
+        venta = None
+        total_productos = Decimal("0")
         if es_admin:
             pago_data = _extraer_pago_admin(request, reserva)
+            productos_seleccionados = _extraer_productos_admin(request)
         else:
             pago_data = _extraer_pago_publico(request, reserva.servicio, requerido=True)
+            productos_seleccionados = []
 
-        pago = registrar_pago(
-            reserva=reserva,
-            monto=pago_data["monto"],
-            metodo_pago=pago_data["metodo_pago"],
-            referencia=pago_data.get("referencia", ""),
-            tipo=pago_data.get("tipo", PagoReserva.TIPO_TOTAL),
-            actor=usuario,
-        )
-        if reserva.estado == Reserva.ESTADO_PROGRAMADA:
-            cambiar_estado_reserva(
-                reserva=reserva,
-                nuevo_estado=Reserva.ESTADO_CONFIRMADA,
-                actor=usuario,
-                observacion="Pago registrado y cita confirmada.",
+        monto_pago = pago_data["monto"]
+        if es_admin and monto_pago <= 0 and not productos_seleccionados:
+            raise ValidationError("Debes registrar un pago o agregar al menos un producto para facturar.")
+
+        with transaction.atomic():
+            pago = None
+            if monto_pago > 0:
+                pago = registrar_pago(
+                    reserva=reserva,
+                    monto=monto_pago,
+                    metodo_pago=pago_data["metodo_pago"],
+                    referencia=pago_data.get("referencia", ""),
+                    tipo=pago_data.get("tipo", PagoReserva.TIPO_TOTAL),
+                    actor=usuario,
+                )
+
+            if es_admin and productos_seleccionados:
+                venta, total_productos = registrar_venta_desde_reserva(
+                    reserva=reserva,
+                    items=productos_seleccionados,
+                    metodo_pago=pago_data["metodo_pago"],
+                    referencia_pago=pago_data.get("referencia", ""),
+                    validado_por=usuario.id,
+                )
+
+            if pago and reserva.estado == Reserva.ESTADO_PROGRAMADA:
+                cambiar_estado_reserva(
+                    reserva=reserva,
+                    nuevo_estado=Reserva.ESTADO_CONFIRMADA,
+                    actor=usuario,
+                    observacion="Pago registrado y cita confirmada.",
+                )
+
+        if pago and venta:
+            messages.success(
+                request,
+                f"Se registraron el pago de la cita y {format_money(total_productos)} en productos dentro de la misma gestion.",
             )
-        messages.success(request, "El pago fue registrado correctamente.")
+        elif venta:
+            messages.success(request, "La venta de productos fue registrada correctamente desde la cita.")
+        else:
+            messages.success(request, "El pago fue registrado correctamente.")
         if usuario.rol == Usuario.ROL_ADMIN:
             return redirect("citas:calendario")
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
@@ -515,9 +625,31 @@ def comprobante_pago_pdf(request, pago_id):
         f"Referencia: {pago.referencia or 'N/A'}",
         f"Estado: {pago.get_estado_display()}",
     ]
+    venta_asociada = pago.reserva.venta_asociada_segura
+    if venta_asociada:
+        lineas.extend(
+            [
+                f"Productos asociados: {format_money(venta_asociada.total)}",
+                f"Total factura mixta: {format_money(venta_asociada.total_factura)}",
+            ]
+        )
     for linea in lineas:
         pdf.drawString(50, y, linea)
         y -= 20
+
+    if venta_asociada and venta_asociada.detalles.exists():
+        y -= 5
+        pdf.setFont("Helvetica-Bold", 11)
+        pdf.drawString(50, y, "Detalle de productos:")
+        y -= 20
+        pdf.setFont("Helvetica", 10)
+        for detalle in venta_asociada.detalles.select_related("producto").all():
+            pdf.drawString(
+                55,
+                y,
+                f"- {detalle.producto.nombre}: {detalle.cantidad} x {format_money(detalle.precio_unitario)}",
+            )
+            y -= 18
 
     y -= 10
     pdf.setFont("Helvetica-Oblique", 10)

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -18,6 +19,9 @@ class Profesional(models.Model):
 
     class Meta:
         ordering = ["nombre"]
+        indexes = [
+            models.Index(fields=["activo", "nombre"], name="cita_prof_act_nom_idx"),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -43,6 +47,9 @@ class Servicio(models.Model):
 
     class Meta:
         ordering = ["nombre"]
+        indexes = [
+            models.Index(fields=["activo", "nombre"], name="cita_serv_act_nom_idx"),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -164,6 +171,24 @@ class Reserva(models.Model):
         precio = self.servicio.precio or Decimal("0")
         saldo = precio - self.total_pagado
         return saldo if saldo > 0 else Decimal("0")
+
+    @property
+    def venta_asociada_segura(self):
+        try:
+            return self.venta_asociada
+        except ObjectDoesNotExist:
+            return None
+
+    @property
+    def total_productos_facturados(self) -> Decimal:
+        venta = self.venta_asociada_segura
+        if not venta:
+            return Decimal("0")
+        return venta.total or Decimal("0")
+
+    @property
+    def total_factura(self) -> Decimal:
+        return (self.servicio.precio or Decimal("0")) + self.total_productos_facturados
 
     @property
     def ultimo_pago_confirmado(self):

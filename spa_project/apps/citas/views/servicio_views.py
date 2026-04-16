@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.common.currency import parse_money
 from apps.citas.models import Profesional, Servicio
 from apps.citas.storage import subir_imagen_servicio
@@ -35,7 +36,56 @@ def servicios_publicos(request):
     if servicios is None:
         servicios = _cargar_servicios_publicos()
         cache.set(PUBLIC_SERVICES_CACHE_KEY, servicios, PUBLIC_SERVICES_CACHE_TIMEOUT)
-    return render(request, "cliente/servicios.html", {"servicios": servicios})
+
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Servicios Lotus Dream Spa",
+        "description": (
+            "Catálogo público de servicios de Lotus Dream Spa para reservar "
+            "experiencias de bienestar, belleza y cuidado personal."
+        ),
+        "mainEntity": {
+            "@type": "ItemList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": posicion,
+                    "item": {
+                        "@type": "Service",
+                        "name": servicio.nombre,
+                        "description": servicio.descripcion or "Servicio disponible en Lotus Dream Spa.",
+                        "provider": {
+                            "@type": "BeautySalon",
+                            "name": "Lotus Dream Spa",
+                        },
+                        "offers": {
+                            "@type": "Offer",
+                            "price": servicio.precio,
+                            "priceCurrency": "COP",
+                            "availability": "https://schema.org/InStock",
+                        },
+                    },
+                }
+                for posicion, servicio in enumerate(servicios[:12], start=1)
+            ],
+        },
+    }
+
+    response = render(
+        request,
+        "cliente/servicios.html",
+        {
+            "servicios": servicios,
+            "meta_title": "Servicios | Lotus Dream Spa",
+            "meta_description": (
+                "Explora servicios de spa, bienestar y belleza en Lotus Dream "
+                "Spa. Compara precio, duración y agenda la experiencia ideal."
+            ),
+            "structured_data_json": serialize_structured_data(structured_data),
+        },
+    )
+    return apply_public_page_cache_headers(response)
 
 
 @admin_required_session
