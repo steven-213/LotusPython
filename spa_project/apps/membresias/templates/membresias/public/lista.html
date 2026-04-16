@@ -4,9 +4,6 @@
 {% block title %}Membresias | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@500;600;700;800&display=swap">
 <link rel="stylesheet" href="{% static 'css/site/membresias.css' %}?v=20260416a">
 {% endblock %}
 
@@ -71,7 +68,6 @@
   <section class="benefits-banner" aria-label="Beneficios generales">
     <span><i class="bi bi-stars"></i> Beneficios visibles desde tu perfil</span>
     <span><i class="bi bi-calendar2-check"></i> Prioridad para volver a reservar</span>
-    <span><i class="bi bi-gem"></i> Un modulo admin para gestionarlo todo</span>
   </section>
 
   <section class="plans-zone" id="planes">
@@ -91,10 +87,10 @@
 
     <div class="plans-grid">
       {% for item in planes_display %}
-      <article class="plan-card plan-{{ item.estilo }} {% if item.plan.destacado %}is-featured{% endif %} {% if item.es_actual %}is-current{% endif %}">
+      <article class="plan-card plan-{{ item.estilo }} {% if item.destacado %}is-featured{% endif %} {% if item.es_actual %}is-current{% endif %}">
         <div class="plan-top">
-          {% if item.plan.insignia %}
-          <span class="plan-badge">{{ item.plan.insignia }}</span>
+          {% if item.insignia %}
+          <span class="plan-badge">{{ item.insignia }}</span>
           {% endif %}
           {% if item.es_actual %}
           <span class="plan-current">Plan activo</span>
@@ -102,18 +98,18 @@
         </div>
 
         <div class="plan-copy">
-          <h3>{{ item.plan.nombre }}</h3>
-          <p class="plan-subtitle">{{ item.plan.subtitulo }}</p>
-          <p class="plan-description">{{ item.plan.descripcion }}</p>
+          <h3>{{ item.nombre }}</h3>
+          <p class="plan-subtitle">{{ item.subtitulo }}</p>
+          <p class="plan-description">{{ item.descripcion }}</p>
         </div>
 
         <div class="plan-price">
-          <strong>{{ item.plan.precio|currency }}</strong>
-          <span>{{ item.plan.duracion_dias }} dias de vigencia</span>
+          <strong>{{ item.precio|currency }}</strong>
+          <span>{{ item.duracion_dias }} dias de vigencia</span>
         </div>
 
         <ul class="plan-benefits">
-          {% for beneficio in item.beneficios %}
+          {% for beneficio in item.beneficios_lista %}
           <li>{{ beneficio }}</li>
           {% endfor %}
         </ul>
@@ -122,7 +118,7 @@
           {% if item.es_actual %}
           <button class="boton boton-suave" type="button" disabled>Ya eres miembro</button>
           {% elif usuario %}
-          <form method="post" action="{% url 'membresias:activar_membresia' item.plan.id %}">
+          <form method="post" action="{% url 'membresias:activar_membresia' item.id %}">
             {% csrf_token %}
             <button class="boton boton-primario" type="submit">Volverme miembro</button>
           </form>
@@ -136,28 +132,34 @@
   </section>
 
   <section class="experience-strip">
-    <div>
-      <p class="section-kicker">Como se ve</p>
-      <h2>Tu plan se refleja al instante en tu perfil</h2>
-    </div>
+    <div> <p class="section-kicker">Como se ve</p> <h2>Tu plan se refleja al instante en tu perfil</h2> </div>
     <div class="experience-cards">
-      <article>
-        <i class="bi bi-person-badge"></i>
-        <h3>Perfil actualizado</h3>
-        <p>Mostramos si eres miembro, cual es tu plan y hasta cuando va tu beneficio.</p>
-      </article>
-      <article>
-        <i class="bi bi-speedometer2"></i>
-        <h3>Dashboard para admin</h3>
-        <p>El equipo puede editar planes, asignar membresias y revisar membresias activas.</p>
-      </article>
-      <article>
-        <i class="bi bi-arrow-repeat"></i>
-        <h3>Cambio de plan simple</h3>
-        <p>Si activas otro plan, el sistema reemplaza el actual y deja trazabilidad.</p>
-      </article>
-    </div>
+
+  <article>
+    <i class="bi bi-calendar-heart"></i>
+    <h3>Prioridad en tus citas</h3>
+    <p>Como miembro, tendrás acceso preferencial para agendar en los horarios más solicitados y sin complicaciones.</p>
+  </article>
+
+  <article>
+    <i class="bi bi-gift"></i>
+    <h3>Beneficios exclusivos</h3>
+    <p>Disfruta descuentos especiales, promociones privadas y detalles pensados solo para miembros del spa.</p>
+  </article>
+
+  <article>
+    <i class="bi bi-stars"></i>
+    <h3>Experiencia personalizada</h3>
+    <p>Adaptamos cada visita según tus necesidades para que vivas un cuidado continuo y resultados reales.</p>
+  </article>
+
+</div>
   </section>
 </section>
+<a href="https://wa.me/573017152525?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20servicios%20de%20Lotus%20Dream%20Spa"
+   class="whatsapp-float"
+   target="_blank">
+  <span class="whatsapp-icon">&#128172;</span>
+  <span class="whatsapp-texto">WhatsApp</span>
+</a>
 {% endblock %}
-
