@@ -84,7 +84,7 @@
 
 .resumen-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.85rem;
 }
 
@@ -397,6 +397,96 @@
   margin-top: 0.05rem;
 }
 
+.panel-membership {
+  display: grid;
+  gap: 1rem;
+}
+
+.membership-overview,
+.membership-card {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #f2d8ec;
+  border-radius: 18px;
+  padding: 1rem;
+  background: linear-gradient(180deg, #fffdfd 0%, #fff8fc 100%);
+}
+
+.membership-overview {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+.membership-label {
+  margin: 0;
+  color: #915475;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.membership-overview h3,
+.membership-card h3 {
+  margin: 0.25rem 0 0;
+  color: #3f2d34;
+  font-size: 1.16rem;
+  font-weight: 800;
+}
+
+.membership-copy {
+  margin: 0.35rem 0 0;
+  color: #6e5961;
+  font-weight: 600;
+}
+
+.membership-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.membership-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.membership-benefits,
+.membership-history {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.membership-benefits {
+  margin: 0.85rem 0 0;
+  padding-left: 1rem;
+  color: #5f4b53;
+  font-weight: 600;
+}
+
+.membership-history {
+  margin-top: 0.85rem;
+}
+
+.membership-history-item {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid #f4dfea;
+  border-radius: 14px;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.membership-history-item strong {
+  color: #413036;
+}
+
+.membership-history-item span {
+  color: #745f67;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .chips-row {
   display: flex;
   flex-wrap: wrap;
@@ -414,6 +504,11 @@
 .chip-rol {
   background: #ffdcca;
   color: #7d3f2d;
+}
+
+.chip-membresia {
+  background: #f3e8ff;
+  color: #7042a1;
 }
 
 .chip-pendiente {
@@ -715,13 +810,18 @@
   .perfil-grid {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 640px) {
-  .resumen-grid {
+  .membership-overview,
+  .membership-card {
     grid-template-columns: 1fr;
   }
 
+  .membership-meta {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
   .panel-head {
     flex-direction: column;
     align-items: flex-start;

@@ -1,0 +1,138 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Panel de Membresias{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'membresias/css/dashboard/membresias.css' %}?v=20260416a">
+{% endblock %}
+
+{% block content %}
+<section class="memb-admin-shell">
+  <header class="memb-admin-hero">
+    <div>
+      <p class="admin-kicker">Panel admin</p>
+      <h1>Panel de membresias</h1>
+      <p>
+        Controla planes, activaciones y seguimiento de clientes desde un modulo dedicado dentro del dashboard.
+      </p>
+    </div>
+    <div class="memb-admin-actions">
+      <a class="boton boton-suave" href="{% url 'membresias:plan_lista' %}">Gestionar planes</a>
+      <a class="boton boton-primario" href="{% url 'membresias:miembro_lista' %}">Ver miembros</a>
+    </div>
+  </header>
+
+  <section class="memb-kpi-grid">
+    <article class="memb-kpi-card">
+      <span>Planes creados</span>
+      <strong>{{ total_planes }}</strong>
+      <small>{{ total_planes_activos }} activos en la vitrina publica</small>
+    </article>
+    <article class="memb-kpi-card">
+      <span>Membresias activas</span>
+      <strong>{{ total_membresias_activas }}</strong>
+      <small>Clientes con vigencia actual</small>
+    </article>
+    <article class="memb-kpi-card">
+      <span>Membresias vencidas</span>
+      <strong>{{ total_membresias_vencidas }}</strong>
+      <small>Historial ya cerrado</small>
+    </article>
+    <article class="memb-kpi-card">
+      <span>Ingresos registrados</span>
+      <strong>{{ ingresos_membresias|currency }}</strong>
+      <small>Suma historica de activaciones</small>
+    </article>
+  </section>
+
+  <section class="memb-admin-grid">
+    <article class="memb-surface">
+      <div class="surface-head">
+        <div>
+          <h2>Planes destacados</h2>
+          <p>Resumen rapido de lo que ya esta publicado y sus clientes activos.</p>
+        </div>
+        <a class="text-link" href="{% url 'membresias:plan_lista' %}">Ir a planes</a>
+      </div>
+
+      <div class="surface-list">
+        {% for plan in planes_resumen %}
+        <article class="surface-item">
+          <div>
+            <strong>{{ plan.nombre }}</strong>
+            <p>{{ plan.subtitulo|default:"Sin subtitulo" }}</p>
+          </div>
+          <div class="surface-meta">
+            <span>{{ plan.precio|currency }}</span>
+            <span>{{ plan.total_activos }} activos</span>
+          </div>
+        </article>
+        {% empty %}
+        <article class="surface-empty">
+          <p>No hay planes cargados todavia.</p>
+        </article>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="memb-surface">
+      <div class="surface-head">
+        <div>
+          <h2>Clientes recientes</h2>
+          <p>Ultimas membresias activadas o asignadas desde la plataforma.</p>
+        </div>
+        <a class="text-link" href="{% url 'membresias:miembro_lista' %}">Ver miembros</a>
+      </div>
+
+      <div class="surface-list">
+        {% for membresia in miembros_recientes %}
+        <article class="surface-item">
+          <div>
+            <strong>{{ membresia.usuario.nombre }} {{ membresia.usuario.apellido }}</strong>
+            <p>{{ membresia.plan.nombre }} · {{ membresia.get_estado_display }}</p>
+          </div>
+          <div class="surface-meta">
+            <span>{{ membresia.fecha_inicio|date:"d/m/Y" }}</span>
+            <span>{{ membresia.origen|capfirst }}</span>
+          </div>
+        </article>
+        {% empty %}
+        <article class="surface-empty">
+          <p>Todavia no hay membresias registradas.</p>
+        </article>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="memb-surface">
+    <div class="surface-head">
+      <div>
+        <h2>Planes con mas miembros activos</h2>
+        <p>Te ayuda a ver rapidamente que propuesta esta conectando mejor con tus clientes.</p>
+      </div>
+    </div>
+
+    <div class="surface-list">
+      {% for plan in top_planes %}
+      <article class="surface-item">
+        <div>
+          <strong>{{ plan.nombre }}</strong>
+          <p>{{ plan.total_historico }} activaciones historicas</p>
+        </div>
+        <div class="surface-meta">
+          <span>{{ plan.total_activos }} activos</span>
+          <span>{{ plan.duracion_dias }} dias</span>
+        </div>
+      </article>
+      {% empty %}
+      <article class="surface-empty">
+        <p>Aun no hay suficientes datos para el ranking.</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+</section>
+{% endblock %}
+

@@ -14,6 +14,7 @@ class StaticViewSitemap(Sitemap):
         return [
             "sesiones:home",
             "sesiones:conocenos",
+            "membresias:membresias",
             "citas:servicios_publicos",
             "inventario:productos_publicos",
         ]

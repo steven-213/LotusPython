@@ -1,0 +1,47 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} | Membresias{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'membresias/css/dashboard/membresias.css' %}?v=20260416a">
+{% endblock %}
+
+{% block content %}
+<section class="memb-admin-shell">
+  <header class="memb-admin-hero">
+    <div>
+      <p class="admin-kicker">Membresias / Formulario</p>
+      <h1>{{ page_title }}</h1>
+      <p>{{ page_description }}</p>
+    </div>
+    <div class="memb-admin-actions">
+      <a class="boton boton-suave" href="{% url 'membresias:plan_lista' %}">Volver a planes</a>
+    </div>
+  </header>
+
+  <article class="memb-form-card">
+    <form method="post" class="memb-form-grid">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="field-block {% if field.name == 'descripcion' or field.name == 'beneficios' %}is-full{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}
+        <small>{{ field.help_text }}</small>
+        {% endif %}
+        {% if field.errors %}
+        <div class="field-errors">{{ field.errors }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div class="form-actions">
+        <a class="boton boton-suave" href="{% url 'membresias:plan_lista' %}">Cancelar</a>
+        <button class="boton boton-primario" type="submit">{{ submit_label }}</button>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}
+

@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "django.contrib.staticfiles",
     "apps.sesiones.apps.SesionesConfig",
+    "apps.membresias.apps.MembresiasConfig",
     "apps.inventario",
     "apps.ventas",
     "apps.citas",

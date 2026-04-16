@@ -1,0 +1,82 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Planes de Membresia{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'membresias/css/dashboard/membresias.css' %}?v=20260416a">
+{% endblock %}
+
+{% block content %}
+<section class="memb-admin-shell">
+  <header class="memb-admin-hero">
+    <div>
+      <p class="admin-kicker">Membresias / Planes</p>
+      <h1>Planes de membresia</h1>
+      <p>Edita los planes que ve el cliente en la pagina publica y controla su estado.</p>
+    </div>
+    <div class="memb-admin-actions">
+      <a class="boton boton-suave" href="{% url 'membresias:dashboard' %}">Volver al panel</a>
+      <a class="boton boton-primario" href="{% url 'membresias:plan_nuevo' %}">Nuevo plan</a>
+    </div>
+  </header>
+
+  <div class="memb-card-grid">
+    {% for plan in planes %}
+    <article class="memb-plan-admin-card {% if plan.destacado %}is-featured{% endif %}">
+      <div class="surface-head">
+        <div>
+          <h2>{{ plan.nombre }}</h2>
+          <p>{{ plan.subtitulo|default:"Sin subtitulo" }}</p>
+        </div>
+        <span class="status-chip {% if plan.activo %}is-success{% else %}is-muted{% endif %}">
+          {% if plan.activo %}Activo{% else %}Inactivo{% endif %}
+        </span>
+      </div>
+
+      <p class="admin-copy">{{ plan.descripcion|default:"Sin descripcion configurada." }}</p>
+
+      <div class="admin-stat-grid">
+        <article>
+          <span>Precio</span>
+          <strong>{{ plan.precio|currency }}</strong>
+        </article>
+        <article>
+          <span>Duracion</span>
+          <strong>{{ plan.duracion_dias }} dias</strong>
+        </article>
+        <article>
+          <span>Activos</span>
+          <strong>{{ plan.total_activos }}</strong>
+        </article>
+        <article>
+          <span>Historico</span>
+          <strong>{{ plan.total_historico }}</strong>
+        </article>
+      </div>
+
+      <ul class="admin-benefits-list">
+        {% for beneficio in plan.beneficios_lista|slice:":4" %}
+        <li>{{ beneficio }}</li>
+        {% endfor %}
+      </ul>
+
+      <div class="admin-actions-row">
+        <a class="boton boton-suave" href="{% url 'membresias:plan_editar' plan.id %}">Editar</a>
+        <form method="post" action="{% url 'membresias:plan_toggle' plan.id %}">
+          {% csrf_token %}
+          <button class="boton boton-primario" type="submit">
+            {% if plan.activo %}Desactivar{% else %}Activar{% endif %}
+          </button>
+        </form>
+      </div>
+    </article>
+    {% empty %}
+    <article class="surface-empty">
+      <p>No hay planes registrados aun.</p>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+

@@ -54,6 +54,16 @@ ADMIN_VIEW_NAMES = {
         "servicio_editar",
         "servicio_eliminar",
     },
+    "membresias": {
+        "dashboard",
+        "plan_lista",
+        "plan_nuevo",
+        "plan_editar",
+        "plan_toggle",
+        "miembro_lista",
+        "miembro_asignar",
+        "miembro_cancelar",
+    },
 }
 
 
@@ -213,6 +223,36 @@ def _build_sidebar_sections(namespace: str, url_name: str):
                     "is_active": is_active(
                         "citas",
                         {"servicio_lista", "servicio_nuevo", "servicio_editar", "servicio_eliminar"},
+                    ),
+                },
+            ],
+        },
+        {
+            "title": "Membresias",
+            "is_active": namespace == "membresias",
+            "items": [
+                {
+                    "label": "Dashboard",
+                    "icon": "bi-gem",
+                    "url": reverse("membresias:dashboard"),
+                    "is_active": namespace == "membresias" and url_name == "dashboard",
+                },
+                {
+                    "label": "Planes",
+                    "icon": "bi-layers",
+                    "url": reverse("membresias:plan_lista"),
+                    "is_active": is_active(
+                        "membresias",
+                        {"plan_lista", "plan_nuevo", "plan_editar", "plan_toggle"},
+                    ),
+                },
+                {
+                    "label": "Miembros",
+                    "icon": "bi-people",
+                    "url": reverse("membresias:miembro_lista"),
+                    "is_active": is_active(
+                        "membresias",
+                        {"miembro_lista", "miembro_asignar", "miembro_cancelar"},
                     ),
                 },
             ],

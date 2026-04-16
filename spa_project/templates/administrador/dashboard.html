@@ -122,6 +122,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="card h-100 module-card">
+                <div class="card-body p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge module-badge"><i class="bi bi-gem"></i></span>
+                        <div>
+                            <h5 class="h6 mb-0 module-title">Membresias</h5>
+                            <small class="module-subtitle">Planes y clientes VIP</small>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-1 mt-2">
+                        <a href="{% url 'membresias:dashboard' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-grid me-1"></i> Dashboard
+                        </a>
+                        <a href="{% url 'membresias:plan_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-layers me-1"></i> Planes
+                        </a>
+                        <a href="{% url 'membresias:miembro_lista' %}" class="btn btn-sm btn-rose-outline">
+                            <i class="bi bi-people me-1"></i> Miembros
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
