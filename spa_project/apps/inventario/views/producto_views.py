@@ -3,6 +3,7 @@ import io
 import json
 from decimal import Decimal, InvalidOperation
 from hashlib import md5
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.contrib import messages
@@ -11,6 +12,7 @@ from django.db import transaction
 from django.db.models import IntegerField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone  # CORRECCIÓN: Importación necesaria para MovimientoInventario
@@ -193,49 +195,13 @@ def _invalidar_cache_productos_publicos():
         cache.set(PUBLIC_PRODUCTS_CACHE_VERSION_KEY, 2, None)
 
 
-def _cargar_productos_publicos(query):
-    # 1. Consultamos directamente la tabla inventario_inventario (modelo Inventario)
-    # Filtramos solo registros con stock mayor a 0 y que el producto esté activo
-    productos = (
-        Producto.objects.filter(activo=True)
-        .annotate(
-            stock_disponible=Coalesce(
-                Sum("inventario__stock", filter=Q(inventario__stock__gt=0)),
-                Value(0),
-                output_field=IntegerField(),
-            )
-        )
-        .filter(stock_disponible__gt=0)
-        .only("id", "nombre", "descripcion", "imagen", "precio_venta")
-        .order_by("nombre")
-    )
-
-    if query:
-        productos = productos.filter(
-            Q(nombre__icontains=query) |
-            Q(descripcion__icontains=query)
-        )
-
-    productos = list(productos)
-            # Si el producto ya está, solo sumamos el stock del nuevo lote encontrado
-    return list(productos)
-
-
-def productos_publicos(request):
-    query = (request.GET.get("q", "") or "").strip()
-    cache_key = _productos_publicos_cache_key(query)
-    productos = cache.get(cache_key)
-
-    if productos is None:
-        productos = _cargar_productos_publicos(query)
-        cache.set(cache_key, productos, PUBLIC_PRODUCTS_CACHE_TIMEOUT)
-
-    structured_data = {
+def _build_productos_structured_data(productos):
+    return {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "Productos Lotus Dream Spa",
         "description": (
-            "Tienda pública de Lotus Dream Spa con productos de cuidado personal, "
+            "Tienda publica de Lotus Dream Spa con productos de cuidado personal, "
             "bienestar y belleza disponibles para compra."
         ),
         "mainEntity": {
@@ -261,15 +227,71 @@ def productos_publicos(request):
         },
     }
 
+
+def _cargar_productos_publicos(query):
+    productos = (
+        Producto.objects.filter(activo=True)
+        .annotate(
+            stock_disponible=Coalesce(
+                Sum("inventario__stock", filter=Q(inventario__stock__gt=0)),
+                Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .filter(stock_disponible__gt=0)
+        .values("id", "nombre", "descripcion", "imagen", "precio_venta", "stock_disponible")
+        .order_by("nombre")
+    )
+
+    if query:
+        productos = productos.filter(
+            Q(nombre__icontains=query) |
+            Q(descripcion__icontains=query)
+        )
+
+    return [SimpleNamespace(**producto) for producto in productos]
+
+
+def _obtener_payload_productos_publicos(query):
+    cache_key = _productos_publicos_cache_key(query)
+    payload = cache.get(cache_key)
+    if payload is not None:
+        return payload
+
+    productos = _cargar_productos_publicos(query)
+    payload = {
+        "productos": productos,
+        "structured_data_json": serialize_structured_data(
+            _build_productos_structured_data(productos)
+        ),
+    }
+    cache.set(cache_key, payload, PUBLIC_PRODUCTS_CACHE_TIMEOUT)
+    return payload
+
+
+def productos_publicos(request):
+    query = (request.GET.get("q", "") or "").strip()
+    payload = _obtener_payload_productos_publicos(query)
+    productos = payload["productos"]
+
     response = render(request, "cliente/compra.html", {
         "productos": productos,
         "query": query,
+        "stock_catalogo": {
+            str(producto.id): producto.stock_disponible
+            for producto in productos
+        },
+        "checkout_config": {
+            "processUrl": reverse("inventario:procesar_pago"),
+            "resultUrl": reverse("inventario:resultado"),
+            "csrfToken": get_token(request),
+        },
         "meta_title": "Tienda | Lotus Dream Spa",
         "meta_description": (
             "Compra productos de bienestar y cuidado personal en Lotus Dream Spa. "
-            "Busca por nombre, revisa disponibilidad y procesa tu pedido en línea."
+            "Busca por nombre, revisa disponibilidad y procesa tu pedido en linea."
         ),
-        "structured_data_json": serialize_structured_data(structured_data),
+        "structured_data_json": payload["structured_data_json"],
     })
     return apply_public_page_cache_headers(response)
 

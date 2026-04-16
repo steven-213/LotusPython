@@ -3,8 +3,7 @@
 
 {% block title %}Servicios | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap">
-<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260406b">
+<link rel="stylesheet" href="{% static 'css/site/services_page.css' %}?v=20260416a">
 {% endblock %}
 
 
@@ -98,7 +97,7 @@
           {% endif %}
           <span class="service-badge">
             <i class="bi bi-person-heart"></i>
-            {{ s.profesional.nombre|default:"Profesional por definir" }}
+            {{ s.profesional__nombre|default:"Profesional por definir" }}
           </span>
         </div>
 

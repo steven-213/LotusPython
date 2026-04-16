@@ -9,7 +9,11 @@ from django.views.decorators.http import require_POST
 
 from apps.membresias.forms import AsignarMembresiaForm, PlanMembresiaForm
 from apps.membresias.models import MembresiaUsuario, PlanMembresia
-from apps.membresias.services import activar_plan_para_usuario, actualizar_membresias_vencidas
+from apps.membresias.services import (
+    activar_plan_para_usuario,
+    actualizar_membresias_vencidas,
+    invalidar_cache_membresias_publicas,
+)
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
 
@@ -147,6 +151,7 @@ def plan_nuevo(request):
     form = PlanMembresiaForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         plan = form.save()
+        invalidar_cache_membresias_publicas()
         messages.success(request, f"El plan {plan.nombre} fue creado correctamente.")
         return redirect("membresias:plan_lista")
     return render(
@@ -167,6 +172,7 @@ def plan_editar(request, plan_id):
     form = PlanMembresiaForm(request.POST or None, instance=plan)
     if request.method == "POST" and form.is_valid():
         form.save()
+        invalidar_cache_membresias_publicas()
         messages.success(request, f"El plan {plan.nombre} fue actualizado.")
         return redirect("membresias:plan_lista")
     return render(
@@ -188,6 +194,7 @@ def plan_toggle(request, plan_id):
     plan = get_object_or_404(PlanMembresia, id=plan_id)
     plan.activo = not plan.activo
     plan.save(update_fields=["activo", "updated_at"])
+    invalidar_cache_membresias_publicas()
     estado = "activo" if plan.activo else "inactivo"
     messages.success(request, f"El plan {plan.nombre} quedo {estado}.")
     return redirect("membresias:plan_lista")

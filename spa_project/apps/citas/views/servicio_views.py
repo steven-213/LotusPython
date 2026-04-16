@@ -2,9 +2,10 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
+from types import SimpleNamespace
 
-from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.common.currency import parse_money
+from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.citas.models import Profesional, Servicio
 from apps.citas.storage import subir_imagen_servicio
 from apps.sesiones.decorators import admin_required_session
@@ -12,12 +13,25 @@ from apps.sesiones.decorators import admin_required_session
 
 PUBLIC_SERVICES_CACHE_KEY = "public:servicios:activos"
 PUBLIC_SERVICES_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+PUBLIC_SERVICES_CACHE_VERSION_KEY = "public:servicios:version"
+
+
+def _servicios_publicos_cache_key():
+    version = cache.get_or_set(PUBLIC_SERVICES_CACHE_VERSION_KEY, 1, None)
+    return f"{PUBLIC_SERVICES_CACHE_KEY}:v{version}"
+
+
+def _invalidar_cache_servicios_publicos():
+    try:
+        cache.incr(PUBLIC_SERVICES_CACHE_VERSION_KEY)
+    except ValueError:
+        cache.set(PUBLIC_SERVICES_CACHE_VERSION_KEY, 2, None)
 
 
 def _cargar_servicios_publicos():
-    return list(
+    servicios = list(
         Servicio.objects.select_related("profesional")
-        .only(
+        .values(
             "id",
             "nombre",
             "descripcion",
@@ -29,20 +43,16 @@ def _cargar_servicios_publicos():
         .filter(activo=True)
         .order_by("nombre")
     )
+    return [SimpleNamespace(**servicio) for servicio in servicios]
 
 
-def servicios_publicos(request):
-    servicios = cache.get(PUBLIC_SERVICES_CACHE_KEY)
-    if servicios is None:
-        servicios = _cargar_servicios_publicos()
-        cache.set(PUBLIC_SERVICES_CACHE_KEY, servicios, PUBLIC_SERVICES_CACHE_TIMEOUT)
-
-    structured_data = {
+def _build_servicios_structured_data(servicios):
+    return {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
         "name": "Servicios Lotus Dream Spa",
         "description": (
-            "Catálogo público de servicios de Lotus Dream Spa para reservar "
+            "Catalogo publico de servicios de Lotus Dream Spa para reservar "
             "experiencias de bienestar, belleza y cuidado personal."
         ),
         "mainEntity": {
@@ -72,6 +82,28 @@ def servicios_publicos(request):
         },
     }
 
+
+def _obtener_payload_servicios_publicos():
+    cache_key = _servicios_publicos_cache_key()
+    payload = cache.get(cache_key)
+    if payload is not None:
+        return payload
+
+    servicios = _cargar_servicios_publicos()
+    payload = {
+        "servicios": servicios,
+        "structured_data_json": serialize_structured_data(
+            _build_servicios_structured_data(servicios)
+        ),
+    }
+    cache.set(cache_key, payload, PUBLIC_SERVICES_CACHE_TIMEOUT)
+    return payload
+
+
+def servicios_publicos(request):
+    payload = _obtener_payload_servicios_publicos()
+    servicios = payload["servicios"]
+
     response = render(
         request,
         "cliente/servicios.html",
@@ -80,9 +112,9 @@ def servicios_publicos(request):
             "meta_title": "Servicios | Lotus Dream Spa",
             "meta_description": (
                 "Explora servicios de spa, bienestar y belleza en Lotus Dream "
-                "Spa. Compara precio, duración y agenda la experiencia ideal."
+                "Spa. Compara precio, duracion y agenda la experiencia ideal."
             ),
-            "structured_data_json": serialize_structured_data(structured_data),
+            "structured_data_json": payload["structured_data_json"],
         },
     )
     return apply_public_page_cache_headers(response)
@@ -143,7 +175,7 @@ def servicio_nuevo(request):
             duracion_minutos=request.POST.get("duracion_minutos") or 60,
             activo=request.POST.get("activo") == "on",
         )
-        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
+        _invalidar_cache_servicios_publicos()
         messages.success(request, "Servicio creado correctamente.")
         return redirect("citas:servicio_lista")
     return render(
@@ -208,7 +240,7 @@ def servicio_editar(request, servicio_id):
         servicio.activo = request.POST.get("activo") == "on"
         servicio.profesional = profesional
         servicio.save()
-        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
+        _invalidar_cache_servicios_publicos()
         messages.success(request, "Servicio actualizado.")
         return redirect("citas:servicio_lista")
     return render(
@@ -224,6 +256,6 @@ def servicio_eliminar(request, servicio_id):
     if request.method == "POST":
         servicio.activo = False
         servicio.save(update_fields=["activo"])
-        cache.delete(PUBLIC_SERVICES_CACHE_KEY)
+        _invalidar_cache_servicios_publicos()
         messages.success(request, "Servicio desactivado.")
     return redirect("citas:servicio_lista")

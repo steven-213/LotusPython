@@ -181,6 +181,49 @@
   display: flex;
 }
 
+.ubicacion-mapa-placeholder {
+  width: 100%;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  gap: 0.8rem;
+  padding: 1.1rem;
+  border-radius: 18px;
+  border: 1px dashed #f5ccd9;
+  background: linear-gradient(135deg, #fff9fc 0%, #fff2f7 100%);
+  text-align: center;
+}
+
+.ubicacion-mapa-placeholder p {
+  margin: 0;
+  max-width: 34ch;
+  color: #6f5962;
+  font-weight: 600;
+}
+
+.mapa-cargar-boton {
+  min-width: 220px;
+}
+
+.ubicacion-mapa-placeholder iframe {
+  display: none;
+}
+
+.ubicacion-mapa-placeholder.is-loaded {
+  padding: 0;
+  border-style: solid;
+  background: transparent;
+}
+
+.ubicacion-mapa-placeholder.is-loaded p,
+.ubicacion-mapa-placeholder.is-loaded .mapa-cargar-boton {
+  display: none;
+}
+
+.ubicacion-mapa-placeholder.is-loaded iframe {
+  display: block;
+}
+
 .ubicacion-mapa iframe {
   width: 100%;
   height: 100%;

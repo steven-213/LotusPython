@@ -61,7 +61,10 @@ class CitasFlowTest(TestCase):
 
     def _future_start(self, days=2, hour=10):
         fecha = timezone.localtime(timezone.now() + timedelta(days=days))
-        return fecha.replace(hour=hour, minute=0, second=0, microsecond=0)
+        fecha = fecha.replace(hour=hour, minute=0, second=0, microsecond=0)
+        while fecha.weekday() == 6:
+            fecha += timedelta(days=1)
+        return fecha
 
     def _future_input(self, days=2, hour=10):
         return self._future_start(days=days, hour=hour).strftime("%Y-%m-%dT%H:%M")

@@ -1,8 +1,14 @@
 from datetime import timedelta
 
+from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 
 from apps.membresias.models import MembresiaUsuario
+
+
+PUBLIC_MEMBERSHIPS_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
+PUBLIC_MEMBERSHIPS_CACHE_VERSION_KEY = "public:membresias:version"
 
 
 def actualizar_membresias_vencidas(*, usuario_id=None):
@@ -54,3 +60,14 @@ def activar_plan_para_usuario(usuario, plan, *, actor=None, origen=MembresiaUsua
         creada_por=actor,
     )
 
+
+def membresias_publicas_cache_key():
+    version = cache.get_or_set(PUBLIC_MEMBERSHIPS_CACHE_VERSION_KEY, 1, None)
+    return f"public:membresias:v{version}"
+
+
+def invalidar_cache_membresias_publicas():
+    try:
+        cache.incr(PUBLIC_MEMBERSHIPS_CACHE_VERSION_KEY)
+    except ValueError:
+        cache.set(PUBLIC_MEMBERSHIPS_CACHE_VERSION_KEY, 2, None)
