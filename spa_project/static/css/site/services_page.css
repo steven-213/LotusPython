@@ -7,7 +7,37 @@
   --services-surface: #fff8fd;
   --services-shadow: 0 18px 36px rgba(92, 42, 67, 0.1);
 }
+/* ================= BOTON WHATSAPP ================= */
+.whatsapp-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #25d366;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 999;
+  transition: all 0.2s ease;
+}
 
+.whatsapp-float:hover {
+  transform: scale(1.05);
+  background: #1ebe5d;
+}
+
+.whatsapp-icon {
+  font-size: 1.2rem;
+}
+
+.whatsapp-texto {
+  font-size: 0.9rem;
+}
 .services-shell {
   display: grid;
   gap: 1.4rem;
@@ -431,3 +461,4 @@
     min-height: auto;
   }
 }
+

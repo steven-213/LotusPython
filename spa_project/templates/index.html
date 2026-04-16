@@ -16,7 +16,7 @@
   <div class="texto-portada">
     <p class="etiqueta-superior">Bienestar y belleza</p>
     <h1>Bienvenido a Lotus Dream Spa</h1>
-    <p>Descubre una experiencia única de relajación y cuidado personal.</p>
+    <p>Descubre una experiencia &uacute;nica de relajaci&oacute;n y cuidado personal.</p>
     <div class="acciones-portada">
       <a class="boton boton-primario" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
       <a class="boton boton-suave" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
@@ -29,7 +29,7 @@
   <article class="tarjeta-destacado">
     <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales" width="480" height="360" loading="lazy" decoding="async">
     <h2>Masajes corporales</h2>
-    <p>Sesiones enfocadas en liberar tensión y mejorar tu descanso.</p>
+    <p>Sesiones enfocadas en liberar tensi&oacute;n y mejorar tu descanso.</p>
   </article>
 
   <article class="tarjeta-destacado">
@@ -40,38 +40,102 @@
 
   <article class="tarjeta-destacado">
     <img src="{% static 'img/index/pestañas.jpg' %}" alt="Pestanas" loading="lazy" decoding="async">
-    <h2>Pestañas</h2>
-    <p>Diseños personalizados para una mirada definida y natural.</p>
+    <h2>Pesta&ntilde;as</h2>
+    <p>Dise&ntilde;os personalizados para una mirada definida y natural.</p>
   </article>
 </section>
 
-<section class="tarjeta-horario">
-  <div class="horario-encabezado">
-    <div>
-      <p class="etiqueta-superior">Visítanos</p>
-      <h2>Horarios de atención</h2>
+
+<section class="panel-visita">
+  <article class="panel-visita-bloque panel-visita-bloque--horario">
+    <div class="panel-visita-info">
+      <p class="etiqueta-superior">Vis&iacute;tanos</p>
+      <h2>Horarios de atenci&oacute;n</h2>
       <p>Te esperamos con espacios pensados para que reserves con tranquilidad durante toda la semana.</p>
     </div>
-  </div>
 
-  <div class="grilla-horario">
-    <article class="bloque-horario">
-      <span class="bloque-horario-dia">Lunes a viernes</span>
-      <strong>10:00 AM - 6:00 PM</strong>
-      <p>Jornada ideal para pausas de bienestar y tratamientos de cuidado personal.</p>
-    </article>
+    <div class="grilla-horario">
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">Lunes a viernes</span>
+          <p>Jornada ideal para pausas de bienestar y tratamientos de cuidado personal.</p>
+        </div>
+        <strong>10:00 AM - 6:00 PM</strong>
+      </article>
 
-    <article class="bloque-horario">
-      <span class="bloque-horario-dia">Sábados</span>
-      <strong>10:00 AM - 8:00 PM</strong>
-      <p>Horario extendido para quienes prefieren venir con más calma el fin de semana.</p>
-    </article>
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">S&aacute;bados</span>
+          <p>Horario extendido para quienes prefieren venir con m&aacute;s calma el fin de semana.</p>
+        </div>
+        <strong>10:00 AM - 8:00 PM</strong>
+      </article>
 
-    <article class="bloque-horario">
-      <span class="bloque-horario-dia">Domingos y festivos</span>
-      <strong>Cerrado</strong>
-      <p>Usamos este tiempo para preparación interna y cuidado de cada experiencia del spa.</p>
-    </article>
-  </div>
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">Domingos y festivos</span>
+          <p>Usamos este tiempo para preparaci&oacute;n interna y cuidado de cada experiencia del spa.</p>
+        </div>
+        <strong>Cerrado</strong>
+      </article>
+    </div>
+  </article>
+
+  <article class="panel-visita-bloque panel-visita-bloque--ubicacion">
+    <div class="panel-visita-info">
+      <p class="etiqueta-superior">Ubicaci&oacute;n</p>
+      <h2>Vis&iacute;tanos en nuestro spa</h2>
+      <p>Estamos ubicados en un espacio dise&ntilde;ado para tu relajaci&oacute;n y bienestar.</p>
+      <p class="direccion">Cra. 112A #78f-14, Bogot&aacute;</p>
+      <a href="https://maps.google.com/?q=Cra+112A+%2378f-14+Bogota" target="_blank" rel="noopener noreferrer" class="boton boton-primario">
+        C&oacute;mo llegar
+      </a>
+    </div>
+
+    <div class="ubicacion-mapa">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.2970107042097!2d-74.12340802603433!3d4.71838284150613!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f84a6325d509d%3A0x42c97c07d27de6dc!2sCra.%20112A%20%2378f-14%2C%20Engativ%C3%A1%2C%20Bogot%C3%A1%2C%20Cundinamarca!5e0!3m2!1ses!2sco!4v1776356695898!5m2!1ses!2sco"
+        title="Mapa de Lotus Dream Spa"
+        loading="lazy">
+      </iframe>
+    </div>
+  </article>
 </section>
+<section class="seccion-opiniones">
+
+  <p class="etiqueta-superior">Opiniones</p>
+  <h2>¿Qué opinas de nuestro spa?</h2>
+  <p>Tu opinión nos ayuda a mejorar y brindar una mejor experiencia.</p>
+
+  <form class="form-opinion">
+
+    <div class="estrellas">
+      <input type="radio" name="estrella" id="estrella5"><label for="estrella5">★</label>
+      <input type="radio" name="estrella" id="estrella4"><label for="estrella4">★</label>
+      <input type="radio" name="estrella" id="estrella3"><label for="estrella3">★</label>
+      <input type="radio" name="estrella" id="estrella2"><label for="estrella2">★</label>
+      <input type="radio" name="estrella" id="estrella1"><label for="estrella1">★</label>
+    </div>
+
+    <textarea placeholder="Escribe tu opinión (opcional)..."></textarea>
+
+    <button type="submit" class="boton boton-primario">
+      Enviar opinión
+    </button>
+
+  </form>
+
+</section>
+
+<!--boton flotante whatsapp-->
+
+<a href="https://wa.me/573017152525?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20servicios%20de%20Lotus%20Dream%20Spa" 
+   class="whatsapp-float" 
+   target="_blank">
+
+  <span class="whatsapp-icon">💬</span>
+  <span class="whatsapp-texto">WhatsApp</span>
+
+</a>
+
 {% endblock %}
