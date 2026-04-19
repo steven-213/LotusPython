@@ -76,6 +76,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.sitemaps",
     "django.contrib.staticfiles",
+    "apps.common",
     "apps.sesiones.apps.SesionesConfig",
     "apps.membresias.apps.MembresiasConfig",
     "apps.inventario",

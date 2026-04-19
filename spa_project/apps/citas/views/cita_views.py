@@ -5,7 +5,8 @@ from io import BytesIO
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import DecimalField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,6 +18,7 @@ from apps.citas.models import PagoReserva, Profesional, Reserva, Servicio
 from apps.citas.services import (
     actualizar_reserva,
     cambiar_estado_reserva,
+    configuracion_horario_reserva,
     construir_token_comprobante,
     crear_o_reutilizar_cliente_invitado,
     crear_reserva,
@@ -57,12 +59,117 @@ def _parse_datetime_local(value: str):
     return fecha
 
 
+def _extraer_fecha_inicio_reserva(request):
+    fecha_inicio = (request.POST.get("fecha_inicio") or "").strip()
+    if fecha_inicio:
+        return _parse_datetime_local(fecha_inicio)
+
+    fecha_reserva = (request.POST.get("fecha_reserva") or "").strip()
+    hora_reserva = (request.POST.get("hora_reserva") or "").strip()
+    if not fecha_reserva or not hora_reserva:
+        raise ValidationError("Debes seleccionar una fecha y hora.")
+    return _parse_datetime_local(f"{fecha_reserva}T{hora_reserva}")
+
+
+def _descomponer_fecha_formulario(valor):
+    if not valor:
+        return {
+            "fecha_inicio_value": "",
+            "fecha_reserva_value": "",
+            "hora_reserva_value": "",
+        }
+
+    if isinstance(valor, str):
+        raw = valor.strip()
+        if not raw:
+            return {
+                "fecha_inicio_value": "",
+                "fecha_reserva_value": "",
+                "hora_reserva_value": "",
+            }
+        try:
+            fecha = datetime.fromisoformat(raw)
+        except ValueError:
+            return {
+                "fecha_inicio_value": raw,
+                "fecha_reserva_value": raw[:10] if len(raw) >= 10 else "",
+                "hora_reserva_value": raw[11:16] if len(raw) >= 16 else "",
+            }
+    else:
+        fecha = timezone.localtime(valor) if timezone.is_aware(valor) else valor
+
+    return {
+        "fecha_inicio_value": fecha.strftime("%Y-%m-%dT%H:%M"),
+        "fecha_reserva_value": fecha.strftime("%Y-%m-%d"),
+        "hora_reserva_value": fecha.strftime("%H:%M"),
+    }
+
+
+def _contexto_fecha_formulario(request, reserva=None):
+    fecha_inicio = (request.POST.get("fecha_inicio") or "").strip()
+    fecha_reserva = (request.POST.get("fecha_reserva") or "").strip()
+    hora_reserva = (request.POST.get("hora_reserva") or "").strip()
+
+    if fecha_inicio:
+        valores = _descomponer_fecha_formulario(fecha_inicio)
+        fecha_reserva = fecha_reserva or valores["fecha_reserva_value"]
+        hora_reserva = hora_reserva or valores["hora_reserva_value"]
+        return {
+            "fecha_inicio_value": valores["fecha_inicio_value"],
+            "fecha_reserva_value": fecha_reserva,
+            "hora_reserva_value": hora_reserva,
+        }
+
+    if fecha_reserva or hora_reserva:
+        return {
+            "fecha_inicio_value": f"{fecha_reserva}T{hora_reserva}" if fecha_reserva and hora_reserva else "",
+            "fecha_reserva_value": fecha_reserva,
+            "hora_reserva_value": hora_reserva,
+        }
+
+    return _descomponer_fecha_formulario(reserva.fecha_inicio) if reserva else {
+        "fecha_inicio_value": "",
+        "fecha_reserva_value": "",
+        "hora_reserva_value": "",
+    }
+
+
+def _contexto_formulario_reserva(*, request, usuario, servicios, reserva=None, servicio_preseleccionado=""):
+    return {
+        "usuario": usuario,
+        "servicios": servicios,
+        "reserva": reserva,
+        "servicio_preseleccionado": servicio_preseleccionado,
+        "metodos_pago": PagoReserva.METODOS,
+        "horario_atencion": resumen_horario_atencion(),
+        "configuracion_horario_reserva": configuracion_horario_reserva(),
+        **_contexto_fecha_formulario(request, reserva),
+    }
+
+
 def _productos_facturables():
-    from apps.inventario.models import Producto
+    from apps.inventario.models import Inventario, Producto
+
+    precio_reciente = (
+        Inventario.objects.filter(
+            producto=OuterRef("pk"),
+            stock__gt=0,
+        )
+        .order_by("-fecha_ingreso", "-id")
+        .values("precio_venta")[:1]
+    )
 
     return (
         anotar_stock_disponible(Producto.objects.filter(activo=True))
-        .filter(stock_disponible__gt=0)
+        .annotate(
+            precio_facturable=Coalesce(
+                Subquery(precio_reciente, output_field=DecimalField(max_digits=10, decimal_places=2)),
+                "precio_venta",
+                Value(0),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            )
+        )
+        .filter(stock_disponible__gt=0, precio_facturable__gt=0)
         .order_by("nombre")
     )
 
@@ -136,6 +243,8 @@ def _extraer_productos_admin(request):
             raise ValidationError("Uno de los productos seleccionados no esta disponible para facturar.")
         if cantidad <= 0:
             raise ValidationError(f"La cantidad para {producto.nombre} debe ser mayor a cero.")
+        if hasattr(producto, "precio_facturable"):
+            producto.precio_venta = producto.precio_facturable
 
         item = items_por_producto.setdefault(
             producto.id,
@@ -246,7 +355,7 @@ def reserva_nueva(request):
     if request.method == "POST":
         try:
             servicio = get_object_or_404(Servicio.objects.select_related("profesional"), id=request.POST.get("servicio_id"), activo=True)
-            fecha_inicio = _parse_datetime_local(request.POST.get("fecha_inicio"))
+            fecha_inicio = _extraer_fecha_inicio_reserva(request)
             notas = request.POST.get("notas", "")
 
             if usuario:
@@ -292,14 +401,13 @@ def reserva_nueva(request):
     return render(
         request,
         "citas/public/form.html",
-        {
-            "usuario": usuario,
-            "servicios": servicios,
-            "reserva": None,
-            "servicio_preseleccionado": servicio_preseleccionado,
-            "metodos_pago": PagoReserva.METODOS,
-            "horario_atencion": resumen_horario_atencion(),
-        },
+        _contexto_formulario_reserva(
+            request=request,
+            usuario=usuario,
+            servicios=servicios,
+            reserva=None,
+            servicio_preseleccionado=servicio_preseleccionado,
+        ),
     )
 
 
@@ -317,7 +425,7 @@ def reserva_editar(request, reserva_id):
     if request.method == "POST":
         try:
             servicio = get_object_or_404(Servicio.objects.select_related("profesional"), id=request.POST.get("servicio_id"), activo=True)
-            fecha_inicio = _parse_datetime_local(request.POST.get("fecha_inicio"))
+            fecha_inicio = _extraer_fecha_inicio_reserva(request)
             actualizar_reserva(
                 reserva=reserva,
                 servicio=servicio,
@@ -334,13 +442,12 @@ def reserva_editar(request, reserva_id):
     return render(
         request,
         "citas/public/form.html",
-        {
-            "reserva": reserva,
-            "servicios": servicios,
-            "usuario": usuario,
-            "metodos_pago": PagoReserva.METODOS,
-            "horario_atencion": resumen_horario_atencion(),
-        },
+        _contexto_formulario_reserva(
+            request=request,
+            usuario=usuario,
+            servicios=servicios,
+            reserva=reserva,
+        ),
     )
 
 

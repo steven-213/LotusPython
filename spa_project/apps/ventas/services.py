@@ -58,7 +58,7 @@ def registrar_venta_desde_reserva(
             except ValueError as exc:
                 raise ValidationError(str(exc)) from exc
             detalle = venta.detalles.select_related("producto").filter(producto=producto).first()
-            precio_unitario = producto.precio_venta
+            precio_unitario = getattr(producto, "precio_facturable", None) or producto.precio_venta
             if detalle:
                 detalle.cantidad += cantidad
                 detalle.precio_unitario = precio_unitario

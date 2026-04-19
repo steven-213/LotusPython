@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
       return window.CopMoney.formatDisplay(value || 0);
     }
     const amount = Number(value || 0);
-    return "$ " + amount.toLocaleString("es-CO", { maximumFractionDigits: 0 });
+    return "$ " + amount.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function setAmountValue(input, amount) {
@@ -33,6 +33,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const hiddenInputs = cart.querySelector("[data-product-hidden-inputs]");
     const productTotalLabel = cart.querySelector("[data-product-total-label]");
     const invoiceTotalLabel = cart.querySelector("[data-invoice-total-label]");
+    const selectedProductNameLabel = cart.querySelector("[data-product-name-label]");
+    const selectedProductPriceLabel = cart.querySelector("[data-product-price-label]");
+    const selectedProductStockLabel = cart.querySelector("[data-product-stock-label]");
     const amountInput = form ? form.querySelector("input[name='monto']") : null;
     const serviceBalance = Number(cart.dataset.serviceBalance || 0);
     const items = [];
@@ -50,6 +53,32 @@ document.addEventListener("DOMContentLoaded", function () {
       setAmountValue(amountInput, serviceBalance + currentProductTotal());
     }
 
+    function updateSelectedProductSummary() {
+      const option = picker ? picker.options[picker.selectedIndex] : null;
+      if (!option || !option.value) {
+        if (selectedProductNameLabel) {
+          selectedProductNameLabel.textContent = "Sin seleccionar";
+        }
+        if (selectedProductPriceLabel) {
+          selectedProductPriceLabel.textContent = formatMoney(0);
+        }
+        if (selectedProductStockLabel) {
+          selectedProductStockLabel.textContent = "0";
+        }
+        return;
+      }
+
+      if (selectedProductNameLabel) {
+        selectedProductNameLabel.textContent = option.dataset.name || option.textContent.trim();
+      }
+      if (selectedProductPriceLabel) {
+        selectedProductPriceLabel.textContent = formatMoney(Number(option.dataset.price || 0));
+      }
+      if (selectedProductStockLabel) {
+        selectedProductStockLabel.textContent = String(Number(option.dataset.stock || 0));
+      }
+    }
+
     function render() {
       const productTotal = currentProductTotal();
       const invoiceTotal = serviceBalance + productTotal;
@@ -65,7 +94,7 @@ document.addEventListener("DOMContentLoaded", function () {
         line.innerHTML =
           "<div>" +
           "<strong>" + item.name + "</strong>" +
-          "<p>" + item.quantity + " unidad(es) · " + formatMoney(item.price) + " · Stock ref. " + item.stock + "</p>" +
+          "<p>Cantidad: " + item.quantity + " | Precio unitario: " + formatMoney(item.price) + " | Stock ref. " + item.stock + "</p>" +
           "</div>" +
           "<div class='product-cart-actions'>" +
           "<strong>" + formatMoney(item.quantity * item.price) + "</strong>" +
@@ -114,7 +143,7 @@ document.addEventListener("DOMContentLoaded", function () {
         items.push({
           id: Number(option.value),
           name: option.dataset.name || option.textContent.trim(),
-          price: Number(option.dataset.price || 0),
+          price: parseFloat(option.dataset.price) || 0,
           stock: Number(option.dataset.stock || 0),
           quantity: quantity,
         });
@@ -122,10 +151,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       picker.value = "";
       quantityInput.value = "1";
+      updateSelectedProductSummary();
       render();
     }
 
     addButton.addEventListener("click", addProduct);
+    picker.addEventListener("change", updateSelectedProductSummary);
     list.addEventListener("click", function (event) {
       const button = event.target.closest("[data-remove-index]");
       if (!button) {
@@ -142,6 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
+    updateSelectedProductSummary();
     render();
   });
 });

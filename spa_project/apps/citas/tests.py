@@ -7,8 +7,13 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, Servicio
-from apps.citas.services import cambiar_estado_reserva, crear_reserva
-from apps.inventario.models import Producto, Proveedor
+from apps.citas.services import (
+    cambiar_estado_reserva,
+    configuracion_horario_reserva,
+    crear_reserva,
+    obtener_horas_disponibles_reserva,
+)
+from apps.inventario.models import Inventario, Producto, Proveedor
 from apps.inventario.services import obtener_stock_disponible, registrar_ingreso
 from apps.sesiones.models import Usuario
 
@@ -199,6 +204,29 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.estado, Reserva.ESTADO_PROGRAMADA)
         self.assertEqual(reserva.pagos.count(), 0)
 
+    def test_booking_form_uses_custom_datepicker_with_sundays_disabled(self):
+        response = self.client.get(reverse("citas:reserva_nueva"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "flatpickr@4.6.13/dist/flatpickr.min.js")
+        self.assertContains(response, "date.getDay() === 0")
+
+    def test_authenticated_booking_accepts_separate_date_and_time_fields(self):
+        self._force_session(self.cliente)
+        fecha = self._future_start(days=3, hour=11)
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha_reserva": fecha.strftime("%Y-%m-%d"),
+                "hora_reserva": fecha.strftime("%H:%M"),
+                "notas": "Campos separados",
+            },
+        )
+        reserva = Reserva.objects.get()
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        self.assertEqual(reserva.fecha_inicio, fecha)
+        self.assertEqual(reserva.estado, Reserva.ESTADO_PROGRAMADA)
+
     def test_authenticated_booking_with_payment_is_confirmada(self):
         self._force_session(self.cliente)
         response = self.client.post(
@@ -266,6 +294,45 @@ class CitasFlowTest(TestCase):
                 actor=self.cliente,
                 pago_data=None,
             )
+
+    def test_schedule_configuration_matches_frontend_rules(self):
+        configuracion = configuracion_horario_reserva()
+        self.assertEqual(configuracion["intervalo_minutos"], 15)
+        self.assertIsNone(configuracion["dias"][0])
+        self.assertEqual(configuracion["dias"][1]["apertura"], "10:00")
+        self.assertEqual(configuracion["dias"][1]["cierre"], "18:00")
+        self.assertEqual(configuracion["dias"][6]["cierre"], "20:00")
+
+    def test_available_hours_skip_existing_reservations(self):
+        fecha = self._future_weekday_start(0, 10)
+        self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
+
+        horas = obtener_horas_disponibles_reserva(
+            servicio=self.servicio,
+            fecha_reserva=fecha.date(),
+        )
+
+        self.assertNotIn("10:00", horas)
+        self.assertNotIn("10:15", horas)
+        self.assertNotIn("10:30", horas)
+        self.assertNotIn("10:45", horas)
+        self.assertIn("11:00", horas)
+
+    def test_public_availability_api_can_exclude_current_reservation(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(1, 10))
+
+        response = self.client.get(
+            reverse("citas:api_disponibilidad"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha": reserva.fecha_inicio.date().isoformat(),
+                "exclude_reserva_id": reserva.id,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("10:00", payload["horas_disponibles"])
 
     def test_client_cannot_view_other_user_reservation(self):
         reserva = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=7, hour=14))
@@ -335,6 +402,54 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.venta_asociada_segura.detalles.count(), 1)
         self.assertEqual(reserva.venta_asociada_segura.total, producto.precio_venta * 2)
         self.assertEqual(obtener_stock_disponible(producto), 3)
+
+    def test_dashboard_shows_selected_product_price_summary(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 11))
+        proveedor = Proveedor.objects.create(nombre="Proveedor Visual", nit="900100101")
+        producto = Producto.objects.create(
+            nombre="Crema Hidratante",
+            proveedor=proveedor,
+            precio_compra=18000,
+            precio_venta=32000,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        registrar_ingreso(producto, 4, lote="TEST-VISUAL")
+
+        self._force_session(self.admin)
+        response = self.client.get(reverse("citas:calendario"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Precio unitario")
+        self.assertContains(response, 'data-product-price-label')
+        self.assertContains(response, 'data-price="32000')
+
+    def test_dashboard_uses_inventory_price_when_product_price_is_zero(self):
+        self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(3, 11))
+        proveedor = Proveedor.objects.create(nombre="Proveedor Precio", nit="900100102")
+        producto = Producto.objects.create(
+            nombre="Crema Precio Inventario",
+            proveedor=proveedor,
+            precio_compra=15000,
+            precio_venta=0,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        Inventario.objects.create(
+            producto=producto,
+            lote="TEST-PRECIO",
+            stock=6,
+            precio_venta=28000,
+        )
+
+        self._force_session(self.admin)
+        response = self.client.get(reverse("citas:calendario"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-name="Crema Precio Inventario"')
+        self.assertContains(response, 'data-price="28000')
 
     def test_cannot_finalize_without_being_in_process(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=10, hour=16))

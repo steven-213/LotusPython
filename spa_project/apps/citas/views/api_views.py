@@ -1,4 +1,5 @@
 import json
+from datetime import date
 
 from django.core.exceptions import ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
@@ -7,7 +8,12 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.citas.models import Reserva, Servicio
-from apps.citas.services import crear_reserva, reservas_para_calendario
+from apps.citas.services import (
+    INTERVALO_RESERVA_MINUTOS,
+    crear_reserva,
+    obtener_horas_disponibles_reserva,
+    reservas_para_calendario,
+)
 from apps.sesiones.models import Usuario
 
 
@@ -84,3 +90,46 @@ def api_eventos(request):
             return JsonResponse({"error": "Fecha invalida"}, status=400)
 
     return JsonResponse({"error": "metodo no permitido"}, status=405)
+
+
+def api_disponibilidad(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "metodo no permitido"}, status=405)
+
+    servicio_id = (request.GET.get("servicio_id") or "").strip()
+    fecha_raw = (request.GET.get("fecha") or "").strip()
+    exclude_reserva_raw = (request.GET.get("exclude_reserva_id") or "").strip()
+
+    servicio = Servicio.objects.select_related("profesional").filter(id=servicio_id, activo=True).first()
+    if not servicio:
+        return JsonResponse({"error": "servicio_id invalido"}, status=400)
+    if not fecha_raw:
+        return JsonResponse({"error": "fecha es obligatoria"}, status=400)
+
+    try:
+        fecha_reserva = date.fromisoformat(fecha_raw)
+    except ValueError:
+        return JsonResponse({"error": "fecha invalida"}, status=400)
+
+    try:
+        exclude_reserva_id = int(exclude_reserva_raw) if exclude_reserva_raw else None
+    except ValueError:
+        return JsonResponse({"error": "exclude_reserva_id invalido"}, status=400)
+
+    try:
+        horas_disponibles = obtener_horas_disponibles_reserva(
+            servicio=servicio,
+            fecha_reserva=fecha_reserva,
+            exclude_reserva_id=exclude_reserva_id,
+        )
+    except ValidationError as exc:
+        return JsonResponse({"error": exc.message if hasattr(exc, "message") else exc.messages[0]}, status=400)
+
+    return JsonResponse(
+        {
+            "fecha": fecha_reserva.isoformat(),
+            "horas_disponibles": horas_disponibles,
+            "intervalo_minutos": INTERVALO_RESERVA_MINUTOS,
+            "profesional": servicio.profesional.nombre if servicio.profesional else "",
+        }
+    )
