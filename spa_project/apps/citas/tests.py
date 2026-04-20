@@ -66,8 +66,8 @@ class CitasFlowTest(TestCase):
             fecha += timedelta(days=1)
         return fecha
 
-    def _future_input(self, days=2, hour=10):
-        return self._future_start(days=days, hour=hour).strftime("%Y-%m-%dT%H:%M")
+    def _future_input(self, days=2, hour=10, minute=0):
+        return self._future_start(days=days, hour=hour).replace(minute=minute).strftime("%Y-%m-%dT%H:%M")
 
     def _future_weekday_start(self, weekday, hour, minute=0):
         fecha = timezone.localtime(timezone.now())
@@ -225,7 +225,7 @@ class CitasFlowTest(TestCase):
             crear_reserva(
                 cliente=self.otro_cliente,
                 servicio=self.servicio,
-                fecha_inicio=fecha + timedelta(minutes=30),
+                fecha_inicio=fecha,
                 notas="Cruce",
                 origen=Reserva.ORIGEN_AUTENTICADO,
                 actor=self.otro_cliente,
@@ -253,8 +253,24 @@ class CitasFlowTest(TestCase):
                 pago_data=None,
             )
 
+    def test_rejects_appointment_with_minutes_not_on_the_hour(self):
+        fecha = self._future_weekday_start(0, 10, 30)
+
+        with self.assertRaisesMessage(ValidationError, "horas exactas"):
+            crear_reserva(
+                cliente=self.cliente,
+                servicio=self.servicio,
+                fecha_inicio=fecha,
+                notas="Horario con minutos",
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=self.cliente,
+                pago_data=None,
+            )
+
     def test_rejects_service_that_exceeds_closing_time(self):
-        fecha = self._future_weekday_start(0, 17, 30)
+        self.servicio.duracion_minutos = 120
+        self.servicio.save(update_fields=["duracion_minutos"])
+        fecha = self._future_weekday_start(0, 17)
 
         with self.assertRaises(ValidationError):
             crear_reserva(
@@ -290,6 +306,26 @@ class CitasFlowTest(TestCase):
         self.assertEqual(response.status_code, 201)
         reserva = Reserva.objects.get()
         self.assertEqual(reserva.cliente_id, self.cliente.id)
+
+    def test_authenticated_booking_with_minutes_is_rejected(self):
+        self._force_session(self.cliente)
+        response = self.client.post(
+            reverse("citas:reserva_nueva"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha_inicio": self._future_input(days=5, hour=10, minute=30),
+                "notas": "Horario con minutos",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Reserva.objects.count(), 0)
+
+    def test_booking_form_limits_input_to_hours(self):
+        response = self.client.get(reverse("citas:reserva_nueva"))
+
+        self.assertContains(response, 'step="3600"', html=False)
+        self.assertContains(response, "Solo se aceptan horas exactas dentro del horario del spa.")
 
     def test_admin_can_mark_no_show_and_history_is_recorded(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=10))

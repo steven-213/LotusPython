@@ -112,10 +112,10 @@
                 id="fecha_inicio"
                 name="fecha_inicio"
                 value="{% if request.POST.fecha_inicio %}{{ request.POST.fecha_inicio }}{% elif reserva %}{{ reserva.fecha_inicio|date:'Y-m-d\\TH:i' }}{% endif %}"
-                step="900"
+                step="3600"
                 required
               >
-              <small class="field-help">La hora se valida contra el horario del spa y la duracion del servicio.</small>
+              <small class="field-help" id="schedule-help">Solo se aceptan horas exactas dentro del horario del spa.</small>
             </label>
             <label class="field">
               <span>Notas</span>
@@ -229,6 +229,7 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    const OPENING_HOUR = 10;
     const serviceSelect = document.getElementById("servicio");
     const details = document.getElementById("servicio-details");
     const price = document.getElementById("servicio-precio");
@@ -239,81 +240,183 @@
     const paymentRequired = {{ usuario|yesno:"false,true" }};
     const paymentMethod = document.getElementById("metodo_pago");
     const dateInput = document.getElementById("fecha_inicio");
+    const scheduleHelp = document.getElementById("schedule-help");
 
     function formatDateInputValue(date) {
       const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
       return local.toISOString().slice(0, 16);
     }
 
-    function nextAvailableDate(date) {
+    function getScheduleForDay(weekday) {
+      if (weekday >= 1 && weekday <= 5) {
+        return { openingHour: OPENING_HOUR, closingHour: 18 };
+      }
+      if (weekday === 6) {
+        return { openingHour: OPENING_HOUR, closingHour: 20 };
+      }
+      return null;
+    }
+
+    function getDurationMinutes() {
+      const serviceOption = serviceSelect?.options?.[serviceSelect.selectedIndex];
+      const durationMinutes = Number(serviceOption?.dataset?.duracion || 0);
+      return Number.isFinite(durationMinutes) && durationMinutes > 0 ? durationMinutes : 0;
+    }
+
+    function formatHourLabel(hour) {
+      return String(hour).padStart(2, "0") + ":00";
+    }
+
+    function getLatestStartHour(schedule, durationMinutes) {
+      if (!schedule) {
+        return null;
+      }
+      if (!durationMinutes) {
+        return schedule.closingHour - 1;
+      }
+      return Math.floor((schedule.closingHour * 60 - durationMinutes) / 60);
+    }
+
+    function roundToNextHour(date) {
       const candidate = new Date(date);
-      candidate.setMinutes(Math.ceil(candidate.getMinutes() / 15) * 15, 0, 0);
+      if (
+        candidate.getMinutes() > 0
+        || candidate.getSeconds() > 0
+        || candidate.getMilliseconds() > 0
+      ) {
+        candidate.setHours(candidate.getHours() + 1, 0, 0, 0);
+        return candidate;
+      }
+      candidate.setMinutes(0, 0, 0);
+      return candidate;
+    }
 
-      while (true) {
-        const weekday = candidate.getDay();
-        const closingHour = weekday >= 1 && weekday <= 5 ? 18 : weekday === 6 ? 20 : null;
-
-        if (weekday === 0 || closingHour === null) {
-          candidate.setDate(candidate.getDate() + 1);
-          candidate.setHours(10, 0, 0, 0);
-          continue;
-        }
-
-        if (candidate.getHours() < 10) {
-          candidate.setHours(10, 0, 0, 0);
-        }
-
-        if (candidate.getHours() >= closingHour) {
-          candidate.setDate(candidate.getDate() + 1);
-          candidate.setHours(10, 0, 0, 0);
-          continue;
-        }
-
-        break;
+    function evaluateSchedule(date, durationMinutes) {
+      const schedule = getScheduleForDay(date.getDay());
+      if (!schedule) {
+        return { valid: false, message: "Los domingos no hay atencion disponible.", schedule: null };
       }
 
-      return candidate;
+      if (
+        date.getMinutes() !== 0
+        || date.getSeconds() !== 0
+        || date.getMilliseconds() !== 0
+      ) {
+        return {
+          valid: false,
+          message: "Las citas solo se pueden agendar en horas exactas.",
+          schedule: schedule,
+        };
+      }
+
+      const opening = new Date(date);
+      opening.setHours(schedule.openingHour, 0, 0, 0);
+      const closing = new Date(date);
+      closing.setHours(schedule.closingHour, 0, 0, 0);
+      const finish = new Date(date.getTime() + durationMinutes * 60000);
+
+      if (date < opening || date >= closing) {
+        return {
+          valid: false,
+          message: "La hora elegida esta fuera del horario de atencion.",
+          schedule: schedule,
+        };
+      }
+      if (finish.toDateString() !== date.toDateString() || finish > closing) {
+        return {
+          valid: false,
+          message: "La duracion del servicio supera el horario de cierre.",
+          schedule: schedule,
+        };
+      }
+
+      return { valid: true, schedule: schedule };
+    }
+
+    function updateScheduleHelp() {
+      if (!scheduleHelp) {
+        return;
+      }
+
+      if (!dateInput || !dateInput.value) {
+        scheduleHelp.textContent = "Solo se aceptan horas exactas dentro del horario del spa.";
+        return;
+      }
+
+      const selected = new Date(dateInput.value);
+      if (Number.isNaN(selected.getTime())) {
+        scheduleHelp.textContent = "Selecciona una fecha y hora validas.";
+        return;
+      }
+
+      const schedule = getScheduleForDay(selected.getDay());
+      if (!schedule) {
+        scheduleHelp.textContent = "Los domingos no hay atencion disponible.";
+        return;
+      }
+
+      const latestStartHour = getLatestStartHour(schedule, getDurationMinutes());
+      if (latestStartHour === null || latestStartHour < schedule.openingHour) {
+        scheduleHelp.textContent = "Este servicio no cabe en el horario disponible del spa para ese dia.";
+        return;
+      }
+
+      scheduleHelp.textContent =
+        "Horas disponibles para este servicio: "
+        + formatHourLabel(schedule.openingHour)
+        + " a "
+        + formatHourLabel(latestStartHour)
+        + " en punto.";
+    }
+
+    function nextAvailableDate(date, durationMinutes) {
+      const candidate = roundToNextHour(date);
+
+      for (let attempts = 0; attempts < 24 * 14; attempts += 1) {
+        const schedule = getScheduleForDay(candidate.getDay());
+
+        if (!schedule) {
+          candidate.setDate(candidate.getDate() + 1);
+          candidate.setHours(OPENING_HOUR, 0, 0, 0);
+          continue;
+        }
+
+        if (candidate.getHours() < schedule.openingHour) {
+          candidate.setHours(schedule.openingHour, 0, 0, 0);
+        }
+
+        if (candidate.getHours() >= schedule.closingHour) {
+          candidate.setDate(candidate.getDate() + 1);
+          candidate.setHours(OPENING_HOUR, 0, 0, 0);
+          continue;
+        }
+
+        if (evaluateSchedule(candidate, durationMinutes).valid) {
+          return candidate;
+        }
+
+        candidate.setHours(candidate.getHours() + 1, 0, 0, 0);
+      }
+
+      return null;
     }
 
     function validateSchedule() {
       if (!dateInput || !dateInput.value) {
+        updateScheduleHelp();
         return;
       }
+
       const selected = new Date(dateInput.value);
       if (Number.isNaN(selected.getTime())) {
         dateInput.setCustomValidity("Selecciona una fecha y hora validas.");
+        updateScheduleHelp();
         return;
       }
 
-      const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
-      const durationMinutes = Number(serviceOption?.dataset?.duracion || 0);
-      const finish = new Date(selected.getTime() + durationMinutes * 60000);
-      const weekday = selected.getDay();
-      const hour = selected.getHours();
-      const minute = selected.getMinutes();
-      const finishHour = finish.getHours();
-      const finishMinute = finish.getMinutes();
-
-      let closingHour = null;
-      if (weekday >= 1 && weekday <= 5) {
-        closingHour = 18;
-      } else if (weekday === 6) {
-        closingHour = 20;
-      }
-
-      if (weekday === 0) {
-        dateInput.setCustomValidity("Los domingos no hay atencion disponible.");
-        return;
-      }
-      if (hour < 10 || (hour === closingHour && minute > 0) || hour >= closingHour) {
-        dateInput.setCustomValidity("La hora elegida esta fuera del horario de atencion.");
-        return;
-      }
-      if (finish.getDate() !== selected.getDate() || finishHour > closingHour || (finishHour === closingHour && finishMinute > 0)) {
-        dateInput.setCustomValidity("La duracion del servicio supera el horario de cierre.");
-        return;
-      }
-      dateInput.setCustomValidity("");
+      const result = evaluateSchedule(selected, getDurationMinutes());
+      dateInput.setCustomValidity(result.valid ? "" : result.message);
+      updateScheduleHelp();
     }
 
     function updateServiceDetails() {
@@ -323,6 +426,7 @@
         price.textContent = window.CopMoney ? window.CopMoney.formatDisplay(0) : "{{ 0|currency }}";
         professional.textContent = "Sin asignar";
         duration.textContent = "0";
+        updateScheduleHelp();
         return;
       }
       price.textContent = window.CopMoney
@@ -331,6 +435,7 @@
       professional.textContent = selected.dataset.profesional || "Sin asignar";
       duration.textContent = selected.dataset.duracion || "0";
       details.classList.add("is-visible");
+      updateScheduleHelp();
       validateSchedule();
     }
 
@@ -357,9 +462,13 @@
 
     if (dateInput && !dateInput.value) {
       const now = new Date();
-      dateInput.min = formatDateInputValue(now);
-      const initial = nextAvailableDate(now);
-      dateInput.value = formatDateInputValue(initial);
+      const initial = nextAvailableDate(now, getDurationMinutes());
+      if (initial) {
+        dateInput.min = formatDateInputValue(initial);
+        dateInput.value = formatDateInputValue(initial);
+      } else {
+        dateInput.min = formatDateInputValue(now);
+      }
     }
     if (dateInput) {
       dateInput.addEventListener("change", validateSchedule);
