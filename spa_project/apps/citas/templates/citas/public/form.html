@@ -5,6 +5,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 {% endblock %}
 
 {% block content %}
@@ -30,17 +31,8 @@
       <a class="btn-secondary-soft" href="{% url 'citas:servicios_publicos' %}">Ver catalogo de servicios</a>
     </div>
   </header>
-  <section class="info-grid">
-    <article class="info-card">
-      <h2><i class="bi bi-shield-check"></i> Agenda protegida</h2>
-      <p>Los horarios se validan contra la profesional asignada para evitar que dos clientes tomen el mismo espacio.</p>
-    </article>
-    <article class="info-card">
-      <h2><i class="bi bi-receipt-cutoff"></i> Pago y comprobante</h2>
-      <p>Si registras pago en este paso, la cita queda confirmada y el comprobante podra descargarse mas adelante.</p>
-    </article>
-  </section>
 
+ 
   <div class="citas-form-layout">
     <article class="form-surface">
       <form method="post" class="citas-form" novalidate>
@@ -104,10 +96,12 @@
                 {% endfor %}
               </select>
             </label>
+            <input type="hidden" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio_value }}">
             <label class="field">
-              <span>Fecha y hora de inicio</span>
+              <span>Fecha</span>
               <input
                 class="form-control"
+<<<<<<< HEAD
                 type="datetime-local"
                 id="fecha_inicio"
                 name="fecha_inicio"
@@ -116,6 +110,24 @@
                 required
               >
               <small class="field-help" id="schedule-help">Solo se aceptan horas exactas dentro del horario del spa.</small>
+=======
+                type="text"
+                id="fecha_reserva"
+                name="fecha_reserva"
+                value="{{ fecha_reserva_value }}"
+                placeholder="Selecciona una fecha"
+                autocomplete="off"
+                required
+              >
+              <small class="field-help" id="fecha_reserva_help">Los domingos aparecen deshabilitados porque no hay atencion ese dia.</small>
+            </label>
+            <label class="field">
+              <span>Hora de inicio</span>
+              <select class="form-select" id="hora_reserva" name="hora_reserva" required data-initial-time="{{ hora_reserva_value }}">
+                <option value="">Selecciona primero una fecha</option>
+              </select>
+              <small class="field-help">Quitamos automaticamente las horas ya ocupadas por otras citas.</small>
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
             </label>
             <label class="field">
               <span>Notas</span>
@@ -227,6 +239,9 @@
   </div>
 </section>
 
+{{ configuracion_horario_reserva|json_script:"configuracion-horario-reserva" }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const OPENING_HOUR = 10;
@@ -239,14 +254,29 @@
     const paymentFields = document.getElementById("payment-fields");
     const paymentRequired = {{ usuario|yesno:"false,true" }};
     const paymentMethod = document.getElementById("metodo_pago");
+<<<<<<< HEAD
     const dateInput = document.getElementById("fecha_inicio");
     const scheduleHelp = document.getElementById("schedule-help");
+=======
+    const hiddenDateTimeInput = document.getElementById("fecha_inicio");
+    const bookingDateInput = document.getElementById("fecha_reserva");
+    const bookingDateHelp = document.getElementById("fecha_reserva_help");
+    const bookingTimeSelect = document.getElementById("hora_reserva");
+    const availabilityUrl = "{% url 'citas:api_disponibilidad' %}";
+    const editingReservationId = "{{ reserva.id|default:'' }}";
+    const scheduleConfig = JSON.parse(document.getElementById("configuracion-horario-reserva").textContent);
+    const scheduleDays = scheduleConfig.dias || {};
+    const slotIntervalMinutes = Number(scheduleConfig.intervalo_minutos || 15);
+    let availabilityRequestToken = 0;
+    const defaultDateHelp = "Los domingos aparecen deshabilitados porque no hay atencion ese dia.";
+    let bookingDatePicker = null;
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
 
-    function formatDateInputValue(date) {
-      const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-      return local.toISOString().slice(0, 16);
+    function pad(value) {
+      return String(value).padStart(2, "0");
     }
 
+<<<<<<< HEAD
     function getScheduleForDay(weekday) {
       if (weekday >= 1 && weekday <= 5) {
         return { openingHour: OPENING_HOUR, closingHour: 18 };
@@ -412,21 +442,307 @@
         dateInput.setCustomValidity("Selecciona una fecha y hora validas.");
         updateScheduleHelp();
         return;
-      }
+=======
+    function toDateString(date) {
+      return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join("-");
+    }
 
+    function parseDateString(value) {
+      if (!value) {
+        return null;
+      }
+      const [year, month, day] = value.split("-").map(Number);
+      if (!year || !month || !day) {
+        return null;
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
+      }
+      return new Date(year, month - 1, day);
+    }
+
+<<<<<<< HEAD
       const result = evaluateSchedule(selected, getDurationMinutes());
       dateInput.setCustomValidity(result.valid ? "" : result.message);
       updateScheduleHelp();
+=======
+    function isSundayDate(dateValue) {
+      const date = parseDateString(dateValue);
+      return Boolean(date) && date.getDay() === 0;
+    }
+
+    function setBookingDateHelp(message) {
+      if (bookingDateHelp) {
+        bookingDateHelp.textContent = message || defaultDateHelp;
+      }
+    }
+
+    function getBookingDateValue() {
+      return bookingDateInput ? bookingDateInput.value : "";
+    }
+
+    function setBookingDateValue(value, triggerChange) {
+      if (!bookingDateInput) {
+        return;
+      }
+      if (bookingDatePicker) {
+        bookingDatePicker.setDate(value || null, Boolean(triggerChange), "Y-m-d");
+      } else {
+        bookingDateInput.value = value || "";
+        if (triggerChange) {
+          bookingDateInput.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+    }
+
+    function hhmmToMinutes(value) {
+      const [hours, minutes] = String(value || "").split(":").map(Number);
+      if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+        return null;
+      }
+      return hours * 60 + minutes;
+    }
+
+    function minutesToHHMM(totalMinutes) {
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${pad(hours)}:${pad(minutes)}`;
+    }
+
+    function roundUpToStep(totalMinutes) {
+      return Math.ceil(totalMinutes / slotIntervalMinutes) * slotIntervalMinutes;
+    }
+
+    function getSelectedDurationMinutes() {
+      const serviceOption = serviceSelect.options[serviceSelect.selectedIndex];
+      return Number(serviceOption?.dataset?.duracion || 0);
+    }
+
+    function getScheduleForDate(dateValue) {
+      const date = parseDateString(dateValue);
+      if (!date) {
+        return null;
+      }
+      return scheduleDays[date.getDay()] || null;
+    }
+
+    function buildTimeSlots(dateValue, durationMinutes) {
+      const schedule = getScheduleForDate(dateValue);
+      if (!schedule) {
+        return [];
+      }
+
+      const openingMinutes = hhmmToMinutes(schedule.apertura);
+      const closingMinutes = hhmmToMinutes(schedule.cierre);
+      const latestStart = closingMinutes - durationMinutes;
+      if (openingMinutes === null || closingMinutes === null || latestStart < openingMinutes) {
+        return [];
+      }
+
+      let startMinutes = openingMinutes;
+      const todayString = toDateString(new Date());
+      if (dateValue === todayString) {
+        const now = new Date();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        startMinutes = Math.max(startMinutes, roundUpToStep(currentMinutes));
+      }
+
+      const slots = [];
+      for (let minutes = startMinutes; minutes <= latestStart; minutes += slotIntervalMinutes) {
+        slots.push(minutesToHHMM(minutes));
+      }
+      return slots;
+    }
+
+    function findNextAvailableDate(durationMinutes, preferredDate) {
+      let cursor = parseDateString(preferredDate) || new Date();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (cursor < today) {
+        cursor = new Date(today);
+      }
+      cursor.setHours(0, 0, 0, 0);
+
+      for (let attempts = 0; attempts < 45; attempts += 1) {
+        const candidate = toDateString(cursor);
+        const slots = buildTimeSlots(candidate, durationMinutes);
+        if (slots.length) {
+          return { date: candidate, slots };
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+
+      return { date: preferredDate || "", slots: [] };
+    }
+
+    function updateHiddenDateTime() {
+      if (!hiddenDateTimeInput) {
+        return;
+      }
+
+      if (bookingDateInput.value && bookingTimeSelect.value) {
+        hiddenDateTimeInput.value = `${bookingDateInput.value}T${bookingTimeSelect.value}`;
+      } else {
+        hiddenDateTimeInput.value = "";
+      }
+    }
+
+    function renderTimeOptions(slots, selectedTime, emptyMessage) {
+      if (!bookingTimeSelect) {
+        return;
+      }
+
+      bookingTimeSelect.innerHTML = "";
+      if (!slots.length) {
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = emptyMessage || "No hay horarios disponibles para esa fecha";
+        bookingTimeSelect.appendChild(emptyOption);
+        bookingTimeSelect.disabled = true;
+        bookingTimeSelect.setCustomValidity(emptyMessage || "Selecciona otra fecha con horario disponible.");
+        updateHiddenDateTime();
+        return;
+      }
+
+      bookingTimeSelect.disabled = false;
+      bookingTimeSelect.setCustomValidity("");
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Selecciona una hora";
+      bookingTimeSelect.appendChild(placeholder);
+
+      slots.forEach(function (timeValue) {
+        const option = document.createElement("option");
+        option.value = timeValue;
+        option.textContent = timeValue;
+        bookingTimeSelect.appendChild(option);
+      });
+
+      const finalSelection = slots.includes(selectedTime) ? selectedTime : slots[0];
+      bookingTimeSelect.value = finalSelection;
+      updateHiddenDateTime();
+    }
+
+    function showLoadingTimeOptions() {
+      if (!bookingTimeSelect) {
+        return;
+      }
+      bookingTimeSelect.innerHTML = '<option value="">Consultando horarios disponibles...</option>';
+      bookingTimeSelect.disabled = true;
+      bookingTimeSelect.setCustomValidity("Espera a que terminemos de cargar las horas disponibles.");
+      updateHiddenDateTime();
+    }
+
+    function buildAvailabilityRequestUrl(dateValue) {
+      const params = new URLSearchParams({
+        servicio_id: serviceSelect.value,
+        fecha: dateValue,
+      });
+      if (editingReservationId) {
+        params.set("exclude_reserva_id", editingReservationId);
+      }
+      return `${availabilityUrl}?${params.toString()}`;
+    }
+
+    async function fetchAvailableTimeSlots(dateValue) {
+      const requestToken = ++availabilityRequestToken;
+      try {
+        const response = await fetch(buildAvailabilityRequestUrl(dateValue), {
+          headers: { Accept: "application/json" },
+        });
+        const payload = await response.json();
+        if (requestToken !== availabilityRequestToken) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error(payload.error || "No fue posible consultar la disponibilidad.");
+        }
+        return Array.isArray(payload.horas_disponibles) ? payload.horas_disponibles : [];
+      } catch (error) {
+        if (requestToken !== availabilityRequestToken) {
+          return null;
+        }
+        renderTimeOptions([], "", error.message || "No fue posible consultar la disponibilidad.");
+        return null;
+      }
+    }
+
+    async function syncScheduleFields(preferredTime) {
+      if (!bookingDateInput || !bookingTimeSelect) {
+        return;
+      }
+      if (!serviceSelect || !serviceSelect.value) {
+        setBookingDateHelp(defaultDateHelp);
+        renderTimeOptions([], "", "Selecciona primero un servicio.");
+        return;
+      }
+
+      const durationMinutes = Math.max(getSelectedDurationMinutes(), slotIntervalMinutes);
+      const currentDateValue = getBookingDateValue();
+      const nextAvailable = findNextAvailableDate(durationMinutes, currentDateValue);
+      const selectedSunday = isSundayDate(currentDateValue);
+      if (nextAvailable.date) {
+        if (bookingDatePicker) {
+          bookingDatePicker.set("minDate", nextAvailable.date);
+        }
+      }
+
+      if (
+        !currentDateValue
+        || currentDateValue < nextAvailable.date
+        || buildTimeSlots(currentDateValue, durationMinutes).length === 0
+      ) {
+        setBookingDateValue(nextAvailable.date, false);
+      }
+
+      if (selectedSunday) {
+        bookingDateInput.setCustomValidity("");
+        setBookingDateHelp("Los domingos no estan disponibles. Te movimos al siguiente dia habil.");
+      } else {
+        bookingDateInput.setCustomValidity("");
+        setBookingDateHelp(defaultDateHelp);
+      }
+
+      const selectedDateValue = getBookingDateValue();
+      const baseSlots = buildTimeSlots(selectedDateValue, durationMinutes);
+      if (!baseSlots.length) {
+        renderTimeOptions([], "", "No hay horarios disponibles para esa fecha.");
+        bookingTimeSelect.dataset.initialTime = "";
+        return;
+      }
+
+      showLoadingTimeOptions();
+      const slots = await fetchAvailableTimeSlots(selectedDateValue);
+      if (slots === null) {
+        return;
+      }
+      renderTimeOptions(
+        slots,
+        preferredTime || bookingTimeSelect.dataset.initialTime || bookingTimeSelect.value,
+        "Ese dia ya no tiene horas libres para este servicio.",
+      );
+      bookingTimeSelect.dataset.initialTime = "";
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
     }
 
     function updateServiceDetails() {
       const selected = serviceSelect.options[serviceSelect.selectedIndex];
       if (!selected || !selected.value) {
+        availabilityRequestToken += 1;
         details.classList.remove("is-visible");
         price.textContent = window.CopMoney ? window.CopMoney.formatDisplay(0) : "{{ 0|currency }}";
         professional.textContent = "Sin asignar";
         duration.textContent = "0";
+<<<<<<< HEAD
         updateScheduleHelp();
+=======
+        if (bookingTimeSelect) {
+          bookingTimeSelect.innerHTML = '<option value="">Selecciona primero un servicio</option>';
+          bookingTimeSelect.disabled = true;
+          bookingTimeSelect.setCustomValidity("Selecciona un servicio para ver horarios disponibles.");
+        }
+        if (hiddenDateTimeInput) {
+          hiddenDateTimeInput.value = "";
+        }
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
         return;
       }
       price.textContent = window.CopMoney
@@ -435,8 +751,12 @@
       professional.textContent = selected.dataset.profesional || "Sin asignar";
       duration.textContent = selected.dataset.duracion || "0";
       details.classList.add("is-visible");
+<<<<<<< HEAD
       updateScheduleHelp();
       validateSchedule();
+=======
+      void syncScheduleFields();
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
     }
 
     function togglePaymentFields() {
@@ -452,7 +772,6 @@
 
     if (serviceSelect) {
       serviceSelect.addEventListener("change", updateServiceDetails);
-      updateServiceDetails();
     }
 
     if (paymentCheckbox) {
@@ -460,6 +779,7 @@
     }
     togglePaymentFields();
 
+<<<<<<< HEAD
     if (dateInput && !dateInput.value) {
       const now = new Date();
       const initial = nextAvailableDate(now, getDurationMinutes());
@@ -469,11 +789,42 @@
       } else {
         dateInput.min = formatDateInputValue(now);
       }
+=======
+    if (bookingDateInput) {
+      if (window.flatpickr) {
+        bookingDatePicker = window.flatpickr(bookingDateInput, {
+          dateFormat: "Y-m-d",
+          locale: window.flatpickr.l10ns.es,
+          disableMobile: true,
+          allowInput: false,
+          clickOpens: true,
+          disable: [
+            function (date) {
+              return date.getDay() === 0;
+            },
+          ],
+        });
+      }
+      bookingDateInput.addEventListener("change", function () {
+        void syncScheduleFields();
+      });
+      bookingDateInput.addEventListener("input", function () {
+        if (isSundayDate(bookingDateInput.value)) {
+          bookingDateInput.setCustomValidity("Los domingos no hay atencion disponible.");
+        } else {
+          bookingDateInput.setCustomValidity("");
+        }
+      });
+>>>>>>> 2115558c6098686e1d8b5ba879ad426a52a93364
     }
-    if (dateInput) {
-      dateInput.addEventListener("change", validateSchedule);
-      dateInput.addEventListener("input", validateSchedule);
-      validateSchedule();
+    if (bookingTimeSelect) {
+      bookingTimeSelect.addEventListener("change", updateHiddenDateTime);
+    }
+
+    if (serviceSelect) {
+      updateServiceDetails();
+    } else if (bookingDateInput && bookingTimeSelect) {
+      void syncScheduleFields();
     }
   });
 </script>

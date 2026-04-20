@@ -1,4 +1,4 @@
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from django.core import signing
 from django.core.exceptions import ValidationError
@@ -14,6 +14,8 @@ ESTADOS_CONFLICTIVOS = {
     Reserva.ESTADO_CONFIRMADA,
     Reserva.ESTADO_EN_PROCESO,
 }
+
+INTERVALO_RESERVA_MINUTOS = 15
 
 TRANSICIONES_VALIDAS = {
     Reserva.ESTADO_PROGRAMADA: {
@@ -56,6 +58,24 @@ def _formatear_horario(apertura, cierre):
     return f"{apertura.strftime('%I:%M %p')} - {cierre.strftime('%I:%M %p')}"
 
 
+def _formatear_hora_input(hora):
+    return hora.strftime("%H:%M")
+
+
+def configuracion_horario_reserva():
+    dias = {indice: None for indice in range(7)}
+    for weekday_python, (apertura, cierre) in HORARIOS_ATENCION.items():
+        weekday_js = (weekday_python + 1) % 7
+        dias[weekday_js] = {
+            "apertura": _formatear_hora_input(apertura),
+            "cierre": _formatear_hora_input(cierre),
+        }
+    return {
+        "dias": dias,
+        "intervalo_minutos": INTERVALO_RESERVA_MINUTOS,
+    }
+
+
 def validar_horario_reserva(*, fecha_inicio, fecha_fin):
     fecha_inicio_local = timezone.localtime(fecha_inicio)
     fecha_fin_local = timezone.localtime(fecha_fin)
@@ -88,6 +108,21 @@ def validar_horario_reserva(*, fecha_inicio, fecha_fin):
 
 def calcular_fecha_fin(servicio: Servicio, fecha_inicio):
     return fecha_inicio + timedelta(minutes=servicio.duracion_minutos or 60)
+
+
+def _redondear_hacia_arriba_intervalo(fecha):
+    fecha = fecha.replace(second=0, microsecond=0)
+    residuo = fecha.minute % INTERVALO_RESERVA_MINUTOS
+    if residuo == 0:
+        return fecha
+    return fecha + timedelta(minutes=INTERVALO_RESERVA_MINUTOS - residuo)
+
+
+def _combinar_fecha_hora_local(fecha_reserva, hora_reserva):
+    return timezone.make_aware(
+        datetime.combine(fecha_reserva, hora_reserva),
+        timezone.get_current_timezone(),
+    )
 
 
 def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, fecha_nacimiento):
@@ -133,21 +168,81 @@ def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, 
     return invitado
 
 
-def obtener_conflicto_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=None):
-    if not servicio.profesional_id:
-        return None
-
+def _reservas_conflictivas_profesional(*, profesional, fecha_inicio, fecha_fin, exclude_reserva_id=None):
     conflictos = Reserva.objects.select_related(
         "cliente", "cliente_invitado", "servicio", "servicio__profesional"
     ).filter(
-        servicio__profesional=servicio.profesional,
+        servicio__profesional=profesional,
         estado__in=ESTADOS_CONFLICTIVOS,
         fecha_inicio__lt=fecha_fin,
         fecha_fin__gt=fecha_inicio,
     )
     if exclude_reserva_id:
         conflictos = conflictos.exclude(id=exclude_reserva_id)
-    return conflictos.first()
+    return conflictos
+
+
+def obtener_conflicto_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=None):
+    if not servicio.profesional_id:
+        return None
+
+    return _reservas_conflictivas_profesional(
+        profesional=servicio.profesional,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        exclude_reserva_id=exclude_reserva_id,
+    ).first()
+
+
+def obtener_horas_disponibles_reserva(*, servicio, fecha_reserva, exclude_reserva_id=None):
+    if not servicio.activo:
+        raise ValidationError("El servicio seleccionado no esta disponible.")
+    if not servicio.profesional_id:
+        raise ValidationError("El servicio no tiene una profesional asignada.")
+
+    inicio_dia = _combinar_fecha_hora_local(fecha_reserva, time.min)
+    horario = obtener_horario_atencion(inicio_dia)
+    if not horario:
+        return []
+
+    apertura, cierre = horario
+    duracion_minutos = servicio.duracion_minutos or 60
+    duracion = timedelta(minutes=duracion_minutos)
+    apertura_dt = _combinar_fecha_hora_local(fecha_reserva, apertura)
+    cierre_dt = _combinar_fecha_hora_local(fecha_reserva, cierre)
+    ultimo_inicio_dt = cierre_dt - duracion
+    if ultimo_inicio_dt < apertura_dt:
+        return []
+
+    ahora_local = timezone.localtime(timezone.now())
+    primer_inicio_dt = apertura_dt
+    if fecha_reserva == ahora_local.date():
+        primer_inicio_dt = max(primer_inicio_dt, _redondear_hacia_arriba_intervalo(ahora_local))
+    if primer_inicio_dt > ultimo_inicio_dt:
+        return []
+
+    reservas_ocupadas = list(
+        _reservas_conflictivas_profesional(
+            profesional=servicio.profesional,
+            fecha_inicio=apertura_dt,
+            fecha_fin=cierre_dt,
+            exclude_reserva_id=exclude_reserva_id,
+        ).values_list("fecha_inicio", "fecha_fin")
+    )
+
+    horas_disponibles = []
+    cursor = primer_inicio_dt
+    while cursor <= ultimo_inicio_dt:
+        fecha_fin = cursor + duracion
+        tiene_cruce = any(
+            reserva_inicio < fecha_fin and reserva_fin > cursor
+            for reserva_inicio, reserva_fin in reservas_ocupadas
+        )
+        if not tiene_cruce:
+            horas_disponibles.append(timezone.localtime(cursor).strftime("%H:%M"))
+        cursor += timedelta(minutes=INTERVALO_RESERVA_MINUTOS)
+
+    return horas_disponibles
 
 
 def validar_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=None):

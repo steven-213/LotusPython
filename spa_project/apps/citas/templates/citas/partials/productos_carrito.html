@@ -13,13 +13,14 @@
         <option
           value="{{ producto.id }}"
           data-name="{{ producto.nombre|escape }}"
-          data-price="{{ producto.precio_venta }}"
+          data-price="{{ producto.precio_facturable|floatformat:2 }}"
           data-stock="{{ producto.stock_disponible }}"
         >
-          {{ producto.nombre }} · {{ producto.precio_venta|currency }} · Stock {{ producto.stock_disponible }}
+          {{ producto.nombre }} · {{ producto.precio_facturable|currency }} · Stock {{ producto.stock_disponible }}
         </option>
         {% endfor %}
       </select>
+      <small class="field-help">Al seleccionar un producto veras su precio unitario y el stock disponible.</small>
     </label>
     <label class="field">
       <span>Cantidad</span>
@@ -28,6 +29,21 @@
     <div class="field cart-inline-action">
       <span>Accion</span>
       <button type="button" class="btn-secondary-soft" data-add-product><i class="bi bi-plus-circle"></i> Agregar</button>
+    </div>
+  </div>
+
+  <div class="invoice-summary-card product-picker-summary">
+    <div>
+      <span class="summary-label">Producto elegido</span>
+      <strong data-product-name-label>Sin seleccionar</strong>
+    </div>
+    <div>
+      <span class="summary-label">Precio unitario</span>
+      <strong data-product-price-label>{{ 0|currency }}</strong>
+    </div>
+    <div>
+      <span class="summary-label">Stock disponible</span>
+      <strong data-product-stock-label>0</strong>
     </div>
   </div>
 

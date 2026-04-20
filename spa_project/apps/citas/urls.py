@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.citas.views.api_views import api_eventos
+from apps.citas.views.api_views import api_disponibilidad, api_eventos
 from apps.citas.views.cita_views import (
     agenda,
     calendario,
@@ -46,4 +46,5 @@ urlpatterns = [
     path("<int:reserva_id>/pago/", reserva_registrar_pago, name="reserva_registrar_pago"),
     path("pagos/<int:pago_id>/comprobante/", comprobante_pago_pdf, name="comprobante_pago_pdf"),
     path("api/eventos/", api_eventos, name="api_eventos"),
+    path("api/disponibilidad/", api_disponibilidad, name="api_disponibilidad"),
 ]
