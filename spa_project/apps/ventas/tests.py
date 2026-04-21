@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from apps.inventario.models import Producto, Proveedor
+from apps.inventario.models import Inventario, Producto, Proveedor
 from apps.inventario.services import obtener_stock_disponible
 from apps.sesiones.models import Usuario
 from apps.ventas import telegram_notifier
@@ -50,18 +50,26 @@ class VentasViewsTest(TestCase):
             impuesto=Decimal("19"),
             margen_ganancia=Decimal("20"),
         )
+        Inventario.objects.create(
+            producto=self.producto,
+            lote="VENTA-TEST-1",
+            stock=10,
+            precio_venta=Decimal("15000"),
+        )
         self.set_admin_session()
 
     def set_admin_session(self):
         session = self.client.session
         session["usuario_id"] = self.admin.id
         session["usuario_rol"] = "admin"
+        session["usuario_nombre"] = f"{self.admin.nombre} {self.admin.apellido}"
         session.save()
 
     def set_client_session(self):
         session = self.client.session
         session["usuario_id"] = self.cliente.id
         session["usuario_rol"] = "cliente"
+        session["usuario_nombre"] = f"{self.cliente.nombre} {self.cliente.apellido}"
         session.save()
 
     def crear_compra_confirmada(self, *, cantidad=3, precio_unitario="15000"):
@@ -90,31 +98,52 @@ class VentasViewsTest(TestCase):
     def test_ventas_lista_ok(self):
         response = self.client.get(reverse("ventas:venta_lista"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Resumen de ventas")
+
+    def test_venta_listado_ok(self):
+        response = self.client.get(reverse("ventas:venta_listado"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Listado de ventas")
+        self.assertContains(response, "Excel")
+        self.assertContains(response, "PDF")
 
     def test_venta_nueva_get_ok(self):
         response = self.client.get(reverse("ventas:venta_nueva"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Registrar nueva venta")
+        self.assertContains(response, "Datos de la venta")
+        self.assertContains(response, self.producto.nombre)
 
     def test_venta_nueva_post_crea_venta(self):
         response = self.client.post(
             reverse("ventas:venta_nueva"),
-            data={"cliente_id": self.cliente.id, "total": "20.000"},
+            data={
+                "cliente_id": self.cliente.id,
+                "producto_ids[]": [str(self.producto.id)],
+                "cantidades[]": ["2"],
+            },
         )
 
         venta = Venta.objects.get()
         self.assertRedirects(response, reverse("ventas:venta_detalle", args=[venta.id]))
         self.assertEqual(venta.cliente, self.cliente)
-        self.assertEqual(venta.total, Decimal("20000"))
+        self.assertEqual(venta.total, Decimal("30000"))
+        self.assertEqual(DetalleVenta.objects.count(), 1)
+        self.assertEqual(DetalleVenta.objects.get().cantidad, 2)
+        self.assertEqual(ValidacionVenta.objects.count(), 1)
+        self.assertEqual(ValidacionVenta.objects.get().estado, "pendiente")
 
-    def test_venta_nueva_rechaza_total_negativo(self):
+    def test_venta_nueva_rechaza_cantidad_invalida(self):
         response = self.client.post(
             reverse("ventas:venta_nueva"),
-            data={"cliente_id": self.cliente.id, "total": "-20.000"},
+            data={
+                "cliente_id": self.cliente.id,
+                "producto_ids[]": [str(self.producto.id)],
+                "cantidades[]": ["0"],
+            },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "El total de la venta debe ser mayor a cero.")
+        self.assertContains(response, "La cantidad de la fila 1 debe ser mayor a cero.")
         self.assertEqual(Venta.objects.count(), 0)
 
     def test_api_ventas_get_post(self):
@@ -137,7 +166,7 @@ class VentasViewsTest(TestCase):
 
     @override_settings(
         TELEGRAM_BOT_TOKEN="token-prueba",
-        TELEGRAM_CHAT_ID='111,222',
+        TELEGRAM_CHAT_ID="111,222",
         TELEGRAM_CHAT_IDS=[],
     )
     @patch("apps.ventas.telegram_notifier._enviar_mensaje_chat_telegram", return_value=True)
@@ -194,7 +223,7 @@ class VentasViewsTest(TestCase):
         self.assertContains(response, "Devolucion aprobada correctamente.")
         solicitud.refresh_from_db()
         self.assertEqual(solicitud.estado, SolicitudDevolucionVenta.ESTADO_APROBADA)
-        self.assertEqual(obtener_stock_disponible(self.producto), 2)
+        self.assertEqual(obtener_stock_disponible(self.producto), 12)
 
     @override_settings(TELEGRAM_CONFIRM_TOKEN="token-prueba")
     def test_rechazar_devolucion_telegram_actualiza_estado(self):
@@ -215,7 +244,7 @@ class VentasViewsTest(TestCase):
         self.assertContains(response, "Devolucion rechazada correctamente.")
         solicitud.refresh_from_db()
         self.assertEqual(solicitud.estado, SolicitudDevolucionVenta.ESTADO_RECHAZADA)
-        self.assertEqual(obtener_stock_disponible(self.producto), 0)
+        self.assertEqual(obtener_stock_disponible(self.producto), 10)
 
     def test_venta_lista_admin_muestra_resumen_devolucion_cliente(self):
         venta, detalle = self.crear_compra_confirmada(cantidad=3)
@@ -231,9 +260,19 @@ class VentasViewsTest(TestCase):
         response = self.client.get(reverse("ventas:venta_lista"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Devolución Cliente")
+        self.assertContains(response, "Resumen de ventas")
         self.assertContains(response, "Devuelta parcial")
-        self.assertContains(response, f"Devolucion aprobada de {self.producto.nombre}")
+        self.assertContains(response, f"#{venta.id}")
+
+    def test_venta_listado_admin_muestra_filtros_y_exportes(self):
+        venta, _ = self.crear_compra_confirmada(cantidad=1)
+
+        response = self.client.get(reverse("ventas:venta_listado"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Listado de ventas")
+        self.assertContains(response, "Excel")
+        self.assertContains(response, "PDF")
         self.assertContains(response, f"#{venta.id}")
 
     def test_venta_detalle_admin_muestra_devoluciones_del_cliente(self):
@@ -242,7 +281,7 @@ class VentasViewsTest(TestCase):
             detalle_venta=detalle,
             cliente=self.cliente,
             cantidad=1,
-            motivo="Llegó con el sello roto.",
+            motivo="Llego con el sello roto.",
             estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE,
         )
 
@@ -253,4 +292,4 @@ class VentasViewsTest(TestCase):
         self.assertContains(response, "Estado de devolución cliente")
         self.assertContains(response, f"Solicitud #{solicitud.id}")
         self.assertContains(response, self.producto.nombre)
-        self.assertContains(response, "Llegó con el sello roto.")
+        self.assertContains(response, "Llego con el sello roto.")

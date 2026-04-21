@@ -4,6 +4,12 @@
     padding-right: 0.65rem;
 }
 
+.body-admin-shell {
+    background:
+        radial-gradient(circle at top left, rgba(251, 205, 217, 0.35), transparent 32%),
+        linear-gradient(180deg, #fffafc 0%, #fff4f8 100%);
+}
+
 .admin-workspace {
     display: grid;
     grid-template-columns: 248px minmax(0, 1fr);
@@ -16,12 +22,18 @@
 
 .admin-sidebar {
     position: sticky;
-    top: 24px;
+    top: 96px;
     background: linear-gradient(180deg, #fff8fb 0%, #ffffff 100%);
     border: 1px solid rgba(202, 107, 134, 0.14);
     border-radius: 24px;
     box-shadow: 0 18px 40px rgba(114, 50, 69, 0.1);
     padding: 22px 18px;
+}
+
+.encabezado-sitio-admin .navegacion-sitio {
+    max-width: min(1760px, calc(100vw - 12px));
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
 }
 
 .admin-sidebar-top {
@@ -52,9 +64,35 @@
     line-height: 1.5;
 }
 
+.admin-sidebar-back {
+    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(202, 107, 134, 0.18);
+    background: #fff;
+    color: #3b2b32;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-sidebar-back:hover,
+.admin-sidebar-back:focus {
+    color: #3b2b32;
+    background: #fff6f8;
+    border-color: rgba(202, 107, 134, 0.28);
+    transform: translateX(-1px);
+}
+
 .admin-sidebar-groups {
     display: grid;
     gap: 14px;
+    max-height: calc(100vh - 245px);
+    overflow: auto;
+    padding-right: 4px;
 }
 
 .admin-sidebar-group {
@@ -117,6 +155,11 @@
 .admin-main > .mensajes-sistema {
     width: 100%;
     margin: 0 0 18px;
+}
+
+.admin-main .admin-page-hero,
+.admin-main .inv-panel-shell {
+    display: none;
 }
 
 .admin-page-hero {
@@ -402,6 +445,11 @@
     .admin-sidebar {
         border-radius: 18px;
         padding: 18px 14px;
+    }
+
+    .admin-sidebar-groups {
+        max-height: none;
+        overflow: visible;
     }
 
     .admin-sidebar-links {

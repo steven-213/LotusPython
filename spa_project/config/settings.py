@@ -78,7 +78,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "apps.common",
     "apps.sesiones.apps.SesionesConfig",
-    "apps.membresias.apps.MembresiasConfig",
     "apps.inventario",
     "apps.ventas",
     "apps.citas",

@@ -1,10 +1,18 @@
 <aside class="admin-sidebar" aria-label="Navegación admin">
     <div class="admin-sidebar-top">
-        <p class="admin-sidebar-eyebrow">Navegación admin</p>
-        <h2 class="admin-sidebar-title">Panel de gestión</h2>
+        <p class="admin-sidebar-eyebrow">{{ admin_sidebar_eyebrow }}</p>
+        {% if admin_sidebar_title %}
+        <h2 class="admin-sidebar-title">{{ admin_sidebar_title }}</h2>
+        {% endif %}
         <p class="admin-sidebar-copy">
-            Muévete entre módulos y tareas frecuentes sin perder el contexto de trabajo.
+            {{ admin_sidebar_copy }}
         </p>
+        {% if admin_sidebar_back_url %}
+        <a href="{{ admin_sidebar_back_url }}" class="admin-sidebar-back">
+            <i class="bi bi-arrow-left"></i>
+            <span>{{ admin_sidebar_back_label }}</span>
+        </a>
+        {% endif %}
     </div>
 
     <div class="admin-sidebar-groups">

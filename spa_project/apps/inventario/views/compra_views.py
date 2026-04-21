@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from django.db import transaction
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
+from apps.ventas.models import SolicitudDevolucionVenta
 
 
 def _parse_positive_int(value, *, label):
@@ -411,6 +412,14 @@ def devolucion_lista(request):
     devoluciones_pendientes = DevolucionCompra.objects.filter(estado="pendiente").count()
     devoluciones_aprobadas = DevolucionCompra.objects.filter(estado="aprobada").count()
     devoluciones_rechazadas = DevolucionCompra.objects.filter(estado="rechazada").count()
+    solicitudes_cliente = (
+        SolicitudDevolucionVenta.objects
+        .select_related("cliente", "detalle_venta__venta", "detalle_venta__producto")
+        .order_by("-fecha_solicitud", "-id")
+    )
+    solicitudes_cliente_pendientes = solicitudes_cliente.filter(
+        estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE
+    ).count()
     
     return render(request, "inventario/dashboard/devoluciones/lista.html", {
         "devoluciones": devoluciones,
@@ -420,6 +429,8 @@ def devolucion_lista(request):
         "devoluciones_pendientes": devoluciones_pendientes,
         "devoluciones_aprobadas": devoluciones_aprobadas,
         "devoluciones_rechazadas": devoluciones_rechazadas,
+        "solicitudes_cliente": solicitudes_cliente,
+        "solicitudes_cliente_pendientes": solicitudes_cliente_pendientes,
     })
 
 

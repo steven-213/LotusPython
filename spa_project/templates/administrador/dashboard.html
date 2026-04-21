@@ -4,151 +4,51 @@
 {% block title %}Panel | Dashboard Admin{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'administrador/dashboard_style.css' %}">
+<link rel="stylesheet" href="{% static 'administrador/dashboard_style.css' %}?v=20260420a">
 {% endblock %}
 
 {% block content %}
 <div class="container-lg py-2 admin-dashboard">
-    <section class="admin-page-hero">
-        <div class="admin-page-copy">
-            <div class="admin-page-breadcrumbs">
-                <span>Panel admin</span>
-                <span>/</span>
-                <span>Resumen general</span>
-            </div>
-            <h1 class="admin-page-title">Panel principal</h1>
-            <p class="admin-page-description">
-                Centraliza inventario, ventas, citas y devoluciones desde una sola vista operativa.
+    {% if pending_client_returns %}
+    <section class="admin-panel-alert">
+        <div>
+            <p class="admin-panel-alert-label">Atención</p>
+            <h1 class="admin-panel-alert-title">Hay {{ pending_client_returns }} devolución(es) de clientes pendientes</h1>
+            <p class="admin-panel-alert-copy">
+                Revísalas desde el módulo de devoluciones para mantener el panel al día.
             </p>
         </div>
+        <a href="{% url 'inventario:devolucion_lista' %}" class="admin-action-button">
+            <i class="bi bi-arrow-return-left"></i> Revisar devoluciones
+        </a>
     </section>
+    {% endif %}
 
-    <!-- MÓDULOS PRINCIPALES -->
-    <div class="d-flex align-items-center justify-content-between mb-2">
-        <h2 class="h6 mb-0 section-title"><i class="bi bi-layers me-1"></i> Módulos</h2>
-    </div>
-    <div class="row g-2 mb-2">
-        <!-- MÓDULO: INVENTARIO -->
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 module-card">
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge module-badge"><i class="bi bi-box-seam"></i></span>
-                        <div>
-                            <h5 class="h6 mb-0 module-title">Inventario</h5>
-                            <small class="module-subtitle">Productos y compras</small>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-1 mt-2">
-                        <a href="{% url 'inventario:dashboard' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-pie-chart me-1"></i> Dashboard
-                        </a>
-                        <a href="{% url 'inventario:producto_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-box me-1"></i> Productos
-                        </a>
-                        <a href="{% url 'inventario:compra_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-cart-check me-1"></i> Compras
-                        </a>
-                    </div>
-                </div>
+    <section class="admin-dashboard-grid" aria-label="Módulos del sistema">
+        {% for module in module_cards %}
+        <article class="module-card admin-module-card">
+            <div class="admin-module-card-top">
+                <span class="badge module-badge admin-module-icon">
+                    <i class="bi {{ module.icon }}"></i>
+                </span>
+                {% if module.badge %}
+                <span class="admin-module-badge">{{ module.badge }}</span>
+                {% endif %}
             </div>
-        </div>
-
-        <!-- MÓDULO: VENTAS -->
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 module-card">
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge module-badge"><i class="bi bi-graph-up"></i></span>
-                        <div>
-                            <h5 class="h6 mb-0 module-title">Ventas</h5>
-                            <small class="module-subtitle">Ventas y devoluciones cliente</small>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-1 mt-2">
-                        <a href="{% url 'ventas:venta_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-receipt me-1"></i> Ventas
-                        </a>
-                        <a href="{% url 'ventas:venta_nueva' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-plus me-1"></i> Nueva
-                        </a>
-                    </div>
-                </div>
+            <div class="admin-module-copy">
+                <h2 class="module-title admin-module-title">{{ module.title }}</h2>
+                <p class="module-subtitle admin-module-subtitle">{{ module.copy }}</p>
             </div>
-        </div>
-
-        <!-- MÓDULO: CITAS -->
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 module-card">
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge module-badge"><i class="bi bi-calendar-event"></i></span>
-                        <div>
-                            <h5 class="h6 mb-0 module-title">Citas</h5>
-                            <small class="module-subtitle">Reservas y servicios</small>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-1 mt-2">
-                        <a href="{% url 'citas:calendario' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-calendar me-1"></i> Reservas
-                        </a>
-                        <a href="{% url 'citas:servicio_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-stars me-1"></i> Servicios
-                        </a>
-                    </div>
-                </div>
+            <div class="admin-module-links">
+                {% for link in module.links %}
+                <a href="{{ link.url }}" class="admin-module-link">{{ link.label }}</a>
+                {% endfor %}
             </div>
-        </div>
-
-        <!-- MÓDULO: DEVOLUCIONES -->
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 module-card">
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge module-badge"><i class="bi bi-arrow-return-left"></i></span>
-                        <div>
-                            <h5 class="h6 mb-0 module-title">Devoluciones de compra</h5>
-                            <small class="module-subtitle">Retornos a proveedor</small>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-1 mt-2">
-                        <a href="{% url 'inventario:devolucion_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-list me-1"></i> Lista compra
-                        </a>
-                        <a href="{% url 'inventario:devolucion_nueva' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-plus me-1"></i> Nueva compra
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-3">
-            <div class="card h-100 module-card">
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                        <span class="badge module-badge"><i class="bi bi-gem"></i></span>
-                        <div>
-                            <h5 class="h6 mb-0 module-title">Membresias</h5>
-                            <small class="module-subtitle">Planes y clientes VIP</small>
-                        </div>
-                    </div>
-                    <div class="d-grid gap-1 mt-2">
-                        <a href="{% url 'membresias:dashboard' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-grid me-1"></i> Dashboard
-                        </a>
-                        <a href="{% url 'membresias:plan_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-layers me-1"></i> Planes
-                        </a>
-                        <a href="{% url 'membresias:miembro_lista' %}" class="btn btn-sm btn-rose-outline">
-                            <i class="bi bi-people me-1"></i> Miembros
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
+            <a href="{{ module.url }}" class="admin-action-button">
+                <i class="bi bi-arrow-right-circle"></i> Abrir módulo
+            </a>
+        </article>
+        {% endfor %}
+    </section>
 </div>
 {% endblock %}

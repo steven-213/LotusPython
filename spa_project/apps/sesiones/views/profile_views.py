@@ -1,10 +1,7 @@
 from decimal import Decimal
-
 from django.shortcuts import render
 from django.utils import timezone
-
 from apps.citas.models import Reserva
-from apps.membresias.services import obtener_membresia_activa
 from apps.sesiones.decorators import login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import SolicitudDevolucionVenta, ValidacionVenta
@@ -142,12 +139,6 @@ def _resolver_estado_devolucion_venta(venta, solicitudes):
 def perfil(request):
     usuario_id = request.session.get("usuario_id")
     usuario = Usuario.objects.filter(id=usuario_id).first()
-    membresia_actual = obtener_membresia_activa(usuario) if usuario else None
-    membresias_historial = (
-        list(usuario.membresias.select_related("plan").all()[:3])
-        if usuario
-        else []
-    )
 
     validaciones = list(
         ValidacionVenta.objects.select_related("venta")
@@ -283,8 +274,6 @@ def perfil(request):
             "compras_rechazadas": compras_rechazadas,
             "agendas_proximas": agendas_proximas,
             "agendas_historial": agendas_historial,
-            "membresia_actual": membresia_actual,
-            "membresias_historial": membresias_historial,
             "productos_comprados": productos_comprados,
             "validaciones_recientes": validaciones_recientes,
             "proxima_reserva": proxima_reserva,

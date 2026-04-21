@@ -3,18 +3,12 @@
 {% block title %}Compras - Administración{% endblock %}
 
 {% block extra_css %}
-
-<link rel="stylesheet" href="{% static 'inventario/compras/compras.css' %}">
-<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
-
+<link rel="stylesheet" href="{% static 'inventario/compras/compras.css' %}?v=20260420a">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 compras-container">
-    {% url 'inventario:dashboard' as inventario_dashboard_url %}
-    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Compras" page_description="Consulta facturas, entra al detalle y continua el flujo de abastecimiento sin perder contexto." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="compras" %}
-
-    <!-- Búsqueda -->
     <div class="card mb-4 shadow-sm border-0 card-custom">
         <div class="card-body">
             <form method="get">
@@ -23,9 +17,13 @@
                         <i class="bi bi-search"></i>
                     </span>
 
-                    <input type="text" name="q" class="form-control search-input"
-                        placeholder="Buscar por numero de factura o proveedor..."
-                        value="{{ query }}">
+                    <input
+                        type="text"
+                        name="q"
+                        class="form-control search-input"
+                        placeholder="Buscar por número de factura o proveedor..."
+                        value="{{ query }}"
+                    >
 
                     <button class="btn btn-primary btn-search" type="submit">
                         Buscar
@@ -35,21 +33,20 @@
         </div>
     </div>
 
-    <!-- Tabla -->
-    <div class="card shadow-lg border-0 card-custom">
+    <div class="card shadow-lg border-0 card-custom inv-table-card">
         <div class="card-header card-header-custom">
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                 <h5 class="mb-0 titulo-tabla">
-                    <i class="bi bi-table"></i> Lista de Compras
+                    <i class="bi bi-table"></i> Lista de compras
                 </h5>
 
                 <a href="{% url 'inventario:compra_nueva' %}" class="btn btn-primary btn-nueva">
-                    <i class="bi bi-plus-circle"></i> Nueva Compra
+                    <i class="bi bi-plus-circle"></i> Nueva compra
                 </a>
             </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive inv-table-scroll">
             <table class="table table-hover mb-0">
                 <thead class="thead-custom">
                     <tr>
@@ -92,9 +89,9 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-5">
+                        <td colspan="5" class="text-center py-5">
                             <i class="bi bi-inbox icon-empty"></i>
-                            <p class="text-muted mt-2">No hay compras registradas</p>
+                            <p class="text-muted mt-2">No hay compras registradas.</p>
                         </td>
                     </tr>
                     {% endfor %}

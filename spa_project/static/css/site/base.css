@@ -88,6 +88,18 @@ a {
   gap: 0.6rem;
 }
 
+.nav-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #fbcdd9;
+  background: #fff;
+  color: #8b3d56;
+  font-weight: 700;
+}
+
 .boton {
   display: inline-flex;
   align-items: center;
@@ -159,6 +171,10 @@ a {
 @media (max-width: 900px) {
   .navegacion-sitio {
     flex-wrap: wrap;
+  }
+
+  .nav-user-chip {
+    order: 2;
   }
 
   .enlaces-nav {

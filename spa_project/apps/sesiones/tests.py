@@ -1,9 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
-
 from apps.inventario.models import Producto, Proveedor
-from apps.membresias.models import MembresiaUsuario, PlanMembresia
 from apps.sesiones.models import Usuario
 from apps.ventas.models import (
     DetalleVenta,
@@ -37,7 +34,6 @@ class SesionesUrlsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "http://testserver/")
         self.assertContains(response, "http://testserver/conocenos/")
-        self.assertContains(response, "http://testserver/membresias/")
         self.assertContains(response, "http://testserver/citas/catalogo/")
         self.assertContains(response, "http://testserver/inventario/catalogo/")
 
@@ -160,17 +156,11 @@ class PerfilClienteTest(TestCase):
             motivo="El producto no era lo esperado.",
             estado=SolicitudDevolucionVenta.ESTADO_APROBADA,
         )
-        plan = PlanMembresia.objects.get(slug="ritual-sereno")
-        MembresiaUsuario.objects.create(
-            usuario=self.usuario,
-            plan=plan,
-            precio_pagado=plan.precio,
-            fecha_fin=timezone.now() + timezone.timedelta(days=120),
-        )
 
         session = self.client.session
         session["usuario_id"] = self.usuario.id
         session["usuario_rol"] = "cliente"
+        session["usuario_nombre"] = f"{self.usuario.nombre} {self.usuario.apellido}"
         session.save()
 
     def test_perfil_muestra_estado_devolucion_en_compra_reciente(self):
@@ -183,11 +173,3 @@ class PerfilClienteTest(TestCase):
             response.context["validaciones_recientes"][0]["estado_devolucion"]["label"],
             "Devuelta parcial",
         )
-
-    def test_perfil_muestra_estado_de_membresia_activa(self):
-        response = self.client.get(reverse("sesiones:perfil"))
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Mi membresia")
-        self.assertContains(response, "Ritual Sereno")
-        self.assertContains(response, "Membresia: Ritual Sereno")

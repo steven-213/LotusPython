@@ -1,19 +1,51 @@
-from datetime import datetime, timedelta
-from decimal import Decimal, InvalidOperation
+import csv
+from datetime import datetime
+from decimal import Decimal
+from io import BytesIO
 
 from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Avg, Q, Sum
+from django.db.models import Avg, Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from apps.common.currency import format_money, parse_money
-from apps.inventario.services import descontar_stock, obtener_stock_disponible
+from apps.inventario.models import Producto
+from apps.inventario.services import anotar_stock_disponible, descontar_stock, obtener_stock_disponible
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
-from apps.ventas.models import SolicitudDevolucionVenta, ValidacionVenta, Venta
+from apps.ventas.models import DetalleVenta, SolicitudDevolucionVenta, ValidacionVenta, Venta
 from apps.ventas.telegram_notifier import notificar_compra_pendiente
+
+
+PANEL_TODAS = "todas"
+PANEL_PAGOS_PENDIENTES = "pagos_pendientes"
+PANEL_PAGOS_APROBADOS = "pagos_aprobados"
+PANEL_PAGOS_RECHAZADOS = "pagos_rechazados"
+PANEL_DEVOLUCIONES_PENDIENTES = "devoluciones_pendientes"
+PANEL_DEVOLUCIONES_APROBADAS = "devoluciones_aprobadas"
+PANEL_DEVOLUCIONES_RECHAZADAS = "devoluciones_rechazadas"
+MESES_VENTA = [
+    (1, "Enero"),
+    (2, "Febrero"),
+    (3, "Marzo"),
+    (4, "Abril"),
+    (5, "Mayo"),
+    (6, "Junio"),
+    (7, "Julio"),
+    (8, "Agosto"),
+    (9, "Septiembre"),
+    (10, "Octubre"),
+    (11, "Noviembre"),
+    (12, "Diciembre"),
+]
 
 
 def _resumir_productos_devueltos(solicitudes):
@@ -121,108 +153,561 @@ def _resolver_resumen_devolucion_venta(venta):
     }
 
 
-@admin_required_session
-def venta_lista(request):
-    query = request.GET.get("q", "")
-    fecha_inicio = request.GET.get("fecha_inicio", "")
-    fecha_fin = request.GET.get("fecha_fin", "")
-    estado_filtro = request.GET.get("estado", "")
-    cliente_id = request.GET.get("cliente_id", "")
+def _resolver_estado_pago(validacion):
+    if not validacion:
+        return {
+            "slug": "sin_validacion",
+            "label": "Sin validar",
+            "detail": "No hay validaciones registradas para esta venta.",
+        }
 
-    filtro_fecha = Q()
-    if fecha_inicio:
-        try:
-            filtro_fecha &= Q(fecha__gte=datetime.strptime(fecha_inicio, "%Y-%m-%d"))
-        except ValueError:
-            fecha_inicio = ""
-    if fecha_fin:
-        try:
-            filtro_fecha &= Q(fecha__lte=datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1))
-        except ValueError:
-            fecha_fin = ""
+    estado = (validacion.estado or "").strip().lower()
+    if estado in {"comprado", "validada"}:
+        return {
+            "slug": "aprobado",
+            "label": "Aprobado",
+            "detail": "Pago confirmado en el sistema.",
+        }
+    if estado == "pendiente":
+        return {
+            "slug": "pendiente",
+            "label": "Pendiente",
+            "detail": "Pago aun por revisar.",
+        }
+    return {
+        "slug": "rechazado",
+        "label": "Rechazado",
+        "detail": "Pago rechazado o sin aprobacion.",
+    }
 
-    ventas = (
+
+def _ventas_queryset():
+    ultima_validacion = ValidacionVenta.objects.filter(venta_id=OuterRef("pk")).order_by(
+        "-fecha_validacion",
+        "-id",
+    )
+    return (
         Venta.objects.select_related("cliente", "cliente_invitado", "reserva", "reserva__servicio")
-        .prefetch_related("detalles__producto", "detalles__solicitudes_devolucion")
+        .annotate(ultimo_estado_pago=Subquery(ultima_validacion.values("estado")[:1]))
+        .prefetch_related(
+            Prefetch(
+                "validaciones",
+                queryset=ValidacionVenta.objects.order_by("-fecha_validacion", "-id"),
+            ),
+            "detalles__producto",
+            "detalles__solicitudes_devolucion",
+        )
         .order_by("-fecha")
     )
-    if query:
-        ventas = ventas.filter(
-            Q(cliente__nombre__icontains=query)
-            | Q(cliente__apellido__icontains=query)
-            | Q(cliente_invitado__nombre__icontains=query)
-            | Q(cliente_invitado__apellido__icontains=query)
+
+
+def _obtener_paneles_ventas():
+    return {
+        PANEL_TODAS: {
+            "label": "Todas las ventas",
+            "copy": "Ultimas ventas registradas en el sistema.",
+        },
+        PANEL_PAGOS_PENDIENTES: {
+            "label": "Pagos pendientes",
+            "copy": "Ventas que aun esperan validacion de pago.",
+        },
+        PANEL_PAGOS_APROBADOS: {
+            "label": "Pagos aprobados",
+            "copy": "Ventas con pago aprobado o confirmado.",
+        },
+        PANEL_PAGOS_RECHAZADOS: {
+            "label": "Pagos rechazados",
+            "copy": "Ventas cuyo pago fue rechazado.",
+        },
+        PANEL_DEVOLUCIONES_PENDIENTES: {
+            "label": "Devoluciones pendientes",
+            "copy": "Ventas con solicitudes de devolucion por responder.",
+        },
+        PANEL_DEVOLUCIONES_APROBADAS: {
+            "label": "Devoluciones aprobadas",
+            "copy": "Ventas con devoluciones ya aprobadas.",
+        },
+        PANEL_DEVOLUCIONES_RECHAZADAS: {
+            "label": "Devoluciones rechazadas",
+            "copy": "Ventas con solicitudes de devolucion rechazadas.",
+        },
+    }
+
+
+def _normalizar_numero_entero(valor, *, minimo=None, maximo=None):
+    if valor in {"", None}:
+        return ""
+    try:
+        numero = int(str(valor).strip())
+    except (TypeError, ValueError):
+        return ""
+
+    if minimo is not None and numero < minimo:
+        return ""
+    if maximo is not None and numero > maximo:
+        return ""
+    return str(numero)
+
+
+def _leer_filtros_ventas(request):
+    panel = (request.GET.get("panel") or PANEL_TODAS).strip() or PANEL_TODAS
+    if panel not in _obtener_paneles_ventas():
+        panel = PANEL_TODAS
+
+    estado = (request.GET.get("estado") or "").strip().lower()
+    if estado == "rechazada":
+        estado = "rechazado"
+
+    return {
+        "panel": panel,
+        "q": (request.GET.get("q") or "").strip(),
+        "cliente_id": (request.GET.get("cliente_id") or "").strip(),
+        "estado": estado,
+        "dia": _normalizar_numero_entero(request.GET.get("dia"), minimo=1, maximo=31),
+        "mes": _normalizar_numero_entero(request.GET.get("mes"), minimo=1, maximo=12),
+        "anio": _normalizar_numero_entero(request.GET.get("anio"), minimo=2000, maximo=2100),
+        "export": (request.GET.get("export") or "").strip().lower(),
+    }
+
+
+def _aplicar_panel_ventas(queryset, panel):
+    if panel == PANEL_PAGOS_PENDIENTES:
+        return queryset.filter(ultimo_estado_pago__iexact="pendiente")
+    if panel == PANEL_PAGOS_APROBADOS:
+        return queryset.filter(
+            Q(ultimo_estado_pago__iexact="comprado")
+            | Q(ultimo_estado_pago__iexact="validada")
         )
-    if cliente_id:
-        ventas = ventas.filter(cliente_id=cliente_id)
-    if estado_filtro:
-        venta_ids = ValidacionVenta.objects.filter(estado__iexact=estado_filtro).values_list(
-            "venta_id",
-            flat=True,
+    if panel == PANEL_PAGOS_RECHAZADOS:
+        return queryset.filter(
+            Q(ultimo_estado_pago__iexact="rechazado")
+            | Q(ultimo_estado_pago__iexact="rechazada")
         )
-        ventas = ventas.filter(id__in=venta_ids)
-    if filtro_fecha:
-        ventas = ventas.filter(filtro_fecha)
+    if panel == PANEL_DEVOLUCIONES_PENDIENTES:
+        return queryset.filter(
+            detalles__solicitudes_devolucion__estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE
+        ).distinct()
+    if panel == PANEL_DEVOLUCIONES_APROBADAS:
+        return queryset.filter(
+            detalles__solicitudes_devolucion__estado=SolicitudDevolucionVenta.ESTADO_APROBADA
+        ).distinct()
+    if panel == PANEL_DEVOLUCIONES_RECHAZADAS:
+        return queryset.filter(
+            detalles__solicitudes_devolucion__estado=SolicitudDevolucionVenta.ESTADO_RECHAZADA
+        ).distinct()
+    return queryset
+
+
+def _aplicar_filtros_ventas(queryset, filtros):
+    if filtros["q"]:
+        queryset = queryset.filter(
+            Q(cliente__nombre__icontains=filtros["q"])
+            | Q(cliente__apellido__icontains=filtros["q"])
+            | Q(cliente_invitado__nombre__icontains=filtros["q"])
+            | Q(cliente_invitado__apellido__icontains=filtros["q"])
+        )
+
+    if filtros["cliente_id"]:
+        queryset = queryset.filter(cliente_id=filtros["cliente_id"])
+
+    if filtros["estado"] == "pendiente":
+        queryset = queryset.filter(ultimo_estado_pago__iexact="pendiente")
+    elif filtros["estado"] == "comprado":
+        queryset = queryset.filter(
+            Q(ultimo_estado_pago__iexact="comprado")
+            | Q(ultimo_estado_pago__iexact="validada")
+        )
+    elif filtros["estado"] == "rechazado":
+        queryset = queryset.filter(
+            Q(ultimo_estado_pago__iexact="rechazado")
+            | Q(ultimo_estado_pago__iexact="rechazada")
+        )
+
+    if filtros["dia"]:
+        queryset = queryset.filter(fecha__day=int(filtros["dia"]))
+    if filtros["mes"]:
+        queryset = queryset.filter(fecha__month=int(filtros["mes"]))
+    if filtros["anio"]:
+        queryset = queryset.filter(fecha__year=int(filtros["anio"]))
+
+    return queryset.distinct()
+
+
+def _hidratar_ventas(ventas):
+    for venta in ventas:
+        validaciones = list(venta.validaciones.all())
+        venta.validacion_reciente = validaciones[0] if validaciones else None
+        venta.estado_pago_resumen = _resolver_estado_pago(venta.validacion_reciente)
+        venta.devolucion_resumen = _resolver_resumen_devolucion_venta(venta)
+    return ventas
+
+
+def _querystring_ventas(filtros, **extras):
+    params = {
+        "panel": filtros.get("panel", PANEL_TODAS),
+        "q": filtros.get("q", ""),
+        "cliente_id": filtros.get("cliente_id", ""),
+        "estado": filtros.get("estado", ""),
+        "dia": filtros.get("dia", ""),
+        "mes": filtros.get("mes", ""),
+        "anio": filtros.get("anio", ""),
+    }
+    params.update(extras)
+
+    limpio = {}
+    for key, value in params.items():
+        if value in {"", None}:
+            continue
+        if key == "panel" and value == PANEL_TODAS:
+            continue
+        limpio[key] = value
+
+    if not limpio:
+        return ""
+
+    return "&".join(f"{key}={value}" for key, value in limpio.items())
+
+
+def _exportar_ventas_excel(ventas):
+    response = HttpResponse(content_type="application/vnd.ms-excel; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="listado_ventas.xls"'
+    writer = csv.writer(response, delimiter="\t")
+    writer.writerow(["ID", "Cliente", "Fecha", "Total", "Estado de pago", "Estado de devolucion"])
+    for venta in ventas:
+        writer.writerow(
+            [
+                venta.id,
+                venta.cliente_nombre_completo,
+                venta.fecha.strftime("%d/%m/%Y %H:%M"),
+                str(venta.total),
+                venta.estado_pago_resumen["label"],
+                venta.devolucion_resumen["label"],
+            ]
+        )
+    return response
+
+
+def _exportar_ventas_pdf(ventas, titulo):
+    buffer = BytesIO()
+    documento = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        leftMargin=18,
+        rightMargin=18,
+        topMargin=18,
+        bottomMargin=18,
+    )
+    estilos = getSampleStyleSheet()
+    elementos = [Paragraph(titulo, estilos["Title"]), Spacer(1, 12)]
+    data = [["ID", "Cliente", "Fecha", "Total", "Pago", "Devolucion"]]
 
     for venta in ventas:
-        venta.validacion_reciente = venta.validaciones.order_by("-fecha_validacion", "-id").first()
-        venta.devolucion_resumen = _resolver_resumen_devolucion_venta(venta)
+        data.append(
+            [
+                f"#{venta.id}",
+                venta.cliente_nombre_completo,
+                venta.fecha.strftime("%d/%m/%Y %H:%M"),
+                str(venta.total),
+                venta.estado_pago_resumen["label"],
+                venta.devolucion_resumen["label"],
+            ]
+        )
 
-    monto_total = Venta.objects.aggregate(Sum("total"))["total__sum"] or Decimal(0)
-    promedio_venta = Venta.objects.aggregate(Avg("total"))["total__avg"] or Decimal(0)
+    tabla = Table(data, repeatRows=1, colWidths=[48, 160, 92, 80, 86, 125])
+    tabla.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ca6b86")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e7cddb")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#fff7fa")]),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    elementos.append(tabla)
+    documento.build(elementos)
+
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = 'attachment; filename="listado_ventas.pdf"'
+    return response
+
+
+def _obtener_productos_para_venta():
+    return anotar_stock_disponible(Producto.objects.filter(activo=True)).filter(
+        stock_disponible__gt=0
+    ).order_by("nombre")
+
+
+def _obtener_detalles_venta_desde_post(request):
+    productos_ids = request.POST.getlist("producto_ids[]")
+    cantidades = request.POST.getlist("cantidades[]")
+    total_filas = max(len(productos_ids), len(cantidades), 0)
+    productos_acumulados = {}
+
+    for index in range(total_filas):
+        producto_id = (productos_ids[index] if index < len(productos_ids) else "").strip()
+        cantidad_raw = (cantidades[index] if index < len(cantidades) else "").strip()
+
+        if not producto_id and not cantidad_raw:
+            continue
+
+        fila = index + 1
+        if not producto_id:
+            raise ValueError(f"Selecciona un producto en la fila {fila}.")
+
+        try:
+            cantidad = int(cantidad_raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"La cantidad de la fila {fila} no es valida.")
+
+        if cantidad <= 0:
+            raise ValueError(f"La cantidad de la fila {fila} debe ser mayor a cero.")
+
+        producto = Producto.objects.filter(id=producto_id, activo=True).first()
+        if not producto:
+            raise ValueError(f"El producto de la fila {fila} no existe o esta inactivo.")
+
+        stock_disponible = obtener_stock_disponible(producto)
+        acumulado = productos_acumulados.get(producto.id, {"producto": producto, "cantidad": 0})
+        acumulado["cantidad"] += cantidad
+        if acumulado["cantidad"] > stock_disponible:
+            raise ValueError(
+                f"Solo hay {stock_disponible} unidad(es) disponibles de {producto.nombre}."
+            )
+        productos_acumulados[producto.id] = acumulado
+
+    detalles = list(productos_acumulados.values())
+    if not detalles:
+        raise ValueError("Agrega al menos un producto a la venta.")
+    return detalles
+
+
+@admin_required_session
+def venta_lista(request):
+    filtros = _leer_filtros_ventas(request)
+    paneles = _obtener_paneles_ventas()
+    panel_actual = filtros["panel"]
+
+    ventas_panel = _aplicar_panel_ventas(_ventas_queryset(), panel_actual)
+    total_panel = ventas_panel.count()
+    ventas_preview = _hidratar_ventas(list(ventas_panel[:6]))
+
+    resumen_global = Venta.objects.aggregate(
+        total_ventas=Count("id"),
+        monto_total=Sum("total"),
+        promedio_venta=Avg("total"),
+    )
+    ventas_anotadas = Venta.objects.annotate(
+        ultimo_estado_pago=Subquery(
+            ValidacionVenta.objects.filter(venta_id=OuterRef("pk"))
+            .order_by("-fecha_validacion", "-id")
+            .values("estado")[:1]
+        )
+    )
+    validaciones_pendientes = ventas_anotadas.filter(ultimo_estado_pago__iexact="pendiente").count()
+    validaciones_comprado = ventas_anotadas.filter(
+        Q(ultimo_estado_pago__iexact="comprado") | Q(ultimo_estado_pago__iexact="validada")
+    ).count()
+    validaciones_rechazado = ventas_anotadas.filter(
+        Q(ultimo_estado_pago__iexact="rechazado") | Q(ultimo_estado_pago__iexact="rechazada")
+    ).count()
+    devoluciones_pendientes = SolicitudDevolucionVenta.objects.filter(
+        estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE
+    ).count()
+    devoluciones_aprobadas = SolicitudDevolucionVenta.objects.filter(
+        estado=SolicitudDevolucionVenta.ESTADO_APROBADA
+    ).count()
+    devoluciones_rechazadas = SolicitudDevolucionVenta.objects.filter(
+        estado=SolicitudDevolucionVenta.ESTADO_RECHAZADA
+    ).count()
+
+    cards = [
+        {
+            "panel": PANEL_TODAS,
+            "label": "Total de ventas",
+            "value": resumen_global["total_ventas"] or 0,
+            "meta": "Operaciones registradas en el historial.",
+            "icon": "bi bi-receipt-cutoff",
+        },
+        {
+            "panel": PANEL_PAGOS_PENDIENTES,
+            "label": "Pagos pendientes",
+            "value": validaciones_pendientes,
+            "meta": "Ventas que aun necesitan validacion.",
+            "icon": "bi bi-clock-history",
+        },
+        {
+            "panel": PANEL_PAGOS_APROBADOS,
+            "label": "Pagos aprobados",
+            "value": validaciones_comprado,
+            "meta": "Ventas con pago ya confirmado.",
+            "icon": "bi bi-check-circle",
+        },
+        {
+            "panel": PANEL_PAGOS_RECHAZADOS,
+            "label": "Pagos rechazados",
+            "value": validaciones_rechazado,
+            "meta": "Ventas con pago rechazado.",
+            "icon": "bi bi-x-circle",
+        },
+        {
+            "panel": PANEL_DEVOLUCIONES_PENDIENTES,
+            "label": "Devoluciones pendientes",
+            "value": devoluciones_pendientes,
+            "meta": "Solicitudes de clientes pendientes.",
+            "icon": "bi bi-arrow-counterclockwise",
+        },
+        {
+            "panel": PANEL_DEVOLUCIONES_APROBADAS,
+            "label": "Devoluciones aprobadas",
+            "value": devoluciones_aprobadas,
+            "meta": "Solicitudes resueltas favorablemente.",
+            "icon": "bi bi-arrow-repeat",
+        },
+        {
+            "panel": PANEL_DEVOLUCIONES_RECHAZADAS,
+            "label": "Devoluciones rechazadas",
+            "value": devoluciones_rechazadas,
+            "meta": "Solicitudes cerradas sin aprobacion.",
+            "icon": "bi bi-slash-circle",
+        },
+    ]
+    for card in cards:
+        card["is_active"] = card["panel"] == panel_actual
+        card["url"] = reverse("ventas:venta_lista")
+        if card["panel"] != PANEL_TODAS:
+            card["url"] += f"?panel={card['panel']}"
+
+    listado_qs = _querystring_ventas({"panel": panel_actual})
+    listado_url = reverse("ventas:venta_listado")
+    if listado_qs:
+        listado_url = f"{listado_url}?{listado_qs}"
 
     context = {
-        "ventas": ventas,
-        "query": query,
-        "fecha_inicio": fecha_inicio,
-        "fecha_fin": fecha_fin,
-        "estado_filtro": estado_filtro,
-        "cliente_id": cliente_id,
-        "clientes": Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre"),
-        "total_ventas": Venta.objects.count(),
-        "monto_total": format_money(monto_total),
-        "promedio_venta": format_money(promedio_venta),
-        "clientes_unicos": Venta.objects.values("cliente").distinct().count(),
-        "validaciones_pendientes": ValidacionVenta.objects.filter(estado__iexact="pendiente").count(),
-        "validaciones_comprado": ValidacionVenta.objects.filter(estado__iexact="comprado").count(),
-        "validaciones_rechazado": ValidacionVenta.objects.filter(estado__iexact="rechazado").count(),
-        "devoluciones_pendientes": SolicitudDevolucionVenta.objects.filter(estado="pendiente").count(),
-        "devoluciones_aprobadas": SolicitudDevolucionVenta.objects.filter(estado="aprobada").count(),
-        "devoluciones_rechazadas": SolicitudDevolucionVenta.objects.filter(estado="rechazada").count(),
+        "cards": cards,
+        "panel_actual": panel_actual,
+        "panel_info": paneles[panel_actual],
+        "ventas_preview": ventas_preview,
+        "ventas_preview_total": total_panel,
+        "listado_url": listado_url,
+        "monto_total": format_money(resumen_global["monto_total"] or Decimal(0)),
+        "promedio_venta": format_money(resumen_global["promedio_venta"] or Decimal(0)),
+        "clientes_unicos": Venta.objects.exclude(cliente_id__isnull=True).values("cliente_id").distinct().count(),
     }
     return render(request, "ventas/dashboard/lista.html", context)
 
 
 @admin_required_session
+def venta_listado(request):
+    filtros = _leer_filtros_ventas(request)
+    paneles = _obtener_paneles_ventas()
+    panel_actual = filtros["panel"]
+
+    ventas_filtradas = _aplicar_panel_ventas(_ventas_queryset(), panel_actual)
+    ventas_filtradas = _aplicar_filtros_ventas(ventas_filtradas, filtros)
+    ventas = _hidratar_ventas(list(ventas_filtradas))
+
+    if filtros["export"] == "excel":
+        return _exportar_ventas_excel(ventas)
+    if filtros["export"] == "pdf":
+        return _exportar_ventas_pdf(ventas, f"Listado de ventas - {paneles[panel_actual]['label']}")
+
+    filtros_base = {key: value for key, value in filtros.items() if key != "export"}
+    excel_qs = _querystring_ventas(filtros_base, export="excel")
+    pdf_qs = _querystring_ventas(filtros_base, export="pdf")
+
+    context = {
+        "ventas": ventas,
+        "clientes": Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre", "apellido"),
+        "panel_actual": panel_actual,
+        "panel_info": paneles[panel_actual],
+        "query": filtros["q"],
+        "cliente_id": filtros["cliente_id"],
+        "estado_filtro": filtros["estado"],
+        "dia": filtros["dia"],
+        "mes": filtros["mes"],
+        "anio": filtros["anio"],
+        "dias_disponibles": list(range(1, 32)),
+        "meses_disponibles": MESES_VENTA,
+        "anios_disponibles": list(range(datetime.now().year + 1, datetime.now().year - 3, -1)),
+        "excel_url": f"{reverse('ventas:venta_listado')}?{excel_qs}" if excel_qs else f"{reverse('ventas:venta_listado')}?export=excel",
+        "pdf_url": f"{reverse('ventas:venta_listado')}?{pdf_qs}" if pdf_qs else f"{reverse('ventas:venta_listado')}?export=pdf",
+    }
+    return render(request, "ventas/dashboard/listado_ventas.html", context)
+
+
+@admin_required_session
 def venta_nueva(request):
-    clientes = Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre")
+    clientes = Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre", "apellido")
+    productos = _obtener_productos_para_venta()
 
     if request.method == "POST":
         cliente_id = (request.POST.get("cliente_id") or "").strip()
         if not cliente_id:
             messages.error(request, "Debes seleccionar un cliente.")
-            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+            return render(
+                request,
+                "ventas/dashboard/nueva.html",
+                {"clientes": clientes, "productos": productos},
+            )
 
         cliente = Usuario.objects.filter(id=cliente_id, rol=Usuario.ROL_CLIENTE).first()
         if not cliente:
-            messages.error(request, "El cliente seleccionado no es válido.")
-            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+            messages.error(request, "El cliente seleccionado no es valido.")
+            return render(
+                request,
+                "ventas/dashboard/nueva.html",
+                {"clientes": clientes, "productos": productos},
+            )
 
         try:
-            total = parse_money(request.POST.get("total"), default=None)
-        except (InvalidOperation, ValueError, TypeError):
-            messages.error(request, "Ingresa un total válido para la venta.")
-            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+            detalles = _obtener_detalles_venta_desde_post(request)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return render(
+                request,
+                "ventas/dashboard/nueva.html",
+                {"clientes": clientes, "productos": productos},
+            )
 
-        if total <= 0:
-            messages.error(request, "El total de la venta debe ser mayor a cero.")
-            return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+        total = sum(
+            (detalle["producto"].precio_venta * detalle["cantidad"] for detalle in detalles),
+            Decimal("0"),
+        )
 
-        venta = Venta.objects.create(cliente=cliente, total=total)
-        messages.success(request, "La venta fue creada correctamente.")
+        with transaction.atomic():
+            venta = Venta.objects.create(cliente=cliente, total=total)
+            for detalle in detalles:
+                DetalleVenta.objects.create(
+                    venta=venta,
+                    producto=detalle["producto"],
+                    cantidad=detalle["cantidad"],
+                    precio_unitario=detalle["producto"].precio_venta,
+                )
+
+            ValidacionVenta.objects.create(
+                venta=venta,
+                cliente=cliente,
+                monto=total,
+                estado="pendiente",
+                observaciones="Venta creada desde el panel admin.",
+            )
+
+        messages.success(request, "La venta fue creada con sus productos y validacion pendiente.")
         return redirect("ventas:venta_detalle", venta_id=venta.id)
 
-    return render(request, "ventas/dashboard/nueva.html", {"clientes": clientes})
+    return render(
+        request,
+        "ventas/dashboard/nueva.html",
+        {"clientes": clientes, "productos": productos},
+    )
 
 
 @admin_required_session
@@ -364,3 +849,4 @@ def rechazar_compra_telegram(request, validacion_id):
     validacion.observaciones = "Rechazado"
     validacion.save(update_fields=["estado", "observaciones"])
     return HttpResponse("Compra rechazada correctamente.")
+

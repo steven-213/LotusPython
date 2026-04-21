@@ -4,61 +4,39 @@
 {% block title %}Productos{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'inventario/productos/productos.css' %}?v=20260406c">
-<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260406c">
+<link rel="stylesheet" href="{% static 'inventario/productos/productos.css' %}?v=20260420a">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
 {% endblock %}
 
 {% block content %}
 <div class="contenedor-productos">
-    {% url 'inventario:dashboard' as inventario_dashboard_url %}
-    {% include "inventario/dashboard/partials/panel_header.html" with page_title="Gestion de Productos" page_description="Consulta existencias, entra al detalle y crea nuevos productos sin salir del modulo de inventario." back_url=inventario_dashboard_url back_label="Volver al dashboard" active_section="productos" %}
-
-    <div class="inv-summary-row">
-        <article class="inv-summary-card">
-            <div class="inv-summary-icon">
-                <i class="bi bi-box-seam"></i>
-            </div>
-            <div class="inv-summary-copy">
-                <span class="inv-summary-label">Total de productos</span>
-                <strong class="inv-summary-value">{{ productos|length }}</strong>
-                <span class="inv-summary-meta">Resultados visibles con los filtros actuales.</span>
-            </div>
-        </article>
-
-    </div>
-
     <div class="row g-4 align-items-stretch mb-4">
         <div class="col-12 col-xl-6">
-            <!-- FILTROS -->
             <div class="card border-0 shadow-sm h-100 panel-productos-card">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="mb-3">
                         <h4 class="mb-1">Buscar productos</h4>
-                        <p class="text-muted mb-0">
-                            Filtra por nombre, descripción o proveedor para encontrar un producto más rápido.
-                        </p>
                     </div>
 
                     <form method="get" class="row g-3 flex-grow-1 align-content-start">
-
                         <div class="col-12">
-                            <label class="form-label panel-label">
-                                Buscar
-                            </label>
+                            <label class="form-label panel-label">Buscar</label>
                             <div class="input-group">
                                 <span class="input-group-text panel-addon">
                                     <i class="bi bi-search"></i>
                                 </span>
-                                <input type="text" name="q" class="form-control panel-input"
+                                <input
+                                    type="text"
+                                    name="q"
+                                    class="form-control panel-input"
                                     placeholder="Buscar por nombre o descripción..."
-                                    value="{{ query }}">
+                                    value="{{ query }}"
+                                >
                             </div>
                         </div>
 
-                        <div class="col-12">
-                            <label class="form-label panel-label">
-                                Proveedor
-                            </label>
+                        <div class="col-12 productos-provider-field">
+                            <label class="form-label panel-label">Proveedor</label>
                             <select name="proveedor_id" class="form-select panel-input">
                                 <option value="">-- Todos --</option>
                                 {% for proveedor in proveedores %}
@@ -70,13 +48,15 @@
                             </select>
                         </div>
 
-                        <div class="col-12 d-flex flex-wrap gap-2 mt-auto">
-                            <button class="btn btn-primary panel-btn-primary" type="submit">
-                                Buscar
-                            </button>
-                            <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary">
-                                Limpiar
-                            </a>
+                        <div class="col-12 mt-auto pt-2">
+                            <div class="productos-action-row">
+                                <button class="btn btn-primary panel-btn-primary" type="submit">
+                                    Buscar
+                                </button>
+                                <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary panel-btn-secondary">
+                                    Limpiar
+                                </a>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -135,10 +115,12 @@
                             <input type="number" name="margen_default" class="form-control panel-input" value="20" step="0.01">
                         </div>
 
-                        <div class="col-12 d-flex justify-content-end mt-auto">
-                            <button class="btn btn-primary panel-btn-primary" type="submit">
-                                Importar CSV
-                            </button>
+                        <div class="col-12 mt-auto pt-3">
+                            <div class="productos-action-row">
+                                <button class="btn btn-primary panel-btn-primary" type="submit">
+                                    Importar CSV
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -146,79 +128,74 @@
         </div>
     </div>
 
-    <!-- PRODUCTOS -->
-    <div class="grid-productos">
-        {% for item in productos %}
-        {% with p=item.producto margen=item.margen %}
-
-        <div class="card-producto">
-
-            <!-- Imagen -->
-            {% if p.imagen %}
-                <img src="{{ p.imagen }}" class="imagen">
-            {% else %}
-                <div class="sin-imagen">Sin imagen</div>
-            {% endif %}
-
-            <!-- Info -->
-            <div class="info">
-                <h3>{{ p.nombre }}</h3>
-                <p>{{ p.descripcion|truncatewords:10 }}</p>
-
-                <div class="datos">
-
-                    <div>
-                        <span>Compra:</span>
-                        <strong>${{ p.precio_compra }}</strong>
-                    </div>
-
-                    <div>
-                        <span>Venta:</span>
-                        <strong class="precio">${{ p.precio_venta }}</strong>
-                    </div>
-
-                    <div>
-                        <span>Margen:</span>
-                        <strong>{{ margen }}%</strong>
-                    </div>
-
-                    <div>
-                        <span>Stock:</span>
-                        <strong>{{ p.stock_disponible }} unidades</strong>
-                    </div>
-
-                    {% if p.proveedor %}
-                    <div>
-                        <span>Proveedor:</span>
-                        <small>{{ p.proveedor.nombre }}</small>
-                    </div>
-                    {% endif %}
-
-                </div>
-            </div>
-
-            <!-- Acciones -->
-            <div class="acciones">
-                <a href="{% url 'inventario:producto_detalle' p.id %}">Ver</a>
-                <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
-                <form method="POST" action="{% url 'inventario:producto_eliminar' p.id %}">
-                    {% csrf_token %}
-
-                    <button type="submit"
-                            class="btn btn-danger"
-                            onclick="return confirm('¿Seguro que deseas eliminar?');">
-                        Eliminar
-                    </button>
-                </form>
-            </div>
-
+    <section class="productos-scroll-card">
+        <div class="productos-scroll-head">
+            <h4 class="mb-0">Productos</h4>
         </div>
 
-        {% endwith %}
-        {% empty %}
-        <p>No hay productos</p>
-        {% endfor %}
-    </div>
+        <div class="productos-scroll-shell">
+            <div class="grid-productos">
+                {% for item in productos %}
+                {% with p=item.producto margen=item.margen %}
+                <article class="card-producto">
+                    {% if p.imagen %}
+                    <img src="{{ p.imagen }}" class="imagen" alt="{{ p.nombre }}">
+                    {% else %}
+                    <div class="sin-imagen">Sin imagen</div>
+                    {% endif %}
+
+                    <div class="info">
+                        <h3>{{ p.nombre }}</h3>
+                        <p>{{ p.descripcion|default:"Sin descripción disponible."|truncatewords:12 }}</p>
+
+                        <div class="datos">
+                            <div>
+                                <span>Compra</span>
+                                <strong>${{ p.precio_compra }}</strong>
+                            </div>
+                            <div>
+                                <span>Venta</span>
+                                <strong class="precio">${{ p.precio_venta }}</strong>
+                            </div>
+                            <div>
+                                <span>Margen</span>
+                                <strong>{{ margen }}%</strong>
+                            </div>
+                            <div>
+                                <span>Stock</span>
+                                <strong>{{ p.stock_disponible }} unidades</strong>
+                            </div>
+                            {% if p.proveedor %}
+                            <div>
+                                <span>Proveedor</span>
+                                <small>{{ p.proveedor.nombre }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="acciones">
+                        <a href="{% url 'inventario:producto_detalle' p.id %}">Ver</a>
+                        <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
+                        <form method="POST" action="{% url 'inventario:producto_eliminar' p.id %}">
+                            {% csrf_token %}
+                            <button
+                                type="submit"
+                                class="btn btn-danger"
+                                onclick="return confirm('¿Seguro que deseas eliminar?');"
+                            >
+                                Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </article>
+                {% endwith %}
+                {% empty %}
+                <p>No hay productos para mostrar.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
 
     <div class="admin-interface-actions is-spacious">
         <a href="{% url 'inventario:producto_nuevo' %}" class="inv-nav-button">

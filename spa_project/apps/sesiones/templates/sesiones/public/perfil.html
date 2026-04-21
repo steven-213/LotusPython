@@ -17,17 +17,10 @@
       <div class="perfil-meta">
         <span>{{ usuario.correo }}</span>
         <span class="chip chip-rol">{{ usuario.rol|capfirst }}</span>
-        <span class="chip chip-membresia">
-          {% if membresia_actual %}
-          Membresia: {{ membresia_actual.plan.nombre }}
-          {% else %}
-          Sin membresia activa
-          {% endif %}
-        </span>
+
       </div>
     </div>
     <div class="hero-actions">
-      <a class="boton boton-suave" href="{% url 'membresias:membresias' %}">Ver membresias</a>
       <a class="boton boton-suave" href="{% url 'citas:agenda' %}">Ver agenda completa</a>
       <a class="boton boton-primario" href="{% url 'inventario:productos_publicos' %}">Comprar productos</a>
     </div>
@@ -62,70 +55,8 @@
       <p class="resumen-value">{{ total_items_comprados }}</p>
       <p class="resumen-sub">{{ total_productos_comprados }} productos diferentes</p>
     </article>
-    <article class="resumen-card">
-      <p class="resumen-label">Mi membresia</p>
-      {% if membresia_actual %}
-      <p class="resumen-value resumen-value-sm">{{ membresia_actual.plan.nombre }}</p>
-      <p class="resumen-sub">Vigente hasta {{ membresia_actual.fecha_fin|date:"d/m/Y" }}</p>
-      {% else %}
-      <p class="resumen-value resumen-value-sm">Sin plan activo</p>
-      <p class="resumen-sub">Puedes activarlo desde membresias</p>
-      {% endif %}
-    </article>
+
   </section>
-
-  <section class="panel-perfil panel-membership">
-    <header class="panel-head">
-      <h2>Mi membresia</h2>
-      <a class="texto-link" href="{% url 'membresias:membresias' %}">Explorar planes</a>
-    </header>
-
-    {% if membresia_actual %}
-    <div class="membership-overview">
-      <div>
-        <p class="membership-label">Plan activo</p>
-        <h3>{{ membresia_actual.plan.nombre }}</h3>
-        <p class="membership-copy">{{ membresia_actual.plan.subtitulo }}</p>
-      </div>
-      <div class="membership-meta">
-        <span class="chip chip-comprado">Activa</span>
-        <span class="chip chip-outline">Inicio: {{ membresia_actual.fecha_inicio|date:"d/m/Y" }}</span>
-        <span class="chip chip-outline">Fin: {{ membresia_actual.fecha_fin|date:"d/m/Y" }}</span>
-        <span class="chip chip-outline">{{ membresia_actual.precio_pagado|currency }}</span>
-      </div>
-    </div>
-
-    <div class="membership-card">
-      <div>
-        <h3>Beneficios incluidos</h3>
-        <ul class="membership-benefits">
-          {% for beneficio in membresia_actual.plan.beneficios_lista %}
-          <li>{{ beneficio }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      {% if membresias_historial %}
-      <div>
-        <h3>Historial reciente</h3>
-        <div class="membership-history">
-          {% for item in membresias_historial %}
-          <article class="membership-history-item">
-            <strong>{{ item.plan.nombre }}</strong>
-            <span>{{ item.get_estado_display }} · {{ item.fecha_inicio|date:"d/m/Y" }}</span>
-          </article>
-          {% endfor %}
-        </div>
-      </div>
-      {% endif %}
-    </div>
-    {% else %}
-    <article class="empty-card">
-      <p>No tienes membresia activa todavia. Desde la seccion de membresias puedes activar cualquiera de los tres planes disponibles.</p>
-    </article>
-    {% endif %}
-  </section>
-
   <section class="perfil-grid">
     <article class="panel-perfil">
       <header class="panel-head">

@@ -136,6 +136,9 @@
   border-radius: 20px;
   padding: 1rem;
   box-shadow: 0 10px 28px rgba(91, 56, 59, 0.08);
+  width: 100%; 
+  height: 400px;
+  overflow: auto;
 }
 
 .panel-head {
@@ -504,11 +507,6 @@
 .chip-rol {
   background: #ffdcca;
   color: #7d3f2d;
-}
-
-.chip-membresia {
-  background: #f3e8ff;
-  color: #7042a1;
 }
 
 .chip-pendiente {

@@ -1,94 +1,189 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Nueva Venta | Administración{% endblock %}
+{% block title %}Nueva Venta | Administracion{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260406c">
+<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260421a">
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 ventas-shell">
-    <section class="admin-page-hero">
-        <div class="admin-page-copy">
-            <div class="admin-page-breadcrumbs">
-                <a href="{% url 'sesiones:admin_dashboard' %}">Panel admin</a>
-                <span>/</span>
-                <a href="{% url 'ventas:venta_lista' %}">Ventas</a>
-                <span>/</span>
-                <span>Nueva venta</span>
+    <section class="ventas-surface-card">
+        <div class="ventas-surface-head">
+            <div>
+                <h2>Datos de la venta</h2>
+                <p>Completa el cliente y agrega los productos que formaran la venta.</p>
             </div>
-            <h1 class="admin-page-title">Registrar nueva venta</h1>
-            <p class="admin-page-description">
-                Crea la venta con una captura clara y consistente para continuar luego con la validación del pago.
-            </p>
         </div>
-    </section>
+        <div class="ventas-surface-body">
+            <form method="post" novalidate class="ventas-form-grid" id="venta-form">
+                {% csrf_token %}
 
-    <div class="ventas-split-grid">
-        <section class="ventas-surface-card">
-            <div class="ventas-surface-head">
-                <div>
-                    <h2>Datos de la venta</h2>
-                    <p>Selecciona el cliente y registra el valor total de la transacción.</p>
-                </div>
-            </div>
-            <div class="ventas-surface-body">
-                <form method="post" novalidate class="ventas-form-grid">
-                    {% csrf_token %}
+                <label class="ventas-field">
+                    <span>Cliente *</span>
+                    <select class="ventas-select" id="cliente_id" name="cliente_id" required>
+                        <option value="" selected disabled>Selecciona un cliente</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if request.POST.cliente_id == cliente.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cliente.nombre }} {{ cliente.apellido }}{% if cliente.correo %} · {{ cliente.correo }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
 
-                    <div class="ventas-form-grid two-up">
-                        <label class="ventas-field is-wide">
-                            <span>Cliente *</span>
-                            <select class="ventas-select" id="cliente_id" name="cliente_id" required>
-                                <option value="" selected disabled>-- Selecciona un cliente --</option>
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}" {% if request.POST.cliente_id == cliente.id|stringformat:"s" %}selected{% endif %}>{{ cliente.nombre }} ({{ cliente.correo|default:"Sin correo" }})</option>
-                                {% empty %}
-                                <option value="" disabled>No hay clientes registrados</option>
-                                {% endfor %}
-                            </select>
-                        </label>
-
-                        <label class="ventas-field">
-                            <span>Total *</span>
-                            <div class="ventas-money-group">
-                                <span class="ventas-money-addon">$</span>
-                                <input type="text" class="ventas-input" id="total" name="total" inputmode="numeric" data-money="cop" value="{{ request.POST.total|default:'' }}" placeholder="20.000" required>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div class="ventas-inline-actions">
-                        <button type="submit" class="admin-action-button">
-                            <i class="bi bi-check-circle"></i> Crear venta
+                <section class="ventas-sale-builder">
+                    <div class="ventas-sale-builder-head">
+                        <div>
+                            <h3>Productos de la venta</h3>
+                            <p class="ventas-note">La venta se crea con validacion pendiente para que luego confirmes el pago.</p>
+                        </div>
+                        <button type="button" class="admin-action-button is-muted is-compact" id="agregar-producto">
+                            Agregar producto
                         </button>
                     </div>
-                </form>
-            </div>
-        </section>
 
-        <aside class="ventas-surface-card">
-            <div class="ventas-surface-head">
-                <div>
-                    <h2>Guía rápida</h2>
-                    <p>Referencia corta para registrar la venta sin perder contexto.</p>
+                    {% if productos %}
+                    <div class="ventas-sale-lines" id="venta-lineas">
+                        <article class="ventas-sale-line" data-linea>
+                            <label class="ventas-field">
+                                <span>Producto</span>
+                                <select name="producto_ids[]" class="ventas-select ventas-producto-select" required>
+                                    <option value="" selected disabled>Selecciona un producto</option>
+                                    {% for producto in productos %}
+                                    <option
+                                        value="{{ producto.id }}"
+                                        data-price="{{ producto.precio_venta|floatformat:2 }}"
+                                        data-stock="{{ producto.stock_disponible }}"
+                                    >
+                                        {{ producto.nombre }} · {{ producto.precio_venta|currency }} · stock {{ producto.stock_disponible }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+
+                            <label class="ventas-field ventas-field-xs">
+                                <span>Cantidad</span>
+                                <input type="number" min="1" name="cantidades[]" class="ventas-input ventas-cantidad-input" value="1" required>
+                            </label>
+
+                            <div class="ventas-line-meta">
+                                <span class="ventas-summary-label">Resumen</span>
+                                <strong class="ventas-line-total">$0</strong>
+                                <small class="ventas-note ventas-line-stock">Selecciona un producto</small>
+                            </div>
+
+                            <button type="button" class="ventas-line-remove" data-remove-line aria-label="Quitar producto">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </article>
+                    </div>
+                    {% else %}
+                    <div class="ventas-empty">
+                        <i class="bi bi-box-seam"></i>
+                        <p>No hay productos activos con stock disponible para registrar una venta.</p>
+                    </div>
+                    {% endif %}
+                </section>
+
+                <div class="ventas-sale-summary">
+                    <div>
+                        <span class="ventas-summary-label">Total estimado</span>
+                        <strong id="venta-total-estimado">{{ 0|currency }}</strong>
+                    </div>
+                    <div class="ventas-inline-actions">
+                        <button type="submit" class="admin-action-button" {% if not productos %}disabled{% endif %}>
+                            Crear venta
+                        </button>
+                        <a href="{% url 'ventas:venta_listado' %}" class="admin-action-button is-muted is-compact">
+                            Ver listado de ventas
+                        </a>
+                    </div>
                 </div>
-            </div>
-            <div class="ventas-surface-body">
-                <ol class="ventas-note-list">
-                    <li>Después de crear la venta podrás seguir con detalle, productos y validación del pago.</li>
-                    <li>Puedes ingresar valores como `20000` o `20.000` y se guardarán como pesos colombianos.</li>
-                    <li>La venta quedará en estado pendiente hasta confirmar la validación correspondiente.</li>
-                </ol>
-            </div>
-        </aside>
-    </div>
-
-    <div class="admin-interface-actions is-spacious">
-        <a href="{% url 'ventas:venta_lista' %}" class="admin-action-button is-muted is-compact">
-            <i class="bi bi-receipt"></i> Ver ventas
-        </a>
-    </div>
+            </form>
+        </div>
+    </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const lineas = document.getElementById("venta-lineas");
+    const agregar = document.getElementById("agregar-producto");
+    const totalNodo = document.getElementById("venta-total-estimado");
+
+    if (!lineas || !agregar || !totalNodo) {
+        return;
+    }
+
+    const formatear = (valor) => {
+        if (window.CopMoney && typeof window.CopMoney.formatDisplay === "function") {
+            return window.CopMoney.formatDisplay(valor);
+        }
+        return new Intl.NumberFormat("es-CO", {
+            style: "currency",
+            currency: "COP",
+            maximumFractionDigits: 0
+        }).format(valor);
+    };
+
+    const actualizarLinea = (linea) => {
+        const select = linea.querySelector(".ventas-producto-select");
+        const cantidad = linea.querySelector(".ventas-cantidad-input");
+        const total = linea.querySelector(".ventas-line-total");
+        const stock = linea.querySelector(".ventas-line-stock");
+        const opcion = select.options[select.selectedIndex];
+        const precio = Number.parseFloat(opcion?.dataset.price || "0");
+        const stockDisponible = opcion?.dataset.stock || "0";
+        const cantidadValor = Math.max(1, Number.parseInt(cantidad.value || "1", 10) || 1);
+
+        cantidad.value = cantidadValor;
+        total.textContent = formatear(precio * cantidadValor);
+        stock.textContent = opcion && opcion.value ? `Stock disponible: ${stockDisponible}` : "Selecciona un producto";
+    };
+
+    const actualizarTotal = () => {
+        let total = 0;
+        lineas.querySelectorAll("[data-linea]").forEach((linea) => {
+            const select = linea.querySelector(".ventas-producto-select");
+            const opcion = select.options[select.selectedIndex];
+            const precio = Number.parseFloat(opcion?.dataset.price || "0");
+            const cantidad = Math.max(1, Number.parseInt(linea.querySelector(".ventas-cantidad-input").value || "1", 10) || 1);
+            total += precio * cantidad;
+            actualizarLinea(linea);
+        });
+        totalNodo.textContent = formatear(total);
+    };
+
+    const vincularLinea = (linea) => {
+        linea.querySelector(".ventas-producto-select").addEventListener("change", actualizarTotal);
+        linea.querySelector(".ventas-cantidad-input").addEventListener("input", actualizarTotal);
+        linea.querySelector("[data-remove-line]").addEventListener("click", function () {
+            if (lineas.querySelectorAll("[data-linea]").length === 1) {
+                linea.querySelector(".ventas-producto-select").selectedIndex = 0;
+                linea.querySelector(".ventas-cantidad-input").value = 1;
+            } else {
+                linea.remove();
+            }
+            actualizarTotal();
+        });
+    };
+
+    agregar.addEventListener("click", function () {
+        const base = lineas.querySelector("[data-linea]");
+        const clon = base.cloneNode(true);
+        clon.querySelector(".ventas-producto-select").selectedIndex = 0;
+        clon.querySelector(".ventas-cantidad-input").value = 1;
+        clon.querySelector(".ventas-line-total").textContent = "$0";
+        clon.querySelector(".ventas-line-stock").textContent = "Selecciona un producto";
+        lineas.appendChild(clon);
+        vincularLinea(clon);
+        actualizarTotal();
+    });
+
+    lineas.querySelectorAll("[data-linea]").forEach(vincularLinea);
+    actualizarTotal();
+});
+</script>
 {% endblock %}

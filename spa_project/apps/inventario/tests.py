@@ -33,8 +33,11 @@ class InventarioUrlsTest(TestCase):
     def test_informe_muestra_sidebar_admin(self):
         response = self.client.get(reverse("inventario:informe_inventario"))
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Navegación admin")
+        self.assertRedirects(
+            response,
+            reverse("inventario:dashboard"),
+            fetch_redirect_response=False,
+        )
 
     def test_informe_redirige_a_login_sin_sesion(self):
         self.client.session.flush()
@@ -334,3 +337,4 @@ class InventarioUrlsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Debes seleccionar un producto válido de la compra elegida.")
         self.assertEqual(DevolucionCompra.objects.count(), 0)
+

@@ -11,6 +11,7 @@ from apps.ventas.views.venta_views import (
     rechazar_compra_telegram,
     venta_detalle,
     venta_lista,
+    venta_listado,
     venta_nueva,
     venta_validaciones,
 )
@@ -19,6 +20,7 @@ app_name = "ventas"
 
 urlpatterns = [
     path("", venta_lista, name="venta_lista"),
+    path("listado/", venta_listado, name="venta_listado"),
     path("nueva/", venta_nueva, name="venta_nueva"),
     path("<int:venta_id>/", venta_detalle, name="venta_detalle"),
     path("<int:venta_id>/validaciones/", venta_validaciones, name="venta_validaciones"),

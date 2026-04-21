@@ -1,7 +1,9 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.urls import NoReverseMatch, reverse
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
+from apps.ventas.models import SolicitudDevolucionVenta
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
 
@@ -61,6 +63,7 @@ def login_view(request):
         if usuario:
             request.session["usuario_id"] = usuario.id
             request.session["usuario_rol"] = usuario.rol
+            request.session["usuario_nombre"] = f"{usuario.nombre} {usuario.apellido}".strip()
             if next_url:
                 return redirect(next_url)
             if usuario.rol == Usuario.ROL_ADMIN:
@@ -125,4 +128,74 @@ def logout_view(request):
 
 @admin_required_session
 def admin_dashboard(request):
-    return render(request, "administrador/dashboard.html")
+    pending_client_returns = SolicitudDevolucionVenta.objects.filter(
+        estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE
+    ).count()
+
+    def safe_reverse(view_name):
+        try:
+            return reverse(view_name)
+        except NoReverseMatch:
+            return ""
+
+    module_cards = [
+        {
+            "title": "Inventario",
+            "icon": "bi-box-seam",
+            "copy": "Gestiona productos, compras, proveedores y devoluciones desde un solo espacio.",
+            "url": safe_reverse("inventario:dashboard"),
+            "links": [
+                {"label": "Productos", "url": safe_reverse("inventario:producto_lista")},
+                {"label": "Compras", "url": safe_reverse("inventario:compra_lista")},
+                {"label": "Proveedores", "url": safe_reverse("inventario:proveedor_lista")},
+            ],
+        },
+        {
+            "title": "Ventas",
+            "icon": "bi-receipt",
+            "copy": "Revisa ventas, validaciones y seguimiento comercial del día.",
+            "url": safe_reverse("ventas:venta_lista"),
+            "links": [
+                {"label": "Resumen", "url": safe_reverse("ventas:venta_lista")},
+                {"label": "Nueva venta", "url": safe_reverse("ventas:venta_nueva")},
+            ],
+        },
+        {
+            "title": "Citas",
+            "icon": "bi-calendar-event",
+            "copy": "Consulta el calendario y entra rápido a reservas y servicios.",
+            "url": safe_reverse("citas:calendario"),
+            "links": [
+                {"label": "Calendario", "url": safe_reverse("citas:calendario")},
+                {"label": "Servicios", "url": safe_reverse("citas:servicio_lista")},
+            ],
+        },
+        {
+            "title": "Devoluciones",
+            "icon": "bi-arrow-return-left",
+            "copy": "Centraliza devoluciones de compra y solicitudes hechas por clientes.",
+            "url": safe_reverse("inventario:devolucion_lista"),
+            "links": [
+                {"label": "Historial", "url": safe_reverse("inventario:devolucion_lista")},
+                {"label": "Nueva devolución", "url": safe_reverse("inventario:devolucion_nueva")},
+            ],
+            "badge": f"{pending_client_returns} pendiente(s)" if pending_client_returns else "",
+        },
+    ]
+    module_cards = [
+        {
+            **card,
+            "links": [link for link in card["links"] if link["url"]],
+        }
+        for card in module_cards
+        if card["url"]
+    ]
+
+    return render(
+        request,
+        "administrador/dashboard.html",
+        {
+            "module_cards": module_cards,
+            "pending_client_returns": pending_client_returns,
+        },
+    )
