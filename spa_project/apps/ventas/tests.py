@@ -98,7 +98,8 @@ class VentasViewsTest(TestCase):
     def test_ventas_lista_ok(self):
         response = self.client.get(reverse("ventas:venta_lista"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Resumen de ventas")
+        self.assertContains(response, "Ingresos por periodo")
+        self.assertContains(response, "Listado de ventas")
 
     def test_venta_listado_ok(self):
         response = self.client.get(reverse("ventas:venta_listado"))
@@ -106,6 +107,16 @@ class VentasViewsTest(TestCase):
         self.assertContains(response, "Listado de ventas")
         self.assertContains(response, "Excel")
         self.assertContains(response, "PDF")
+        self.assertContains(response, "Todas")
+
+    def test_venta_lista_permite_ver_todas_las_ventas(self):
+        venta, _ = self.crear_compra_confirmada(cantidad=1)
+
+        response = self.client.get(reverse("ventas:venta_lista"), {"periodo": "todas"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Todas")
+        self.assertContains(response, f"#{venta.id}")
 
     def test_venta_nueva_get_ok(self):
         response = self.client.get(reverse("ventas:venta_nueva"))
@@ -260,7 +271,7 @@ class VentasViewsTest(TestCase):
         response = self.client.get(reverse("ventas:venta_lista"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Resumen de ventas")
+        self.assertContains(response, "Listado de ventas")
         self.assertContains(response, "Devuelta parcial")
         self.assertContains(response, f"#{venta.id}")
 

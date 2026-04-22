@@ -1,7 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Dashboard de citas | Lotus Dream Spa{% endblock %}
+{% block title %}Almanaque de citas | Lotus Dream Spa{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
@@ -12,10 +12,14 @@
 <section class="dashboard-shell">
   <header class="dashboard-hero">
     <div>
-      <p class="eyebrow">Dashboard admin</p>
-      <h1>Gestion de citas</h1>
-      <p>Controla horarios, seguimiento operativo, pagos y asistencia desde un solo panel.</p>
+      <p class="eyebrow">Almanaque admin</p>
+      <h1>Almanaque de citas</h1>
+      <p>Consulta la agenda visual del spa y abre el detalle de cada reserva desde el calendario operativo.</p>
       <p class="tracking-note">{{ horario_atencion }}</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
     </div>
   </header>
 
@@ -71,7 +75,7 @@
     </label>
     <div class="filter-actions">
       <button type="submit" class="btn-primary-strong">Aplicar filtros</button>
-      <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Limpiar</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:almanaque' %}">Limpiar</a>
     </div>
   </form>
 
@@ -241,6 +245,7 @@
   </section>
 
   <div class="dashboard-footer-actions">
+    <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}"><i class="bi bi-grid-1x2"></i> Volver al dashboard</a>
     <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
     <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Gestionar servicios</a>
   </div>

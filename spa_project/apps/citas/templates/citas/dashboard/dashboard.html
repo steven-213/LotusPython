@@ -1,0 +1,136 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Dashboard de citas | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}?v=20260422a">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <header class="dashboard-hero">
+    <div>
+      <p class="eyebrow">Dashboard admin</p>
+      <h1>Gestion de citas</h1>
+      <p>Supervisa el estado operativo de las reservas y abre el detalle solo cuando necesites gestionar una cita.</p>
+      <p class="tracking-note">{{ horario_atencion }}</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-secondary-soft" href="{% url 'citas:almanaque' %}"><i class="bi bi-calendar-event"></i> Almanaque</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Servicios</a>
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
+    </div>
+  </header>
+
+  <section class="stats-grid">
+    {% for item in atajos_dashboard %}
+    <a href="{{ item.url }}" class="stats-card stats-card-link {% if item.is_active %}is-active{% endif %}">
+      <span class="stats-label">{{ item.label }}</span>
+      <strong>{{ item.value }}</strong>
+    </a>
+    {% endfor %}
+  </section>
+
+  <form method="get" class="filter-panel">
+    <input type="hidden" name="atajo" value="{{ atajo_activo }}">
+    <label class="field">
+      <span>Buscar</span>
+      <input class="form-control" type="text" name="q" value="{{ query }}" placeholder="Cliente, documento o servicio">
+    </label>
+    <label class="field">
+      <span>Estado</span>
+      <select class="form-select" name="estado">
+        <option value="">Todos</option>
+        {% for value, label in estados_reserva %}
+        <option value="{{ value }}" {% if estado_filtro == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Profesional</span>
+      <select class="form-select" name="profesional_id">
+        <option value="">Todas</option>
+        {% for profesional in profesionales %}
+        <option value="{{ profesional.id }}" {% if profesional_id == profesional.id|stringformat:"s" %}selected{% endif %}>{{ profesional.nombre }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Asistencia</span>
+      <select class="form-select" name="asistencia">
+        <option value="">Cualquiera</option>
+        <option value="asistio" {% if asistencia == "asistio" %}selected{% endif %}>Asistio</option>
+        <option value="no_asistio" {% if asistencia == "no_asistio" %}selected{% endif %}>No asistio</option>
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button type="submit" class="btn-primary-strong">Aplicar filtros</button>
+      <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}">Limpiar</a>
+    </div>
+  </form>
+
+  <section class="list-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Reservas gestionables</h2>
+        <p>{{ reservas_total }} resultado{{ reservas_total|pluralize }} encontrado{{ reservas_total|pluralize }}</p>
+      </div>
+    </div>
+
+    {% if reservas %}
+    <div class="reservas-grid">
+      {% for reserva in reservas %}
+      <article class="admin-reserva-card admin-reserva-card-compact">
+        <div class="admin-reserva-top">
+          <div>
+            <p class="admin-reserva-date">{{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_inicio|time:"H:i" }} a {{ reserva.fecha_fin|time:"H:i" }}</p>
+            <h3>{{ reserva.cliente_nombre_completo }}</h3>
+            <p class="admin-reserva-meta">{{ reserva.servicio.nombre }} - {{ reserva.servicio.profesional.nombre|default:"Sin profesional" }}</p>
+          </div>
+          <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+        </div>
+
+        <div class="admin-actions-row">
+          <a class="btn-secondary-soft" href="{% url 'citas:reserva_detalle' reserva.id %}"><i class="bi bi-eye"></i> Ver detalle</a>
+          {% if reserva.estado == "programada" %}
+          <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ dashboard_return_url }}">
+            <button type="submit" class="btn-secondary-soft"><i class="bi bi-patch-check"></i> Confirmar</button>
+          </form>
+          {% endif %}
+          {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+          <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ dashboard_return_url }}">
+            <button type="submit" class="btn-primary-strong"><i class="bi bi-play-circle"></i> Iniciar</button>
+          </form>
+          <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ dashboard_return_url }}">
+            <button type="submit" class="btn-warning-soft"><i class="bi bi-person-x"></i> No asistio</button>
+          </form>
+          {% endif %}
+          {% if reserva.estado == "en_proceso" %}
+          <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ dashboard_return_url }}">
+            <button type="submit" class="btn-primary-strong"><i class="bi bi-check2-square"></i> Finalizar</button>
+          </form>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <article class="empty-state-panel">
+      <div class="empty-state-icon"><i class="bi bi-calendar2-x"></i></div>
+      <h2>No hay reservas para esos filtros</h2>
+      <p>Ajusta la busqueda o crea una nueva reserva para empezar a gestionar la agenda.</p>
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}">Crear reserva</a>
+    </article>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

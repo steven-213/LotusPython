@@ -1,14 +1,16 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
+from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import DecimalField, OuterRef, Q, Subquery, Value
+from django.db.models import Case, DecimalField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
@@ -273,27 +275,87 @@ def _estado_puede_pasar_a(reserva, nuevo_estado):
     return nuevo_estado in TRANSICIONES_VALIDAS.get(reserva.estado, set())
 
 
-@admin_required_session
-def calendario(request):
-    reservas = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "venta_asociada"
+def _reservas_admin_queryset():
+    return Reserva.objects.select_related(
+        "cliente",
+        "cliente_invitado",
+        "servicio",
+        "servicio__profesional",
+        "venta_asociada",
     ).prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto")
 
-    estado = (request.GET.get("estado") or "").strip()
-    profesional_id = (request.GET.get("profesional_id") or "").strip()
-    asistencia = (request.GET.get("asistencia") or "").strip()
-    q = (request.GET.get("q") or "").strip()
 
-    if estado:
-        reservas = reservas.filter(estado=estado)
-    if profesional_id:
-        reservas = reservas.filter(servicio__profesional_id=profesional_id)
-    if asistencia == "asistio":
-        reservas = reservas.filter(estado__in=[Reserva.ESTADO_EN_PROCESO, Reserva.ESTADO_FINALIZADA])
-    elif asistencia == "no_asistio":
-        reservas = reservas.filter(estado=Reserva.ESTADO_NO_ASISTIO)
-    if q:
-        filtros = (
+def _leer_filtros_dashboard(request):
+    atajo = (request.GET.get("atajo") or "").strip().lower()
+    if atajo not in {"hoy", "semana", "mes", "pendientes"}:
+        atajo = ""
+    return {
+        "atajo": atajo,
+        "estado": (request.GET.get("estado") or "").strip(),
+        "profesional_id": (request.GET.get("profesional_id") or "").strip(),
+        "asistencia": (request.GET.get("asistencia") or "").strip(),
+        "q": (request.GET.get("q") or "").strip(),
+    }
+
+
+def _querystring_dashboard(filtros, **extras):
+    params = {
+        "atajo": filtros.get("atajo", ""),
+        "estado": filtros.get("estado", ""),
+        "profesional_id": filtros.get("profesional_id", ""),
+        "asistencia": filtros.get("asistencia", ""),
+        "q": filtros.get("q", ""),
+    }
+    params.update(extras)
+    limpio = {key: value for key, value in params.items() if value not in {"", None}}
+    if not limpio:
+        return ""
+    return urlencode(limpio)
+
+
+def _aplicar_atajo_dashboard(queryset, atajo):
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    if hoy.month == 12:
+        inicio_mes_siguiente = hoy.replace(year=hoy.year + 1, month=1, day=1)
+    else:
+        inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
+
+    if atajo == "hoy":
+        return queryset.filter(fecha_inicio__date=hoy)
+    if atajo == "semana":
+        return queryset.filter(
+            fecha_inicio__date__gte=inicio_semana,
+            fecha_inicio__date__lt=inicio_semana + timedelta(days=7),
+        )
+    if atajo == "mes":
+        return queryset.filter(
+            fecha_inicio__date__gte=hoy.replace(day=1),
+            fecha_inicio__date__lt=inicio_mes_siguiente,
+        )
+    if atajo == "pendientes":
+        return queryset.filter(
+            estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA]
+        )
+    return queryset
+
+
+def _aplicar_filtros_dashboard(queryset, filtros):
+    queryset = _aplicar_atajo_dashboard(queryset, filtros["atajo"])
+
+    if filtros["estado"]:
+        queryset = queryset.filter(estado=filtros["estado"])
+    if filtros["profesional_id"]:
+        queryset = queryset.filter(servicio__profesional_id=filtros["profesional_id"])
+    if filtros["asistencia"] == "asistio":
+        queryset = queryset.filter(
+            estado__in=[Reserva.ESTADO_EN_PROCESO, Reserva.ESTADO_FINALIZADA]
+        )
+    elif filtros["asistencia"] == "no_asistio":
+        queryset = queryset.filter(estado=Reserva.ESTADO_NO_ASISTIO)
+    if filtros["q"]:
+        q = filtros["q"]
+        consulta = (
             Q(cliente__nombre__icontains=q)
             | Q(cliente__apellido__icontains=q)
             | Q(cliente_invitado__nombre__icontains=q)
@@ -301,10 +363,92 @@ def calendario(request):
             | Q(servicio__nombre__icontains=q)
         )
         if q.isdigit():
-            filtros |= Q(cliente__documento=int(q)) | Q(cliente_invitado__documento=int(q))
-        reservas = reservas.filter(filtros)
+            consulta |= Q(cliente__documento=int(q)) | Q(cliente_invitado__documento=int(q))
+        queryset = queryset.filter(consulta)
+    return queryset
 
-    reservas = reservas.order_by("fecha_inicio")
+
+def _ordenar_reservas_dashboard(queryset):
+    return queryset.order_by(
+        Case(
+            When(estado=Reserva.ESTADO_EN_PROCESO, then=Value(0)),
+            When(
+                estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA],
+                then=Value(1),
+            ),
+            When(estado=Reserva.ESTADO_FINALIZADA, then=Value(2)),
+            default=Value(3),
+            output_field=IntegerField(),
+        ),
+        "fecha_inicio",
+        "id",
+    )
+
+
+def _atajos_dashboard(filtros, resumen):
+    definiciones = [
+        ("hoy", "Reservas hoy", resumen["reservas_hoy"]),
+        ("semana", "Semana actual", resumen["reservas_semana"]),
+        ("mes", "Mes actual", resumen["reservas_mes"]),
+        ("pendientes", "Pendientes de atencion", resumen["pendientes"]),
+    ]
+    tarjetas = []
+    for slug, label, value in definiciones:
+        qs = _querystring_dashboard(filtros, atajo=slug)
+        url = reverse("citas:dashboard")
+        if qs:
+            url = f"{url}?{qs}"
+        tarjetas.append(
+            {
+                "slug": slug,
+                "label": label,
+                "value": value,
+                "url": url,
+                "is_active": filtros["atajo"] == slug,
+            }
+        )
+    return tarjetas
+
+
+def _redirect_admin_dashboard_target(request, *, default_view="citas:dashboard"):
+    destino = (request.POST.get("next") or "").strip()
+    if destino and destino.startswith("/citas/"):
+        return redirect(destino)
+    return redirect(default_view)
+
+
+@admin_required_session
+def dashboard(request):
+    filtros = _leer_filtros_dashboard(request)
+    reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros)
+    reservas = _ordenar_reservas_dashboard(reservas)
+    resumen = resumen_dashboard_admin()
+
+    return render(
+        request,
+        "citas/dashboard/dashboard.html",
+        {
+            "reservas": reservas,
+            "reservas_total": reservas.count(),
+            "profesionales": Profesional.objects.filter(activo=True),
+            "estado_filtro": filtros["estado"],
+            "profesional_id": filtros["profesional_id"],
+            "asistencia": filtros["asistencia"],
+            "query": filtros["q"],
+            "atajo_activo": filtros["atajo"],
+            "atajos_dashboard": _atajos_dashboard(filtros, resumen),
+            "dashboard_return_url": request.get_full_path(),
+            "estados_reserva": Reserva.ESTADOS,
+            "horario_atencion": resumen_horario_atencion(),
+            **resumen,
+        },
+    )
+
+
+@admin_required_session
+def almanaque(request):
+    filtros = _leer_filtros_dashboard(request)
+    reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros).order_by("fecha_inicio")
     resumen = resumen_dashboard_admin()
 
     return render(
@@ -313,10 +457,10 @@ def calendario(request):
         {
             "reservas": reservas,
             "profesionales": Profesional.objects.filter(activo=True),
-            "estado_filtro": estado,
-            "profesional_id": profesional_id,
-            "asistencia": asistencia,
-            "query": q,
+            "estado_filtro": filtros["estado"],
+            "profesional_id": filtros["profesional_id"],
+            "asistencia": filtros["asistencia"],
+            "query": filtros["q"],
             "estados_reserva": Reserva.ESTADOS,
             "metodos_pago": PagoReserva.METODOS,
             "tipos_pago": PagoReserva.TIPOS,
@@ -325,6 +469,11 @@ def calendario(request):
             **resumen,
         },
     )
+
+
+@admin_required_session
+def calendario(request):
+    return almanaque(request)
 
 
 @login_required_session
@@ -552,7 +701,7 @@ def reserva_confirmar(request, reserva_id):
             messages.success(request, "La cita fue confirmada.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return redirect("citas:calendario")
+    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
 
 
 @admin_required_session
@@ -570,7 +719,7 @@ def reserva_iniciar(request, reserva_id):
             messages.success(request, "La cita paso a estado en proceso.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return redirect("citas:calendario")
+    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
 
 
 @admin_required_session
@@ -588,7 +737,7 @@ def reserva_finalizar(request, reserva_id):
             messages.success(request, "La cita fue finalizada.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return redirect("citas:calendario")
+    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
 
 
 @admin_required_session
@@ -606,7 +755,7 @@ def reserva_no_asistio(request, reserva_id):
             messages.success(request, "La cita fue marcada como no asistio.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return redirect("citas:calendario")
+    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
 
 
 @login_required_session

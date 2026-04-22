@@ -165,6 +165,24 @@
   padding: 1rem 1.1rem;
 }
 
+.stats-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.stats-card-link:hover,
+.stats-card-link:focus {
+  transform: translateY(-2px);
+  border-color: rgba(202, 107, 134, 0.34);
+}
+
+.stats-card-link.is-active {
+  background: linear-gradient(135deg, #fff4f8 0%, #ffeaf2 100%);
+  border-color: rgba(202, 107, 134, 0.34);
+}
+
 .stats-card strong {
   display: block;
   margin-top: 0.35rem;
@@ -256,6 +274,10 @@ textarea.form-control {
   padding: 1.1rem;
   display: grid;
   gap: 1rem;
+}
+
+.admin-reserva-card-compact {
+  gap: 0.8rem;
 }
 
 .admin-reserva-top {

@@ -20,7 +20,7 @@
       <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
       <div class="hero-actions">
         {% if usuario.rol == "admin" %}
-        <a class="btn-secondary-soft" href="{% url 'citas:calendario' %}">Volver al dashboard</a>
+        <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}">Volver al dashboard</a>
         {% else %}
         <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Volver a mis citas</a>
         {% endif %}

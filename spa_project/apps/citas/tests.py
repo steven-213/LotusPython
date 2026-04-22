@@ -394,11 +394,77 @@ class CitasFlowTest(TestCase):
         self.assertContains(response, 'step="3600"', html=False)
         self.assertContains(response, "Solo se aceptan horas exactas dentro del horario del spa.")
 
+    def test_dashboard_admin_root_is_available(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=6, hour=11))
+        self._force_session(self.admin)
+
+        response = self.client.get(reverse("citas:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Gestion de citas")
+        self.assertContains(response, "Almanaque")
+        self.assertContains(response, f"{reserva.cliente_nombre_completo}")
+        self.assertNotContains(response, "Registrar pago o cancelar")
+        self.assertNotContains(response, 'id="calendar"', html=False)
+
+    def test_dashboard_atajo_pendientes_filtra_reservas(self):
+        pendiente = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=7, hour=10))
+        finalizada = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=8, hour=11))
+        cambiar_estado_reserva(
+            reserva=finalizada,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Prueba orden",
+        )
+        cambiar_estado_reserva(
+            reserva=finalizada,
+            nuevo_estado=Reserva.ESTADO_FINALIZADA,
+            actor=self.admin,
+            observacion="Prueba orden",
+        )
+        self._force_session(self.admin)
+
+        response = self.client.get(reverse("citas:dashboard"), {"atajo": "pendientes"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f"{pendiente.cliente_nombre_completo}")
+        self.assertNotContains(response, f"{finalizada.cliente_nombre_completo}")
+
+    def test_dashboard_orders_in_process_before_pending_and_finished(self):
+        pendiente = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=9))
+        en_proceso = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=10, hour=8))
+        finalizada = self._crear_reserva(cliente=self.cliente, servicio=self.servicio_2, fecha_inicio=self._future_start(days=11, hour=7))
+        cambiar_estado_reserva(
+            reserva=en_proceso,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Prueba orden",
+        )
+        cambiar_estado_reserva(
+            reserva=finalizada,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Prueba orden",
+        )
+        cambiar_estado_reserva(
+            reserva=finalizada,
+            nuevo_estado=Reserva.ESTADO_FINALIZADA,
+            actor=self.admin,
+            observacion="Prueba orden",
+        )
+        self._force_session(self.admin)
+
+        response = self.client.get(reverse("citas:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        ids = [reserva.id for reserva in response.context["reservas"][:3]]
+        self.assertEqual(ids, [en_proceso.id, pendiente.id, finalizada.id])
+
     def test_admin_can_mark_no_show_and_history_is_recorded(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=10))
         self._force_session(self.admin)
         response = self.client.post(reverse("citas:reserva_no_asistio", kwargs={"reserva_id": reserva.id}))
-        self.assertRedirects(response, reverse("citas:calendario"))
+        self.assertRedirects(response, reverse("citas:almanaque"))
         reserva.refresh_from_db()
         self.assertEqual(reserva.estado, Reserva.ESTADO_NO_ASISTIO)
         self.assertTrue(reserva.historial_estados.filter(estado_nuevo=Reserva.ESTADO_NO_ASISTIO).exists())
@@ -430,7 +496,7 @@ class CitasFlowTest(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("citas:calendario"))
+        self.assertRedirects(response, reverse("citas:almanaque"))
         reserva.refresh_from_db()
         self.assertEqual(reserva.pagos.count(), 1)
         self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)

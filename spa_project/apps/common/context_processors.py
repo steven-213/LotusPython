@@ -37,6 +37,8 @@ ADMIN_VIEW_NAMES = {
         "venta_validaciones",
     },
     "citas": {
+        "dashboard",
+        "almanaque",
         "calendario",
         "agenda",
         "reserva_nueva",
@@ -157,18 +159,10 @@ def _module_sidebar_map(namespace: str, url_name: str):
                 _build_item(
                     namespace,
                     url_name,
-                    label="Resumen de ventas",
+                    label="Ventas",
                     icon="bi-receipt",
                     view_name="ventas:venta_lista",
-                    active_urls={"venta_lista", "venta_detalle", "venta_validaciones"},
-                ),
-                _build_item(
-                    namespace,
-                    url_name,
-                    label="Listado de ventas",
-                    icon="bi-card-list",
-                    view_name="ventas:venta_listado",
-                    active_urls={"venta_listado"},
+                    active_urls={"venta_lista", "venta_listado", "venta_detalle", "venta_validaciones"},
                 ),
                 _build_item(
                     namespace,
@@ -183,17 +177,16 @@ def _module_sidebar_map(namespace: str, url_name: str):
         "citas": {
             "title": "Citas",
             "eyebrow": "Modulo activo",
-            "copy": "Navega solo entre calendario, reservas y servicios del modulo de citas.",
+            "copy": "Navega entre dashboard, almanaque, reservas y servicios del modulo de citas.",
             "items": [
                 _build_item(
                     namespace,
                     url_name,
-                    label="Calendario",
-                    icon="bi-calendar-event",
-                    view_name="citas:calendario",
+                    label="Dashboard",
+                    icon="bi-speedometer2",
+                    view_name="citas:dashboard",
                     active_urls={
-                        "calendario",
-                        "agenda",
+                        "dashboard",
                         "reserva_detalle",
                         "reserva_editar",
                         "reserva_cancelar",
@@ -202,6 +195,18 @@ def _module_sidebar_map(namespace: str, url_name: str):
                         "reserva_finalizar",
                         "reserva_no_asistio",
                         "reserva_registrar_pago",
+                    },
+                ),
+                _build_item(
+                    namespace,
+                    url_name,
+                    label="Almanaque",
+                    icon="bi-calendar-event",
+                    view_name="citas:almanaque",
+                    active_urls={
+                        "almanaque",
+                        "calendario",
+                        "agenda",
                     },
                 ),
                 _build_item(

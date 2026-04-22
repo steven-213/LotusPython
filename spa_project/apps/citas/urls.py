@@ -3,7 +3,9 @@ from django.urls import path
 from apps.citas.views.api_views import api_disponibilidad, api_eventos
 from apps.citas.views.cita_views import (
     agenda,
+    almanaque,
     calendario,
+    dashboard,
     comprobante_pago_pdf,
     reserva_cancelar,
     reserva_confirmada,
@@ -27,6 +29,8 @@ from apps.citas.views.servicio_views import (
 app_name = "citas"
 
 urlpatterns = [
+    path("", dashboard, name="dashboard"),
+    path("almanaque/", almanaque, name="almanaque"),
     path("calendario/", calendario, name="calendario"),
     path("agenda/", agenda, name="agenda"),
     path("nueva/", reserva_nueva, name="reserva_nueva"),

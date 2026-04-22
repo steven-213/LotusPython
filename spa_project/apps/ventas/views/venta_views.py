@@ -1,7 +1,8 @@
 import csv
-from datetime import datetime
+from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -10,6 +11,7 @@ from django.db.models import Avg, Count, OuterRef, Prefetch, Q, Subquery, Sum
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
@@ -32,6 +34,10 @@ PANEL_PAGOS_RECHAZADOS = "pagos_rechazados"
 PANEL_DEVOLUCIONES_PENDIENTES = "devoluciones_pendientes"
 PANEL_DEVOLUCIONES_APROBADAS = "devoluciones_aprobadas"
 PANEL_DEVOLUCIONES_RECHAZADAS = "devoluciones_rechazadas"
+PERIODO_TODAS = "todas"
+PERIODO_DIARIO = "diario"
+PERIODO_SEMANAL = "semanal"
+PERIODO_MENSUAL = "mensual"
 MESES_VENTA = [
     (1, "Enero"),
     (2, "Febrero"),
@@ -234,6 +240,39 @@ def _obtener_paneles_ventas():
     }
 
 
+def _obtener_periodos_ventas():
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    return {
+        PERIODO_TODAS: {
+            "label": "Todas",
+            "copy": "Todo el historial de ventas registrado.",
+            "filters": {},
+        },
+        PERIODO_DIARIO: {
+            "label": "Hoy",
+            "copy": "Ventas registradas durante el dia actual.",
+            "filters": {"fecha__date": hoy},
+        },
+        PERIODO_SEMANAL: {
+            "label": "Esta semana",
+            "copy": "Ventas acumuladas desde el lunes hasta hoy.",
+            "filters": {
+                "fecha__date__gte": inicio_semana,
+                "fecha__date__lte": hoy,
+            },
+        },
+        PERIODO_MENSUAL: {
+            "label": "Este mes",
+            "copy": "Ventas registradas en el mes actual.",
+            "filters": {
+                "fecha__year": hoy.year,
+                "fecha__month": hoy.month,
+            },
+        },
+    }
+
+
 def _normalizar_numero_entero(valor, *, minimo=None, maximo=None):
     if valor in {"", None}:
         return ""
@@ -253,6 +292,9 @@ def _leer_filtros_ventas(request):
     panel = (request.GET.get("panel") or PANEL_TODAS).strip() or PANEL_TODAS
     if panel not in _obtener_paneles_ventas():
         panel = PANEL_TODAS
+    periodo = (request.GET.get("periodo") or PERIODO_DIARIO).strip().lower()
+    if periodo not in _obtener_periodos_ventas():
+        periodo = PERIODO_DIARIO
 
     estado = (request.GET.get("estado") or "").strip().lower()
     if estado == "rechazada":
@@ -260,6 +302,7 @@ def _leer_filtros_ventas(request):
 
     return {
         "panel": panel,
+        "periodo": periodo,
         "q": (request.GET.get("q") or "").strip(),
         "cliente_id": (request.GET.get("cliente_id") or "").strip(),
         "estado": estado,
@@ -296,6 +339,11 @@ def _aplicar_panel_ventas(queryset, panel):
             detalles__solicitudes_devolucion__estado=SolicitudDevolucionVenta.ESTADO_RECHAZADA
         ).distinct()
     return queryset
+
+
+def _aplicar_periodo_ventas(queryset, periodo):
+    periodo_info = _obtener_periodos_ventas().get(periodo) or _obtener_periodos_ventas()[PERIODO_DIARIO]
+    return queryset.filter(**periodo_info["filters"])
 
 
 def _aplicar_filtros_ventas(queryset, filtros):
@@ -345,6 +393,7 @@ def _hidratar_ventas(ventas):
 def _querystring_ventas(filtros, **extras):
     params = {
         "panel": filtros.get("panel", PANEL_TODAS),
+        "periodo": filtros.get("periodo", PERIODO_DIARIO),
         "q": filtros.get("q", ""),
         "cliente_id": filtros.get("cliente_id", ""),
         "estado": filtros.get("estado", ""),
@@ -360,12 +409,14 @@ def _querystring_ventas(filtros, **extras):
             continue
         if key == "panel" and value == PANEL_TODAS:
             continue
+        if key == "periodo" and value == PERIODO_DIARIO:
+            continue
         limpio[key] = value
 
     if not limpio:
         return ""
 
-    return "&".join(f"{key}={value}" for key, value in limpio.items())
+    return urlencode(limpio)
 
 
 def _exportar_ventas_excel(ventas):
@@ -489,15 +540,96 @@ def _obtener_detalles_venta_desde_post(request):
     return detalles
 
 
+def _obtener_resumen_ventas_por_periodo():
+    """Calcula resúmenes de ventas para los períodos: diario, semanal y mensual."""
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    
+    # Período diario (últimas 24 horas)
+    ventas_todas = Venta.objects.aggregate(
+        total_monto=Sum("total"),
+        total_ventas=Count("id"),
+        promedio=Avg("total"),
+    )
+    ventas_diarias = Venta.objects.filter(fecha__date=hoy).aggregate(
+        total_monto=Sum("total"),
+        total_ventas=Count("id"),
+        promedio=Avg("total"),
+    )
+    
+    # Período semanal (últimos 7 días)
+    ventas_semanales = Venta.objects.filter(
+        fecha__date__gte=inicio_semana,
+        fecha__date__lte=hoy,
+    ).aggregate(
+        total_monto=Sum("total"),
+        total_ventas=Count("id"),
+        promedio=Avg("total"),
+    )
+    
+    # Período mensual (últimos 30 días)
+    ventas_mensuales = Venta.objects.filter(
+        fecha__year=hoy.year,
+        fecha__month=hoy.month,
+    ).aggregate(
+        total_monto=Sum("total"),
+        total_ventas=Count("id"),
+        promedio=Avg("total"),
+    )
+    
+    return {
+        "todas": {
+            "label": "Todas",
+            "monto_total": format_money(ventas_todas["total_monto"] or Decimal(0)),
+            "total_ventas": ventas_todas["total_ventas"] or 0,
+            "promedio": format_money(ventas_todas["promedio"] or Decimal(0)),
+        },
+        "diario": {
+            "label": "Hoy",
+            "monto_total": format_money(ventas_diarias["total_monto"] or Decimal(0)),
+            "total_ventas": ventas_diarias["total_ventas"] or 0,
+            "promedio": format_money(ventas_diarias["promedio"] or Decimal(0)),
+        },
+        "semanal": {
+            "label": "Esta semana",
+            "monto_total": format_money(ventas_semanales["total_monto"] or Decimal(0)),
+            "total_ventas": ventas_semanales["total_ventas"] or 0,
+            "promedio": format_money(ventas_semanales["promedio"] or Decimal(0)),
+        },
+        "mensual": {
+            "label": "Este mes",
+            "monto_total": format_money(ventas_mensuales["total_monto"] or Decimal(0)),
+            "total_ventas": ventas_mensuales["total_ventas"] or 0,
+            "promedio": format_money(ventas_mensuales["promedio"] or Decimal(0)),
+        },
+    }
+
+
 @admin_required_session
 def venta_lista(request):
     filtros = _leer_filtros_ventas(request)
     paneles = _obtener_paneles_ventas()
     panel_actual = filtros["panel"]
+    periodo_actual = filtros["periodo"]
+    periodos_base = _obtener_periodos_ventas()
+    resumen_periodos = _obtener_resumen_ventas_por_periodo()
+    for periodo, info in periodos_base.items():
+        resumen_periodos[periodo]["copy"] = info["copy"]
+    periodo_info = resumen_periodos[periodo_actual]
 
-    ventas_panel = _aplicar_panel_ventas(_ventas_queryset(), panel_actual)
-    total_panel = ventas_panel.count()
-    ventas_preview = _hidratar_ventas(list(ventas_panel[:6]))
+    ventas_periodo = _aplicar_periodo_ventas(_ventas_queryset(), periodo_actual)
+    ventas_filtradas = _aplicar_panel_ventas(ventas_periodo, panel_actual)
+    ventas_filtradas = _aplicar_filtros_ventas(ventas_filtradas, filtros)
+    ventas_total = ventas_filtradas.count()
+    ventas = _hidratar_ventas(list(ventas_filtradas))
+
+    if filtros["export"] == "excel":
+        return _exportar_ventas_excel(ventas)
+    if filtros["export"] == "pdf":
+        return _exportar_ventas_pdf(
+            ventas,
+            f"Ventas - {periodo_info['label']} - {paneles[panel_actual]['label']}",
+        )
 
     resumen_global = Venta.objects.aggregate(
         total_ventas=Count("id"),
@@ -528,106 +660,122 @@ def venta_lista(request):
         estado=SolicitudDevolucionVenta.ESTADO_RECHAZADA
     ).count()
 
-    cards = [
+    panel_nav = [
         {
             "panel": PANEL_TODAS,
-            "label": "Total de ventas",
-            "value": resumen_global["total_ventas"] or 0,
-            "meta": "Operaciones registradas en el historial.",
-            "icon": "bi bi-receipt-cutoff",
+            "label": "Todas",
+            "value": ventas_periodo.count(),
+            "meta": "Historial completo del periodo.",
         },
         {
             "panel": PANEL_PAGOS_PENDIENTES,
             "label": "Pagos pendientes",
-            "value": validaciones_pendientes,
-            "meta": "Ventas que aun necesitan validacion.",
-            "icon": "bi bi-clock-history",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_PAGOS_PENDIENTES).count(),
+            "meta": "Esperan revision de pago.",
         },
         {
             "panel": PANEL_PAGOS_APROBADOS,
             "label": "Pagos aprobados",
-            "value": validaciones_comprado,
-            "meta": "Ventas con pago ya confirmado.",
-            "icon": "bi bi-check-circle",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_PAGOS_APROBADOS).count(),
+            "meta": "Pago confirmado en el periodo.",
         },
         {
             "panel": PANEL_PAGOS_RECHAZADOS,
             "label": "Pagos rechazados",
-            "value": validaciones_rechazado,
-            "meta": "Ventas con pago rechazado.",
-            "icon": "bi bi-x-circle",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_PAGOS_RECHAZADOS).count(),
+            "meta": "Pagos rechazados en el periodo.",
         },
         {
             "panel": PANEL_DEVOLUCIONES_PENDIENTES,
             "label": "Devoluciones pendientes",
-            "value": devoluciones_pendientes,
-            "meta": "Solicitudes de clientes pendientes.",
-            "icon": "bi bi-arrow-counterclockwise",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_DEVOLUCIONES_PENDIENTES).count(),
+            "meta": "Clientes esperando respuesta.",
         },
         {
             "panel": PANEL_DEVOLUCIONES_APROBADAS,
             "label": "Devoluciones aprobadas",
-            "value": devoluciones_aprobadas,
-            "meta": "Solicitudes resueltas favorablemente.",
-            "icon": "bi bi-arrow-repeat",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_DEVOLUCIONES_APROBADAS).count(),
+            "meta": "Devoluciones aceptadas.",
         },
         {
             "panel": PANEL_DEVOLUCIONES_RECHAZADAS,
             "label": "Devoluciones rechazadas",
-            "value": devoluciones_rechazadas,
-            "meta": "Solicitudes cerradas sin aprobacion.",
-            "icon": "bi bi-slash-circle",
+            "value": _aplicar_panel_ventas(ventas_periodo, PANEL_DEVOLUCIONES_RECHAZADAS).count(),
+            "meta": "Devoluciones no aprobadas.",
         },
     ]
-    for card in cards:
-        card["is_active"] = card["panel"] == panel_actual
-        card["url"] = reverse("ventas:venta_lista")
-        if card["panel"] != PANEL_TODAS:
-            card["url"] += f"?panel={card['panel']}"
+    for item in panel_nav:
+        item["is_active"] = item["panel"] == panel_actual
+        item_qs = _querystring_ventas(filtros, panel=item["panel"], export="")
+        item["url"] = reverse("ventas:venta_lista")
+        if item_qs:
+            item["url"] = f"{item['url']}?{item_qs}#ventas-listado"
+        else:
+            item["url"] = f"{item['url']}#ventas-listado"
 
-    listado_qs = _querystring_ventas({"panel": panel_actual})
-    listado_url = reverse("ventas:venta_listado")
-    if listado_qs:
-        listado_url = f"{listado_url}?{listado_qs}"
-
-    context = {
-        "cards": cards,
-        "panel_actual": panel_actual,
-        "panel_info": paneles[panel_actual],
-        "ventas_preview": ventas_preview,
-        "ventas_preview_total": total_panel,
-        "listado_url": listado_url,
-        "monto_total": format_money(resumen_global["monto_total"] or Decimal(0)),
-        "promedio_venta": format_money(resumen_global["promedio_venta"] or Decimal(0)),
-        "clientes_unicos": Venta.objects.exclude(cliente_id__isnull=True).values("cliente_id").distinct().count(),
-    }
-    return render(request, "ventas/dashboard/lista.html", context)
-
-
-@admin_required_session
-def venta_listado(request):
-    filtros = _leer_filtros_ventas(request)
-    paneles = _obtener_paneles_ventas()
-    panel_actual = filtros["panel"]
-
-    ventas_filtradas = _aplicar_panel_ventas(_ventas_queryset(), panel_actual)
-    ventas_filtradas = _aplicar_filtros_ventas(ventas_filtradas, filtros)
-    ventas = _hidratar_ventas(list(ventas_filtradas))
-
-    if filtros["export"] == "excel":
-        return _exportar_ventas_excel(ventas)
-    if filtros["export"] == "pdf":
-        return _exportar_ventas_pdf(ventas, f"Listado de ventas - {paneles[panel_actual]['label']}")
+    periodos_nav = []
+    for periodo, info in resumen_periodos.items():
+        periodo_qs = _querystring_ventas(
+            filtros,
+            periodo=periodo,
+            dia="",
+            mes="",
+            anio="",
+            export="",
+        )
+        periodo_url = reverse("ventas:venta_lista")
+        if periodo_qs:
+            periodo_url = f"{periodo_url}?{periodo_qs}#ventas-listado"
+        else:
+            periodo_url = f"{periodo_url}#ventas-listado"
+        periodos_nav.append(
+            {
+                "slug": periodo,
+                "label": info["label"],
+                "url": periodo_url,
+                "is_active": periodo == periodo_actual,
+            }
+        )
 
     filtros_base = {key: value for key, value in filtros.items() if key != "export"}
     excel_qs = _querystring_ventas(filtros_base, export="excel")
     pdf_qs = _querystring_ventas(filtros_base, export="pdf")
+    limpiar_qs = _querystring_ventas(
+        {
+            "panel": panel_actual,
+            "periodo": periodo_actual,
+        }
+    )
+    excel_url = reverse("ventas:venta_lista")
+    pdf_url = reverse("ventas:venta_lista")
+    limpiar_url = reverse("ventas:venta_lista")
+    if excel_qs:
+        excel_url = f"{excel_url}?{excel_qs}"
+    else:
+        excel_url = f"{excel_url}?export=excel"
+    if pdf_qs:
+        pdf_url = f"{pdf_url}?{pdf_qs}"
+    else:
+        pdf_url = f"{pdf_url}?export=pdf"
+    if limpiar_qs:
+        limpiar_url = f"{limpiar_url}?{limpiar_qs}#ventas-listado"
+    else:
+        limpiar_url = f"{limpiar_url}#ventas-listado"
 
     context = {
         "ventas": ventas,
-        "clientes": Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre", "apellido"),
+        "ventas_total": ventas_total,
         "panel_actual": panel_actual,
         "panel_info": paneles[panel_actual],
+        "periodo_actual": periodo_actual,
+        "periodo_info": periodo_info,
+        "periodos_nav": periodos_nav,
+        "panel_nav": panel_nav,
+        "monto_total": format_money(resumen_global["monto_total"] or Decimal(0)),
+        "promedio_venta": format_money(resumen_global["promedio_venta"] or Decimal(0)),
+        "clientes_unicos": Venta.objects.exclude(cliente_id__isnull=True).values("cliente_id").distinct().count(),
+        "resumen_periodos": resumen_periodos,
+        "clientes": Usuario.objects.filter(rol=Usuario.ROL_CLIENTE).order_by("nombre", "apellido"),
         "query": filtros["q"],
         "cliente_id": filtros["cliente_id"],
         "estado_filtro": filtros["estado"],
@@ -636,11 +784,20 @@ def venta_listado(request):
         "anio": filtros["anio"],
         "dias_disponibles": list(range(1, 32)),
         "meses_disponibles": MESES_VENTA,
-        "anios_disponibles": list(range(datetime.now().year + 1, datetime.now().year - 3, -1)),
-        "excel_url": f"{reverse('ventas:venta_listado')}?{excel_qs}" if excel_qs else f"{reverse('ventas:venta_listado')}?export=excel",
-        "pdf_url": f"{reverse('ventas:venta_listado')}?{pdf_qs}" if pdf_qs else f"{reverse('ventas:venta_listado')}?export=pdf",
+        "anios_disponibles": list(
+            range(timezone.localdate().year + 1, timezone.localdate().year - 3, -1)
+        ),
+        "excel_url": excel_url,
+        "pdf_url": pdf_url,
+        "limpiar_url": limpiar_url,
+        "kpi_validaciones_pendientes": validaciones_pendientes,
+        "kpi_validaciones_comprado": validaciones_comprado,
+        "kpi_validaciones_rechazado": validaciones_rechazado,
+        "kpi_devoluciones_pendientes": devoluciones_pendientes,
+        "kpi_devoluciones_aprobadas": devoluciones_aprobadas,
+        "kpi_devoluciones_rechazadas": devoluciones_rechazadas,
     }
-    return render(request, "ventas/dashboard/listado_ventas.html", context)
+    return render(request, "ventas/dashboard/lista.html", context)
 
 
 @admin_required_session
