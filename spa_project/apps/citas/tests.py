@@ -1,21 +1,26 @@
 import json
 from datetime import timedelta
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.common.currency import format_money
 from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, Servicio
 from apps.citas.services import (
     cambiar_estado_reserva,
     configuracion_horario_reserva,
     crear_reserva,
     obtener_horas_disponibles_reserva,
+    registrar_pago,
+    resumen_dashboard_admin,
 )
 from apps.inventario.models import Inventario, Producto, Proveedor
 from apps.inventario.services import obtener_stock_disponible, registrar_ingreso
 from apps.sesiones.models import Usuario
+from apps.ventas.services import registrar_venta_desde_reserva
 
 
 class CitasFlowTest(TestCase):
@@ -204,11 +209,13 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.estado, Reserva.ESTADO_PROGRAMADA)
         self.assertEqual(reserva.pagos.count(), 0)
 
-    def test_booking_form_uses_custom_datepicker_with_sundays_disabled(self):
+    def test_booking_form_uses_custom_datepicker_with_sundays_disabled_and_blocks_past_dates(self):
         response = self.client.get(reverse("citas:reserva_nueva"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "flatpickr@4.6.13/dist/flatpickr.min.js")
+        self.assertContains(response, 'minDate: "today"')
         self.assertContains(response, "date.getDay() === 0")
+        self.assertNotContains(response, "date.getDay() === 6")
 
     def test_authenticated_booking_accepts_separate_date_and_time_fields(self):
         self._force_session(self.cliente)
@@ -266,6 +273,65 @@ class CitasFlowTest(TestCase):
         reserva = self._crear_reserva(cliente=self.otro_cliente, servicio=self.servicio_2, fecha_inicio=fecha)
         self.assertEqual(reserva.servicio_id, self.servicio_2.id)
         self.assertEqual(Reserva.objects.count(), 2)
+
+    def test_admin_can_reassign_professional_from_reservation_detail(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 10))
+        self._force_session(self.admin)
+
+        detail_response = self.client.get(reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, "Reasignar profesional")
+
+        response = self.client.post(
+            reverse("citas:reserva_actualizar_profesional", kwargs={"reserva_id": reserva.id}),
+            {
+                "profesional_id": str(self.profesional_2.id),
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.profesional_id, self.profesional_2.id)
+        self.assertTrue(
+            reserva.historial_estados.filter(observacion__icontains="Profesional reasignada a Marta").exists()
+        )
+
+    def test_admin_can_create_professional_from_reservation_detail(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(3, 10))
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:reserva_actualizar_profesional", kwargs={"reserva_id": reserva.id}),
+            {
+                "profesional_id": str(self.profesional.id),
+                "profesional_nombre": "Andrea",
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        reserva.refresh_from_db()
+        profesional_nueva = Profesional.objects.get(nombre="Andrea")
+        self.assertEqual(reserva.profesional_id, profesional_nueva.id)
+        self.assertTrue(profesional_nueva.activo)
+
+    def test_admin_cannot_reassign_professional_to_conflicting_schedule(self):
+        fecha = self._future_weekday_start(4, 10)
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)
+        self._crear_reserva(cliente=self.otro_cliente, servicio=self.servicio_2, fecha_inicio=fecha)
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:reserva_actualizar_profesional", kwargs={"reserva_id": reserva.id}),
+            {
+                "profesional_id": str(self.profesional_2.id),
+            },
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "ya tiene una cita en ese horario")
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.profesional_id, self.profesional.id)
 
     def test_rejects_appointment_at_one_am(self):
         fecha = self._future_weekday_start(0, 1)
@@ -349,6 +415,21 @@ class CitasFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.json()
         self.assertIn("10:00", payload["horas_disponibles"])
+
+    def test_public_availability_api_rejects_past_dates(self):
+        response = self.client.get(
+            reverse("citas:api_disponibilidad"),
+            {
+                "servicio_id": self.servicio.id,
+                "fecha": (timezone.localdate() - timedelta(days=1)).isoformat(),
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.json()["error"],
+            "No hay horarios disponibles para fechas anteriores a hoy.",
+        )
 
     def test_client_cannot_view_other_user_reservation(self):
         reserva = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=7, hour=14))
@@ -505,6 +586,78 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.venta_asociada_segura.total, producto.precio_venta * 2)
         self.assertEqual(obtener_stock_disponible(producto), 3)
 
+    def test_total_payment_must_match_pending_balance_exactly(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 11))
+
+        with self.assertRaisesMessage(ValidationError, "exactamente el saldo pendiente"):
+            registrar_pago(
+                reserva=reserva,
+                monto=Decimal("40000"),
+                metodo_pago=PagoReserva.METODO_EFECTIVO,
+                tipo=PagoReserva.TIPO_TOTAL,
+                actor=self.admin,
+            )
+
+        with self.assertRaisesMessage(ValidationError, "supera el saldo pendiente"):
+            registrar_pago(
+                reserva=reserva,
+                monto=Decimal("60000"),
+                metodo_pago=PagoReserva.METODO_EFECTIVO,
+                tipo=PagoReserva.TIPO_TOTAL,
+                actor=self.admin,
+            )
+
+    def test_anticipo_must_be_lower_than_pending_balance(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(3, 11))
+
+        pago = registrar_pago(
+            reserva=reserva,
+            monto=Decimal("20000"),
+            metodo_pago=PagoReserva.METODO_TRANSFERENCIA,
+            tipo=PagoReserva.TIPO_ANTICIPO,
+            actor=self.admin,
+        )
+
+        reserva.refresh_from_db()
+        self.assertEqual(pago.tipo, PagoReserva.TIPO_ANTICIPO)
+        self.assertEqual(reserva.total_pagado, Decimal("20000"))
+        self.assertEqual(reserva.saldo_pendiente, Decimal("30000"))
+        self.assertFalse(reserva.esta_pagada)
+
+        with self.assertRaisesMessage(ValidationError, "menor al saldo pendiente"):
+            registrar_pago(
+                reserva=reserva,
+                monto=Decimal("30000"),
+                metodo_pago=PagoReserva.METODO_EFECTIVO,
+                tipo=PagoReserva.TIPO_ANTICIPO,
+                actor=self.admin,
+            )
+
+    def test_client_detail_payment_uses_remaining_balance(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(4, 11))
+        registrar_pago(
+            reserva=reserva,
+            monto=Decimal("20000"),
+            metodo_pago=PagoReserva.METODO_TRANSFERENCIA,
+            tipo=PagoReserva.TIPO_ANTICIPO,
+            actor=self.admin,
+        )
+
+        self._force_session(self.cliente)
+        response = self.client.post(
+            reverse("citas:reserva_registrar_pago", kwargs={"reserva_id": reserva.id}),
+            {
+                "metodo_pago": PagoReserva.METODO_EFECTIVO,
+                "referencia_pago": "PAGO-SALDO",
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.total_pagado, self.servicio.precio)
+        self.assertEqual(reserva.saldo_pendiente, Decimal("0"))
+        self.assertEqual(reserva.ultimo_pago_confirmado.monto, Decimal("30000"))
+
     def test_dashboard_shows_selected_product_price_summary(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 11))
         proveedor = Proveedor.objects.create(nombre="Proveedor Visual", nit="900100101")
@@ -562,6 +715,213 @@ class CitasFlowTest(TestCase):
                 actor=self.admin,
                 observacion="Intento invalido",
             )
+
+    def test_cannot_finalize_reservation_with_pending_balance(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(5, 11))
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Inicio de atencion",
+        )
+        registrar_pago(
+            reserva=reserva,
+            monto=Decimal("15000"),
+            metodo_pago=PagoReserva.METODO_EFECTIVO,
+            tipo=PagoReserva.TIPO_ANTICIPO,
+            actor=self.admin,
+        )
+
+        with self.assertRaisesMessage(ValidationError, "saldo pendiente"):
+            cambiar_estado_reserva(
+                reserva=reserva,
+                nuevo_estado=Reserva.ESTADO_FINALIZADA,
+                actor=self.admin,
+                observacion="Intento con anticipo",
+            )
+
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.estado, Reserva.ESTADO_EN_PROCESO)
+
+    def test_detail_hides_finalize_action_while_balance_is_pending(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(1, 12))
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Inicio de atencion",
+        )
+        registrar_pago(
+            reserva=reserva,
+            monto=Decimal("10000"),
+            metodo_pago=PagoReserva.METODO_EFECTIVO,
+            tipo=PagoReserva.TIPO_ANTICIPO,
+            actor=self.admin,
+        )
+
+        self._force_session(self.admin)
+        response = self.client.get(reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Finalizar cita")
+        self.assertContains(response, "Falta pago para finalizar")
+
+    def test_admin_failed_payment_redirects_to_dashboard(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 12))
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:reserva_registrar_pago", kwargs={"reserva_id": reserva.id}),
+            {
+                "monto": "40000",
+                "tipo_pago": PagoReserva.TIPO_TOTAL,
+                "metodo_pago": PagoReserva.METODO_EFECTIVO,
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:dashboard"))
+
+    def test_finalized_reservation_updates_factored_income_summary(self):
+        reserva = self._crear_reserva(
+            cliente=self.cliente,
+            fecha_inicio=self._future_weekday_start(4, 12),
+            pago=True,
+        )
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Inicio de atencion",
+        )
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_FINALIZADA,
+            actor=self.admin,
+            observacion="Cita cerrada",
+        )
+
+        resumen = resumen_dashboard_admin()
+
+        self.assertEqual(resumen["ingresos_por_periodo"]["hoy"]["cantidad"], 1)
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["total_monto"],
+            format_money(self.servicio.precio),
+        )
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["servicios_monto"],
+            format_money(self.servicio.precio),
+        )
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["productos_monto"],
+            format_money(Decimal("0")),
+        )
+        self.assertEqual(resumen["ingresos_por_periodo"]["todas"]["cantidad"], 1)
+
+    def test_finalized_reservation_income_summary_includes_products(self):
+        reserva = self._crear_reserva(
+            cliente=self.cliente,
+            fecha_inicio=self._future_weekday_start(5, 12),
+            pago=True,
+        )
+        proveedor = Proveedor.objects.create(nombre="Proveedor KPI", nit="900100103")
+        producto = Producto.objects.create(
+            nombre="Aceite Relajante",
+            proveedor=proveedor,
+            precio_compra=12000,
+            precio_venta=28000,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        registrar_ingreso(producto, 3, lote="TEST-KPI")
+
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Inicio de atencion",
+        )
+        registrar_venta_desde_reserva(
+            reserva=reserva,
+            items=[
+                {
+                    "producto": producto,
+                    "cantidad": 2,
+                }
+            ],
+            metodo_pago=PagoReserva.METODO_EFECTIVO,
+            referencia_pago="KPI-PRODUCTOS",
+            validado_por=self.admin.id,
+        )
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_FINALIZADA,
+            actor=self.admin,
+            observacion="Cita cerrada con productos",
+        )
+
+        resumen = resumen_dashboard_admin()
+        total_esperado = self.servicio.precio + (producto.precio_venta * 2)
+
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["total_monto"],
+            format_money(total_esperado),
+        )
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["servicios_monto"],
+            format_money(self.servicio.precio),
+        )
+        self.assertEqual(
+            resumen["ingresos_por_periodo"]["hoy"]["productos_monto"],
+            format_money(producto.precio_venta * 2),
+        )
+        self.assertEqual(resumen["ingresos_por_periodo"]["hoy"]["cantidad"], 1)
+
+    def test_dashboard_shows_split_income_values(self):
+        reserva = self._crear_reserva(
+            cliente=self.cliente,
+            fecha_inicio=self._future_weekday_start(0, 12),
+            pago=True,
+        )
+        proveedor = Proveedor.objects.create(nombre="Proveedor Dashboard KPI", nit="900100104")
+        producto = Producto.objects.create(
+            nombre="Crema Dashboard",
+            proveedor=proveedor,
+            precio_compra=10000,
+            precio_venta=25000,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        registrar_ingreso(producto, 2, lote="TEST-DASHBOARD-KPI")
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_EN_PROCESO,
+            actor=self.admin,
+            observacion="Inicio de atencion",
+        )
+        registrar_venta_desde_reserva(
+            reserva=reserva,
+            items=[{"producto": producto, "cantidad": 1}],
+            metodo_pago=PagoReserva.METODO_EFECTIVO,
+            referencia_pago="DASHBOARD-KPI",
+            validado_por=self.admin.id,
+        )
+        cambiar_estado_reserva(
+            reserva=reserva,
+            nuevo_estado=Reserva.ESTADO_FINALIZADA,
+            actor=self.admin,
+            observacion="Cierre dashboard",
+        )
+
+        self._force_session(self.admin)
+        response = self.client.get(reverse("citas:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Citas")
+        self.assertContains(response, "Productos")
+        self.assertContains(response, format_money(self.servicio.precio))
+        self.assertContains(response, format_money(producto.precio_venta))
 
     def test_owner_can_download_receipt_pdf(self):
         reserva = self._crear_reserva(

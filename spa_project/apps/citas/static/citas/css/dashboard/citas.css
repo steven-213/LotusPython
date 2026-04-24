@@ -264,6 +264,37 @@ textarea.form-control {
   font-weight: 800;
 }
 
+.list-panel-scrollable {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.list-panel-scrollable .reservas-grid {
+  max-height: min(68vh, 960px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  align-content: start;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: #d5a0b1 #fff5f8;
+}
+
+.list-panel-scrollable .reservas-grid::-webkit-scrollbar {
+  width: 10px;
+}
+
+.list-panel-scrollable .reservas-grid::-webkit-scrollbar-track {
+  background: #fff5f8;
+  border-radius: 999px;
+}
+
+.list-panel-scrollable .reservas-grid::-webkit-scrollbar-thumb {
+  background: #d5a0b1;
+  border-radius: 999px;
+  border: 2px solid #fff5f8;
+}
+
 .reservas-grid,
 .service-grid {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

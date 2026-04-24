@@ -19,6 +19,7 @@ from apps.common.currency import format_money, parse_money
 from apps.citas.models import PagoReserva, Profesional, Reserva, Servicio
 from apps.citas.services import (
     actualizar_reserva,
+    actualizar_profesional_reserva,
     cambiar_estado_reserva,
     configuracion_horario_reserva,
     construir_token_comprobante,
@@ -176,7 +177,7 @@ def _productos_facturables():
     )
 
 
-def _extraer_pago_publico(request, servicio, requerido=False):
+def _extraer_pago_publico(request, servicio, requerido=False, monto=None):
     quiere_pagar = requerido or request.POST.get("pagar_ahora") == "1"
     if not quiere_pagar:
         return None
@@ -187,7 +188,7 @@ def _extraer_pago_publico(request, servicio, requerido=False):
         raise ValidationError("Debes seleccionar un metodo de pago.")
 
     return {
-        "monto": servicio.precio,
+        "monto": monto if monto is not None else servicio.precio,
         "metodo_pago": metodo_pago,
         "referencia": referencia,
         "tipo": PagoReserva.TIPO_TOTAL,
@@ -260,6 +261,23 @@ def _extraer_productos_admin(request):
     return list(items_por_producto.values())
 
 
+def _extraer_profesional_desde_request(request):
+    profesional_id = (request.POST.get("profesional_id") or "").strip()
+    profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
+
+    if profesional_nombre:
+        profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
+        if profesional:
+            if not profesional.activo:
+                profesional.activo = True
+                profesional.save(update_fields=["activo", "updated_at"])
+            return profesional
+        return Profesional.objects.create(nombre=profesional_nombre)
+    if profesional_id:
+        return get_object_or_404(Profesional, id=profesional_id, activo=True)
+    raise ValidationError("Debes seleccionar una profesional o escribir una nueva.")
+
+
 def _asegurar_propiedad_reserva(request, reserva):
     usuario = _usuario_actual(request)
     if not usuario:
@@ -279,6 +297,7 @@ def _reservas_admin_queryset():
     return Reserva.objects.select_related(
         "cliente",
         "cliente_invitado",
+        "profesional",
         "servicio",
         "servicio__profesional",
         "venta_asociada",
@@ -287,7 +306,7 @@ def _reservas_admin_queryset():
 
 def _leer_filtros_dashboard(request):
     atajo = (request.GET.get("atajo") or "").strip().lower()
-    if atajo not in {"hoy", "semana", "mes", "pendientes"}:
+    if atajo not in {"hoy", "semana", "mes", "todas", "pendientes"}:
         atajo = ""
     return {
         "atajo": atajo,
@@ -333,6 +352,8 @@ def _aplicar_atajo_dashboard(queryset, atajo):
             fecha_inicio__date__gte=hoy.replace(day=1),
             fecha_inicio__date__lt=inicio_mes_siguiente,
         )
+    if atajo == "todas":
+        return queryset
     if atajo == "pendientes":
         return queryset.filter(
             estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA]
@@ -346,7 +367,10 @@ def _aplicar_filtros_dashboard(queryset, filtros):
     if filtros["estado"]:
         queryset = queryset.filter(estado=filtros["estado"])
     if filtros["profesional_id"]:
-        queryset = queryset.filter(servicio__profesional_id=filtros["profesional_id"])
+        queryset = queryset.filter(
+            Q(profesional_id=filtros["profesional_id"])
+            | Q(profesional__isnull=True, servicio__profesional_id=filtros["profesional_id"])
+        )
     if filtros["asistencia"] == "asistio":
         queryset = queryset.filter(
             estado__in=[Reserva.ESTADO_EN_PROCESO, Reserva.ESTADO_FINALIZADA]
@@ -387,6 +411,7 @@ def _ordenar_reservas_dashboard(queryset):
 
 def _atajos_dashboard(filtros, resumen):
     definiciones = [
+        ("todas", "Todas las citas", resumen["reservas_todas"]),
         ("hoy", "Reservas hoy", resumen["reservas_hoy"]),
         ("semana", "Semana actual", resumen["reservas_semana"]),
         ("mes", "Mes actual", resumen["reservas_mes"]),
@@ -423,6 +448,10 @@ def dashboard(request):
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros)
     reservas = _ordenar_reservas_dashboard(reservas)
     resumen = resumen_dashboard_admin()
+    ingresos_periodo_activo = resumen["ingresos_por_periodo"].get(
+        filtros["atajo"] or "todas",
+        resumen["ingresos_por_periodo"]["todas"],
+    )
 
     return render(
         request,
@@ -440,6 +469,7 @@ def dashboard(request):
             "dashboard_return_url": request.get_full_path(),
             "estados_reserva": Reserva.ESTADOS,
             "horario_atencion": resumen_horario_atencion(),
+            "ingresos_periodo_activo": ingresos_periodo_activo,
             **resumen,
         },
     )
@@ -563,7 +593,7 @@ def reserva_nueva(request):
 @login_required_session
 def reserva_editar(request, reserva_id):
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
@@ -604,7 +634,7 @@ def reserva_editar(request, reserva_id):
 def reserva_detalle(request, reserva_id):
     reserva = get_object_or_404(
         Reserva.objects.select_related(
-            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "creada_por", "venta_asociada"
+            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
         )
         .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
         id=reserva_id,
@@ -636,11 +666,17 @@ def reserva_detalle(request, reserva_id):
             "horario_atencion": resumen_horario_atencion(),
             "metodos_pago": PagoReserva.METODOS,
             "tipos_pago": PagoReserva.TIPOS,
+            "profesionales": Profesional.objects.filter(activo=True).order_by("nombre") if usuario.rol == Usuario.ROL_ADMIN else [],
             "puede_confirmar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CONFIRMADA),
             "puede_iniciar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_EN_PROCESO),
-            "puede_finalizar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_FINALIZADA),
+            "puede_finalizar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_FINALIZADA) and reserva.esta_pagada,
             "puede_cancelar_admin": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CANCELADA),
             "puede_no_asistir": _estado_puede_pasar_a(reserva, Reserva.ESTADO_NO_ASISTIO),
+            "puede_reasignar_profesional": usuario.rol == Usuario.ROL_ADMIN and reserva.estado not in {
+                Reserva.ESTADO_FINALIZADA,
+                Reserva.ESTADO_CANCELADA,
+                Reserva.ESTADO_NO_ASISTIO,
+            },
         },
     )
 
@@ -653,7 +689,7 @@ def reserva_confirmada(request):
         return redirect("citas:servicios_publicos")
 
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     return render(
@@ -684,6 +720,29 @@ def reserva_cancelar(request, reserva_id):
     if usuario.rol == Usuario.ROL_ADMIN:
         return redirect("citas:calendario")
     return redirect("citas:agenda")
+
+
+@admin_required_session
+def reserva_actualizar_profesional(request, reserva_id):
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
+        id=reserva_id,
+    )
+    usuario = _usuario_admin(request)
+    if request.method != "POST":
+        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+    try:
+        profesional = _extraer_profesional_desde_request(request)
+        actualizar_profesional_reserva(
+            reserva=reserva,
+            profesional=profesional,
+            actor=usuario,
+        )
+        messages.success(request, f"La cita ahora quedo asignada a {profesional.nombre}.")
+    except ValidationError as exc:
+        messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+    return redirect("citas:reserva_detalle", reserva_id=reserva.id)
 
 
 @admin_required_session
@@ -761,7 +820,7 @@ def reserva_no_asistio(request, reserva_id):
 @login_required_session
 def reserva_registrar_pago(request, reserva_id):
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional"),
+        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
@@ -778,7 +837,12 @@ def reserva_registrar_pago(request, reserva_id):
             pago_data = _extraer_pago_admin(request, reserva)
             productos_seleccionados = _extraer_productos_admin(request)
         else:
-            pago_data = _extraer_pago_publico(request, reserva.servicio, requerido=True)
+            pago_data = _extraer_pago_publico(
+                request,
+                reserva.servicio,
+                requerido=True,
+                monto=reserva.saldo_pendiente,
+            )
             productos_seleccionados = []
 
         monto_pago = pago_data["monto"]
@@ -829,7 +893,7 @@ def reserva_registrar_pago(request, reserva_id):
     except ValidationError as exc:
         messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
         if usuario.rol == Usuario.ROL_ADMIN:
-            return redirect("citas:calendario")
+            return redirect("citas:dashboard")
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
 
 
@@ -849,7 +913,11 @@ def comprobante_pago_pdf(request, pago_id):
             return HttpResponseForbidden("Debes iniciar sesion para ver este comprobante.")
         pago = get_object_or_404(
             PagoReserva.objects.select_related(
-                "reserva", "reserva__cliente", "reserva__cliente_invitado", "reserva__servicio"
+                "reserva",
+                "reserva__cliente",
+                "reserva__cliente_invitado",
+                "reserva__servicio",
+                "reserva__profesional",
             ),
             id=pago_id,
         )
@@ -874,7 +942,7 @@ def comprobante_pago_pdf(request, pago_id):
         f"Fecha de pago: {timezone.localtime(pago.fecha_pago).strftime('%d/%m/%Y %H:%M')}",
         f"Cliente: {pago.reserva.cliente_nombre_completo}",
         f"Servicio: {pago.reserva.servicio.nombre}",
-        f"Profesional: {pago.reserva.servicio.profesional.nombre if pago.reserva.servicio.profesional else 'Sin asignar'}",
+        f"Profesional: {pago.reserva.profesional_reserva.nombre if pago.reserva.profesional_reserva else 'Sin asignar'}",
         f"Fecha de la cita: {timezone.localtime(pago.reserva.fecha_inicio).strftime('%d/%m/%Y %H:%M')}",
         f"Monto: {format_money(pago.monto)}",
         f"Metodo de pago: {pago.get_metodo_pago_display()}",

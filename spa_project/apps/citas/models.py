@@ -111,6 +111,13 @@ class Reserva(models.Model):
         blank=True,
     )
     servicio = models.ForeignKey(Servicio, on_delete=models.PROTECT, related_name="reservas")
+    profesional = models.ForeignKey(
+        Profesional,
+        on_delete=models.PROTECT,
+        related_name="reservas_asignadas",
+        null=True,
+        blank=True,
+    )
     fecha_inicio = models.DateTimeField()
     fecha_fin = models.DateTimeField()
     estado = models.CharField(max_length=50, choices=ESTADOS, default=ESTADO_PROGRAMADA)
@@ -152,6 +159,10 @@ class Reserva(models.Model):
     def cliente_documento(self):
         cliente = self.cliente_reserva
         return cliente.documento if cliente else ""
+
+    @property
+    def profesional_reserva(self):
+        return self.profesional or self.servicio.profesional
 
     @property
     def pagos_confirmados(self):

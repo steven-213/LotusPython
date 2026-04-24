@@ -35,7 +35,7 @@ def _evento_payload(reserva):
             "cliente": reserva.cliente_nombre_completo,
             "servicio": reserva.servicio.nombre,
             "estado": reserva.estado,
-            "profesional": reserva.servicio.profesional.nombre if reserva.servicio.profesional else "",
+            "profesional": reserva.profesional_reserva.nombre if reserva.profesional_reserva else "",
             "pagada": reserva.esta_pagada,
             "ultimo_pago": pago.numero_comprobante if pago else "",
             "origen": reserva.origen_reserva,

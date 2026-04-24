@@ -25,15 +25,16 @@ class ServicioAdmin(admin.ModelAdmin):
 
 @admin.register(Reserva)
 class ReservaAdmin(admin.ModelAdmin):
-    list_display = ("id", "cliente_nombre_completo", "servicio", "fecha_inicio", "estado", "origen_reserva")
+    list_display = ("id", "cliente_nombre_completo", "servicio", "profesional", "fecha_inicio", "estado", "origen_reserva")
     search_fields = (
         "cliente__nombre",
         "cliente__apellido",
         "cliente_invitado__nombre",
         "cliente_invitado__apellido",
         "servicio__nombre",
+        "profesional__nombre",
     )
-    list_filter = ("estado", "origen_reserva", "servicio__profesional")
+    list_filter = ("estado", "origen_reserva", "profesional")
 
 
 @admin.register(ReservaHistorialEstado)

@@ -44,7 +44,7 @@
         </div>
         <div class="summary-card">
           <span class="summary-label">Profesional</span>
-          <strong>{{ reserva.servicio.profesional.nombre|default:"Pendiente por asignar" }}</strong>
+          <strong>{{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</strong>
           <p>{{ reserva.servicio.duracion_minutos }} minutos</p>
         </div>
         <div class="summary-card">
@@ -183,20 +183,20 @@
 
       {% if reserva.estado != "cancelada" and reserva.estado != "no_asistio" %}
         {% if usuario.rol == "admin" %}
-        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
+        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form" data-payment-form data-saldo-pendiente="{{ reserva.saldo_pendiente }}">
           {% csrf_token %}
           <h3>Registrar pago y facturar productos</h3>
           <div class="form-grid two-up">
             <label class="field">
               <span>Monto</span>
-              <input class="form-control" type="number" name="monto" min="0" step="0.01" value="{{ reserva.saldo_pendiente }}">
-              <small class="field-help">Usa este valor para el pago del servicio. Los productos se agregan abajo al mismo flujo de facturacion.</small>
+              <input class="form-control" type="number" name="monto" min="0" max="{{ reserva.saldo_pendiente }}" step="0.01" value="{{ reserva.saldo_pendiente }}" data-payment-amount>
+              <small class="field-help" data-payment-help>Pago completo: debe coincidir exactamente con el saldo pendiente. Anticipo: debe ser menor al saldo pendiente.</small>
             </label>
             <label class="field">
               <span>Tipo</span>
-              <select class="form-select" name="tipo_pago">
+              <select class="form-select" name="tipo_pago" data-payment-type>
                 {% for value, label in tipos_pago %}
-                <option value="{{ value }}">{{ label }}</option>
+                <option value="{{ value }}" {% if value == "total" %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
               </select>
             </label>
@@ -248,6 +248,30 @@
       </header>
 
       {% if usuario.rol == "admin" %}
+      {% if puede_reasignar_profesional %}
+      <form method="post" action="{% url 'citas:reserva_actualizar_profesional' reserva.id %}" class="embedded-form compact">
+        {% csrf_token %}
+        <h3>Reasignar profesional</h3>
+        <p class="summary-muted">Actual: {{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</p>
+        <div class="form-grid two-up">
+          <label class="field">
+            <span>Elegir existente</span>
+            <select class="form-select" name="profesional_id">
+              <option value="">Selecciona una profesional</option>
+              {% for profesional in profesionales %}
+              <option value="{{ profesional.id }}" {% if reserva.profesional_reserva and reserva.profesional_reserva.id == profesional.id %}selected{% endif %}>{{ profesional.nombre }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="field">
+            <span>O crear una nueva</span>
+            <input class="form-control" type="text" name="profesional_nombre" placeholder="Nombre de la nueva profesional">
+            <small class="field-help">Si escribes un nombre nuevo, esa profesional se crea y queda asignada a esta cita.</small>
+          </label>
+        </div>
+        <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-person-gear"></i> Guardar profesional</button>
+      </form>
+      {% endif %}
       <div class="action-stack">
         {% if puede_confirmar %}
         <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
@@ -266,6 +290,14 @@
           {% csrf_token %}
           <button type="submit" class="btn-primary-strong btn-block"><i class="bi bi-check2-square"></i> Finalizar cita</button>
         </form>
+        {% elif reserva.estado == "en_proceso" and not reserva.esta_pagada %}
+        <div class="payment-callout">
+          <i class="bi bi-wallet2"></i>
+          <div>
+            <strong>Falta pago para finalizar</strong>
+            <p>La cita sigue en proceso hasta completar el saldo pendiente de {{ reserva.saldo_pendiente|currency }}.</p>
+          </div>
+        </div>
         {% endif %}
         {% if puede_no_asistir %}
         <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
@@ -307,7 +339,7 @@
         <ol class="flow-list">
           <li>Programada o confirmada segun el pago inicial.</li>
           <li>Cuando el equipo inicia la atencion, la cita pasa a en proceso.</li>
-          <li>Al cerrar el servicio, el estado final pasa a finalizada.</li>
+          <li>La cita solo pasa a finalizada cuando la atencion termina y el servicio queda totalmente pagado.</li>
           <li>Si la persona no llega, el dashboard puede marcarla como no asistio.</li>
         </ol>
       </div>
@@ -315,4 +347,81 @@
   </section>
 </section>
 <script src="{% static 'citas/js/product_cart.js' %}?v=20260419b"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const paymentForms = document.querySelectorAll("[data-payment-form]");
+
+    paymentForms.forEach(function (form) {
+      const amountInput = form.querySelector("[data-payment-amount]");
+      const typeSelect = form.querySelector("[data-payment-type]");
+      const helpText = form.querySelector("[data-payment-help]");
+      const pendingBalance = Number(form.dataset.saldoPendiente || 0);
+      const comparisonTolerance = 0.009;
+
+      if (!amountInput || !typeSelect || !Number.isFinite(pendingBalance) || pendingBalance <= 0) {
+        return;
+      }
+
+      const formatter = new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+
+      function buildDefaultHelp() {
+        const formattedBalance = formatter.format(pendingBalance);
+        if (typeSelect.value === "total") {
+          return `Pago completo: debes registrar exactamente ${formattedBalance}.`;
+        }
+        return `Anticipo: debe ser menor a ${formattedBalance}. Si vas a cobrar todo, usa pago completo.`;
+      }
+
+      function validatePaymentAmount() {
+        const rawAmount = amountInput.value;
+        amountInput.setCustomValidity("");
+
+        if (!rawAmount) {
+          if (helpText) {
+            helpText.textContent = buildDefaultHelp();
+          }
+          return true;
+        }
+
+        const amount = Number(rawAmount);
+        if (!Number.isFinite(amount)) {
+          amountInput.setCustomValidity("Ingresa un monto valido.");
+        } else if (amount - pendingBalance > comparisonTolerance) {
+          amountInput.setCustomValidity("El monto no puede superar el saldo pendiente.");
+        } else if (typeSelect.value === "total" && Math.abs(amount - pendingBalance) > comparisonTolerance) {
+          amountInput.setCustomValidity("El pago completo debe coincidir exactamente con el saldo pendiente.");
+        } else if (typeSelect.value === "anticipo" && amount >= pendingBalance - comparisonTolerance) {
+          amountInput.setCustomValidity("El anticipo debe ser menor al saldo pendiente. Si vas a cobrar todo, usa pago completo.");
+        }
+
+        if (helpText) {
+          helpText.textContent = amountInput.validationMessage || buildDefaultHelp();
+        }
+        return !amountInput.validationMessage;
+      }
+
+      typeSelect.addEventListener("change", function () {
+        if (typeSelect.value === "total") {
+          amountInput.value = pendingBalance.toFixed(2);
+        }
+        validatePaymentAmount();
+      });
+
+      amountInput.addEventListener("input", validatePaymentAmount);
+      form.addEventListener("submit", function (event) {
+        if (!validatePaymentAmount()) {
+          event.preventDefault();
+          amountInput.reportValidity();
+        }
+      });
+
+      validatePaymentAmount();
+    });
+  });
+</script>
 {% endblock %}

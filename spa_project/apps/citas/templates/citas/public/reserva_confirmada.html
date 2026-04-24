@@ -26,7 +26,7 @@
       <div class="summary-card">
         <span class="summary-label">Servicio</span>
         <strong>{{ reserva.servicio.nombre }}</strong>
-        <p>{{ reserva.servicio.profesional.nombre|default:"Pendiente por asignar" }}</p>
+        <p>{{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</p>
       </div>
       <div class="summary-card">
         <span class="summary-label">Fecha</span>

@@ -13,15 +13,92 @@
     <div>
       <p class="eyebrow">Dashboard admin</p>
       <h1>Gestion de citas</h1>
-      <p>Supervisa el estado operativo de las reservas y abre el detalle solo cuando necesites gestionar una cita.</p>
+      <p>Supervisa el estado operativo de las reservas y reasigna la profesional cuando lo necesites sin salir del detalle.</p>
       <p class="tracking-note">{{ horario_atencion }}</p>
     </div>
     <div class="hero-actions">
-      <a class="btn-secondary-soft" href="{% url 'citas:almanaque' %}"><i class="bi bi-calendar-event"></i> Almanaque</a>
-      <a class="btn-secondary-soft" href="{% url 'citas:servicio_lista' %}">Servicios</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:almanaque' %}">Almanaque</a>
       <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
     </div>
   </header>
+  <!-- SECCIÓN DE KPIs FINANCIEROS -->
+  <section class="stats-grid" style="background: linear-gradient(135deg, #f5e6e8 0%, #ffe8ec 100%); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; gap: 16px;">
+    <article style="flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+      <span style="display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500;">Ingresos facturados</span>
+      <strong style="display: block; font-size: 20px; color: #2d3436; font-weight: 700;">{{ ingresos_por_periodo.todas.total_monto }}</strong>
+      <p style="font-size: 11px; color: #999; margin: 4px 0 0 0;">{{ ingresos_por_periodo.todas.cantidad }} cita{{ ingresos_por_periodo.todas.cantidad|pluralize }}</p>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px;">
+        <div style="padding: 10px; border-radius: 6px; background: #f9f9f9;">
+          <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas</span>
+          <strong style="display: block; font-size: 14px; color: #2d3436;">{{ ingresos_por_periodo.todas.servicios_monto }}</strong>
+        </div>
+        <div style="padding: 10px; border-radius: 6px; background: #f9f9f9;">
+          <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Productos</span>
+          <strong style="display: block; font-size: 14px; color: #2d3436;">{{ ingresos_por_periodo.todas.productos_monto }}</strong>
+        </div>
+      </div>
+    </article>
+    <article style="flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+      <span style="display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500;">Citas totales</span>
+      <strong style="display: block; font-size: 20px; color: #2d3436; font-weight: 700;">{{ reservas_todas }}</strong>
+      <p style="font-size: 11px; color: #999; margin: 4px 0 0 0;">Todas las reservas registradas</p>
+    </article>
+  </section>
+
+  <!-- SECCIÓN DE PERÍODOS -->
+  <section class="period-section" style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+    <div style="margin-bottom: 16px;">
+      <h2 style="font-size: 16px; margin: 0 0 4px 0; color: #2d3436;">Ingresos por período</h2>
+      <p style="font-size: 12px; color: #999; margin: 0;">Cada botón actualiza el resumen y la tabla de reservas.</p>
+    </div>
+    
+    <!-- Botones de período -->
+    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+      {% for item in atajos_dashboard %}
+        <a href="{{ item.url }}" style="
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 500;
+          text-decoration: none;
+          border: 1px solid #ddd;
+          background: white;
+          color: #666;
+          transition: all 0.2s;
+          {% if item.is_active %}
+            background: #ca6b86;
+            color: white;
+            border-color: #ca6b86;
+          {% else %}
+            cursor: pointer;
+            hover: background #f5f5f5;
+          {% endif %}
+        ">
+          {{ item.label }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Grid de información de período -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
+      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
+        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas</span>
+        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.servicios_monto }}</strong>
+      </div>
+      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
+        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Productos</span>
+        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.productos_monto }}</strong>
+      </div>
+      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
+        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Total</span>
+        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.total_monto }}</strong>
+      </div>
+      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
+        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas facturadas</span>
+        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.cantidad }}</strong>
+      </div>
+    </div>
+  </section>
 
   <section class="stats-grid">
     {% for item in atajos_dashboard %}
@@ -70,7 +147,7 @@
     </div>
   </form>
 
-  <section class="list-panel">
+  <section class="list-panel list-panel-scrollable">
     <div class="panel-heading">
       <div>
         <h2>Reservas gestionables</h2>
@@ -86,7 +163,7 @@
           <div>
             <p class="admin-reserva-date">{{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_inicio|time:"H:i" }} a {{ reserva.fecha_fin|time:"H:i" }}</p>
             <h3>{{ reserva.cliente_nombre_completo }}</h3>
-            <p class="admin-reserva-meta">{{ reserva.servicio.nombre }} - {{ reserva.servicio.profesional.nombre|default:"Sin profesional" }}</p>
+            <p class="admin-reserva-meta">{{ reserva.servicio.nombre }} - {{ reserva.profesional_reserva.nombre|default:"Sin profesional" }}</p>
           </div>
           <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
         </div>
@@ -112,7 +189,7 @@
             <button type="submit" class="btn-warning-soft"><i class="bi bi-person-x"></i> No asistio</button>
           </form>
           {% endif %}
-          {% if reserva.estado == "en_proceso" %}
+          {% if reserva.estado == "en_proceso" and reserva.esta_pagada %}
           <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ dashboard_return_url }}">

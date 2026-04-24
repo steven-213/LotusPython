@@ -2,9 +2,11 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from django.core import signing
 from django.core.exceptions import ValidationError
+from django.db.models import Sum, Count, Avg, Q, OuterRef, Subquery, Case, When, DecimalField, Value, DateField
+from django.db.models.functions import TruncDate, Coalesce
 from django.utils import timezone
 
-from apps.common.currency import parse_money
+from apps.common.currency import parse_money, format_money
 from apps.citas.models import ClienteInvitado, PagoReserva, Reserva, ReservaHistorialEstado, Servicio
 from apps.sesiones.models import Usuario
 
@@ -125,6 +127,10 @@ def _combinar_fecha_hora_local(fecha_reserva, hora_reserva):
     )
 
 
+def _filtro_profesional_reserva(profesional):
+    return Q(profesional=profesional) | Q(profesional__isnull=True, servicio__profesional=profesional)
+
+
 def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, fecha_nacimiento):
     documento_raw = str(documento or "").strip()
     nombre = (nombre or "").strip()
@@ -170,9 +176,9 @@ def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, 
 
 def _reservas_conflictivas_profesional(*, profesional, fecha_inicio, fecha_fin, exclude_reserva_id=None):
     conflictos = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional"
+        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"
     ).filter(
-        servicio__profesional=profesional,
+        _filtro_profesional_reserva(profesional),
         estado__in=ESTADOS_CONFLICTIVOS,
         fecha_inicio__lt=fecha_fin,
         fecha_fin__gt=fecha_inicio,
@@ -182,12 +188,13 @@ def _reservas_conflictivas_profesional(*, profesional, fecha_inicio, fecha_fin, 
     return conflictos
 
 
-def obtener_conflicto_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=None):
-    if not servicio.profesional_id:
+def obtener_conflicto_reserva(*, servicio, fecha_inicio, fecha_fin, profesional=None, exclude_reserva_id=None):
+    profesional = profesional or servicio.profesional
+    if not profesional:
         return None
 
     return _reservas_conflictivas_profesional(
-        profesional=servicio.profesional,
+        profesional=profesional,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
         exclude_reserva_id=exclude_reserva_id,
@@ -199,6 +206,8 @@ def obtener_horas_disponibles_reserva(*, servicio, fecha_reserva, exclude_reserv
         raise ValidationError("El servicio seleccionado no esta disponible.")
     if not servicio.profesional_id:
         raise ValidationError("El servicio no tiene una profesional asignada.")
+    if fecha_reserva < timezone.localdate():
+        raise ValidationError("No hay horarios disponibles para fechas anteriores a hoy.")
 
     inicio_dia = _combinar_fecha_hora_local(fecha_reserva, time.min)
     horario = obtener_horario_atencion(inicio_dia)
@@ -245,11 +254,12 @@ def obtener_horas_disponibles_reserva(*, servicio, fecha_reserva, exclude_reserv
     return horas_disponibles
 
 
-def validar_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=None):
+def validar_reserva(*, servicio, fecha_inicio, fecha_fin, profesional=None, exclude_reserva_id=None):
     ahora = timezone.now()
+    profesional = profesional or servicio.profesional
     if not servicio.activo:
         raise ValidationError("El servicio seleccionado no esta disponible.")
-    if not servicio.profesional_id:
+    if not profesional:
         raise ValidationError("El servicio no tiene una profesional asignada.")
     if fecha_inicio < ahora:
         raise ValidationError("No se pueden crear citas en el pasado.")
@@ -261,6 +271,7 @@ def validar_reserva(*, servicio, fecha_inicio, fecha_fin, exclude_reserva_id=Non
         servicio=servicio,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
+        profesional=profesional,
         exclude_reserva_id=exclude_reserva_id,
     )
     if conflicto:
@@ -277,6 +288,27 @@ def registrar_historial_estado(*, reserva, estado_anterior, estado_nuevo, usuari
     )
 
 
+def _validar_monto_pago_reserva(*, reserva, monto, tipo):
+    saldo_pendiente = reserva.saldo_pendiente
+    if saldo_pendiente <= 0:
+        raise ValidationError("La cita ya no tiene saldo pendiente por cobrar.")
+
+    if monto > saldo_pendiente:
+        raise ValidationError(
+            f"El monto supera el saldo pendiente de la cita ({format_money(saldo_pendiente)})."
+        )
+
+    if tipo == PagoReserva.TIPO_TOTAL and monto != saldo_pendiente:
+        raise ValidationError(
+            f"Para registrar un pago completo debes cobrar exactamente el saldo pendiente ({format_money(saldo_pendiente)})."
+        )
+
+    if tipo == PagoReserva.TIPO_ANTICIPO and monto >= saldo_pendiente:
+        raise ValidationError(
+            f"El anticipo debe ser menor al saldo pendiente ({format_money(saldo_pendiente)}). Si vas a cobrar todo, usa la opcion de pago completo."
+        )
+
+
 def registrar_pago(*, reserva, monto, metodo_pago, referencia="", tipo=PagoReserva.TIPO_TOTAL, actor=None):
     try:
         monto = parse_money(monto, default=None)
@@ -291,6 +323,7 @@ def registrar_pago(*, reserva, monto, metodo_pago, referencia="", tipo=PagoReser
         raise ValidationError("El tipo de pago no es valido.")
     if metodo_pago not in {choice[0] for choice in PagoReserva.METODOS}:
         raise ValidationError("El metodo de pago no es valido.")
+    _validar_monto_pago_reserva(reserva=reserva, monto=monto, tipo=tipo)
 
     return PagoReserva.objects.create(
         reserva=reserva,
@@ -317,7 +350,8 @@ def crear_reserva(
         raise ValidationError("La reserva debe quedar asociada a un cliente registrado o a un invitado.")
 
     fecha_fin = calcular_fecha_fin(servicio, fecha_inicio)
-    validar_reserva(servicio=servicio, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin)
+    profesional = servicio.profesional
+    validar_reserva(servicio=servicio, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, profesional=profesional)
 
     hay_pago = bool(pago_data)
     if origen == Reserva.ORIGEN_INVITADO and not hay_pago:
@@ -328,6 +362,7 @@ def crear_reserva(
         cliente=cliente,
         cliente_invitado=cliente_invitado,
         servicio=servicio,
+        profesional=profesional,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
         estado=estado_inicial,
@@ -361,14 +396,17 @@ def actualizar_reserva(*, reserva, servicio, fecha_inicio, notas="", actor=None)
         raise ValidationError("No se puede editar una cita cerrada.")
 
     fecha_fin = calcular_fecha_fin(servicio, fecha_inicio)
+    profesional = reserva.profesional if reserva.servicio_id == servicio.id and reserva.profesional_id else servicio.profesional
     validar_reserva(
         servicio=servicio,
         fecha_inicio=fecha_inicio,
         fecha_fin=fecha_fin,
+        profesional=profesional,
         exclude_reserva_id=reserva.id,
     )
 
     reserva.servicio = servicio
+    reserva.profesional = profesional
     reserva.fecha_inicio = fecha_inicio
     reserva.fecha_fin = fecha_fin
     reserva.notas = notas.strip()
@@ -379,6 +417,34 @@ def actualizar_reserva(*, reserva, servicio, fecha_inicio, notas="", actor=None)
         estado_nuevo=reserva.estado,
         usuario_actor=actor,
         observacion="Reserva actualizada.",
+    )
+    return reserva
+
+
+def actualizar_profesional_reserva(*, reserva, profesional, actor=None):
+    if reserva.estado in {Reserva.ESTADO_FINALIZADA, Reserva.ESTADO_CANCELADA, Reserva.ESTADO_NO_ASISTIO}:
+        raise ValidationError("No se puede reasignar la profesional de una cita cerrada.")
+    if not profesional:
+        raise ValidationError("Debes seleccionar o crear una profesional valida.")
+    if reserva.profesional_id == profesional.id:
+        return reserva
+
+    validar_reserva(
+        servicio=reserva.servicio,
+        fecha_inicio=reserva.fecha_inicio,
+        fecha_fin=reserva.fecha_fin,
+        profesional=profesional,
+        exclude_reserva_id=reserva.id,
+    )
+
+    reserva.profesional = profesional
+    reserva.save(update_fields=["profesional", "updated_at"])
+    registrar_historial_estado(
+        reserva=reserva,
+        estado_anterior=reserva.estado,
+        estado_nuevo=reserva.estado,
+        usuario_actor=actor,
+        observacion=f"Profesional reasignada a {profesional.nombre}.",
     )
     return reserva
 
@@ -396,6 +462,8 @@ def cambiar_estado_reserva(*, reserva, nuevo_estado, actor=None, observacion="")
     if nuevo_estado == Reserva.ESTADO_FINALIZADA:
         if estado_actual != Reserva.ESTADO_EN_PROCESO:
             raise ValidationError("La cita debe estar en proceso antes de finalizar.")
+        if not reserva.esta_pagada:
+            raise ValidationError("No puedes finalizar una cita con saldo pendiente. Registra el pago restante primero.")
         reserva.fecha_fin_real = timezone.now()
     if nuevo_estado == Reserva.ESTADO_CANCELADA:
         reserva.motivo_cancelacion = observacion.strip()
@@ -423,6 +491,7 @@ def resolver_token_comprobante(token, max_age=60 * 60 * 24):
         "reserva__cliente",
         "reserva__cliente_invitado",
         "reserva__servicio",
+        "reserva__profesional",
     ).get(
         id=payload["pago_id"]
     )
@@ -430,7 +499,7 @@ def resolver_token_comprobante(token, max_age=60 * 60 * 24):
 
 def reservas_visibles_para_usuario(usuario):
     reservas = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "creada_por"
+        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por"
     ).prefetch_related("pagos", "historial_estados")
     if usuario.rol != Usuario.ROL_ADMIN:
         reservas = reservas.filter(cliente=usuario)
@@ -451,11 +520,90 @@ def puede_editar_reserva(reserva):
 
 def reservas_para_calendario(usuario):
     qs = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional"
+        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"
     ).prefetch_related("pagos")
     if usuario.rol != Usuario.ROL_ADMIN:
         qs = qs.filter(cliente=usuario)
     return qs
+
+
+
+def _reservas_facturadas_queryset():
+    return Reserva.objects.filter(
+        estado=Reserva.ESTADO_FINALIZADA,
+    ).annotate(
+        fecha_facturacion=Case(
+            When(fecha_fin_real__isnull=False, then=TruncDate("fecha_fin_real")),
+            default=TruncDate("fecha_inicio"),
+            output_field=DateField(),
+        ),
+    )
+
+
+def _agregar_ingresos_facturados(queryset):
+    return queryset.aggregate(
+        servicios_total=Coalesce(
+            Sum("servicio__precio"),
+            Value(Decimal("0.00")),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        ),
+        productos_total=Coalesce(
+            Sum("venta_asociada__total"),
+            Value(Decimal("0.00")),
+            output_field=DecimalField(max_digits=12, decimal_places=2),
+        ),
+        cantidad=Count("id"),
+    )
+
+
+def _serializar_ingresos_facturados(aggregate_result):
+    servicios_total = aggregate_result["servicios_total"] or Decimal("0.00")
+    productos_total = aggregate_result["productos_total"] or Decimal("0.00")
+    total_facturado = servicios_total + productos_total
+    return {
+        "servicios_monto": format_money(servicios_total),
+        "productos_monto": format_money(productos_total),
+        "total_monto": format_money(total_facturado),
+        "cantidad": aggregate_result["cantidad"] or 0,
+    }
+
+
+def _calcular_ingresos_citas_facturadas():
+    """Calcula ingresos de citas finalizadas tomando como referencia su fecha real de cierre."""
+    hoy = timezone.localdate()
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    reservas_facturadas = _reservas_facturadas_queryset()
+
+    ingresos_todas = _agregar_ingresos_facturados(reservas_facturadas)
+    ingresos_hoy = _agregar_ingresos_facturados(
+        reservas_facturadas.filter(fecha_facturacion=hoy)
+    )
+    ingresos_semana = _agregar_ingresos_facturados(
+        reservas_facturadas.filter(
+            fecha_facturacion__gte=inicio_semana,
+            fecha_facturacion__lt=inicio_semana + timedelta(days=7),
+        )
+    )
+
+    inicio_mes = hoy.replace(day=1)
+    if hoy.month == 12:
+        inicio_mes_siguiente = hoy.replace(year=hoy.year + 1, month=1, day=1)
+    else:
+        inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
+
+    ingresos_mes = _agregar_ingresos_facturados(
+        reservas_facturadas.filter(
+            fecha_facturacion__gte=inicio_mes,
+            fecha_facturacion__lt=inicio_mes_siguiente,
+        )
+    )
+
+    return {
+        "todas": _serializar_ingresos_facturados(ingresos_todas),
+        "hoy": _serializar_ingresos_facturados(ingresos_hoy),
+        "semana": _serializar_ingresos_facturados(ingresos_semana),
+        "mes": _serializar_ingresos_facturados(ingresos_mes),
+    }
 
 
 def resumen_dashboard_admin():
@@ -467,7 +615,10 @@ def resumen_dashboard_admin():
         inicio_mes_siguiente = hoy.replace(year=hoy.year + 1, month=1, day=1)
     else:
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
+    
     reservas = Reserva.objects.all()
+    ingresos_por_periodo = _calcular_ingresos_citas_facturadas()
+    
     return {
         "reservas_hoy": reservas.filter(fecha_inicio__date=hoy).count(),
         "reservas_semana": reservas.filter(
@@ -478,7 +629,9 @@ def resumen_dashboard_admin():
             fecha_inicio__date__gte=inicio_mes,
             fecha_inicio__date__lt=inicio_mes_siguiente,
         ).count(),
+        "reservas_todas": reservas.count(),
         "pendientes": reservas.filter(
             estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA]
         ).count(),
+        "ingresos_por_periodo": ingresos_por_periodo,
     }
