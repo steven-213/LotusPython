@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/home.css' %}?v=20260416a">
+<link rel="stylesheet" href="{% static 'css/site/home.css' %}?v=20260423a">
 {% endblock %}
 
 {% block content %}
@@ -114,31 +114,10 @@
   </article>
 </section>
 
-<section class="seccion-opiniones">
-  <p class="etiqueta-superior">Opiniones</p>
-  <h2>&iquest;Qu&eacute; opinas de nuestro spa?</h2>
-  <p>Tu opini&oacute;n nos ayuda a mejorar y brindar una mejor experiencia.</p>
-
-  <form class="form-opinion">
-    <div class="estrellas">
-      <input type="radio" name="estrella" id="estrella5"><label for="estrella5">&#9733;</label>
-      <input type="radio" name="estrella" id="estrella4"><label for="estrella4">&#9733;</label>
-      <input type="radio" name="estrella" id="estrella3"><label for="estrella3">&#9733;</label>
-      <input type="radio" name="estrella" id="estrella2"><label for="estrella2">&#9733;</label>
-      <input type="radio" name="estrella" id="estrella1"><label for="estrella1">&#9733;</label>
-    </div>
-
-    <textarea placeholder="Escribe tu opini&oacute;n (opcional)..."></textarea>
-
-    <button type="submit" class="boton boton-primario">
-      Enviar opini&oacute;n
-    </button>
-  </form>
-</section>
-
 <a href="https://wa.me/573017152525?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20servicios%20de%20Lotus%20Dream%20Spa"
    class="whatsapp-float"
-   target="_blank">
+   target="_blank"
+   rel="noopener noreferrer">
   <span class="whatsapp-icon">&#128172;</span>
   <span class="whatsapp-texto">WhatsApp</span>
 </a>
@@ -146,5 +125,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/site/lazy_embeds.js' %}?v=20260416a" defer></script>
+<script src="{% static 'js/site/lazy_embeds.js' %}?v=20260423a" defer></script>
 {% endblock %}

@@ -28,30 +28,6 @@
         });
       }
     });
-
-    if (!("IntersectionObserver" in window)) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          if (!entry.isIntersecting) {
-            return;
-          }
-
-          loadEmbed(entry.target);
-          observer.unobserve(entry.target);
-        });
-      },
-      {
-        rootMargin: "180px 0px",
-      }
-    );
-
-    containers.forEach(function (container) {
-      observer.observe(container);
-    });
   }
 
   document.addEventListener("DOMContentLoaded", initLazyEmbeds);

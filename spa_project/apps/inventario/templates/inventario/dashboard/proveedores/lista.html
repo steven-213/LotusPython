@@ -1,7 +1,7 @@
 {% extends "base_public.html" %}
 {% load static %}
 
-{% block title %}Proveedores - Administración{% endblock %}
+{% block title %}Proveedores - Administracion{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'inventario/proveedores/lista_style.css' %}?v=20260420a">
@@ -22,7 +22,7 @@
                         type="text"
                         name="q"
                         class="form-control"
-                        placeholder="Buscar por nombre, empresa, NIT, país o correo..."
+                        placeholder="Buscar por nombre, empresa, NIT, pais o correo..."
                         value="{{ query }}"
                         style="border-color: #fbcdd9; border-width: 2px;"
                     >
@@ -53,10 +53,10 @@
                     <tr style="border-bottom: 2px solid #fbcdd9;">
                         <th style="color: #ca6b86;"><i class="bi bi-person"></i> Nombre</th>
                         <th style="color: #ca6b86;"><i class="bi bi-briefcase"></i> Empresa</th>
-                        <th style="color: #ca6b86;"><i class="bi bi-telephone"></i> Teléfono</th>
+                        <th style="color: #ca6b86;"><i class="bi bi-telephone"></i> Telefono</th>
                         <th style="color: #ca6b86;"><i class="bi bi-envelope"></i> Correo</th>
                         <th style="color: #ca6b86;"><i class="bi bi-card-text"></i> NIT</th>
-                        <th style="color: #ca6b86;"><i class="bi bi-geo-alt"></i> País</th>
+                        <th style="color: #ca6b86;"><i class="bi bi-geo-alt"></i> Pais</th>
                         <th style="color: #ca6b86; text-align:right;">Acciones</th>
                     </tr>
                 </thead>
@@ -70,7 +70,7 @@
                             </a>
                         </td>
 
-                        <td>{{ proveedor.empresa|default:"—" }}</td>
+                        <td>{{ proveedor.empresa|default:"-" }}</td>
 
                         <td>
                             {% if proveedor.telefono %}
@@ -78,7 +78,7 @@
                                 {{ proveedor.telefono }}
                             </a>
                             {% else %}
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
 
@@ -88,15 +88,15 @@
                                 {{ proveedor.correo }}
                             </a>
                             {% else %}
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">-</span>
                             {% endif %}
                         </td>
 
-                        <td>{{ proveedor.nit|default:"—" }}</td>
+                        <td>{{ proveedor.nit|default:"-" }}</td>
 
                         <td>
                             <span class="badge" style="background:#ca6b86;">
-                                {{ proveedor.pais|default:"—" }}
+                                {{ proveedor.pais|default:"-" }}
                             </span>
                         </td>
 
@@ -109,13 +109,17 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
 
-                            <button
-                                class="btn btn-sm btn-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modalEliminar{{ proveedor.id }}"
+                            <form
+                                method="post"
+                                action="{% url 'inventario:proveedor_eliminar' proveedor.id %}"
+                                class="d-inline"
+                                onsubmit="return confirm('Eliminar el proveedor {{ proveedor.nombre|escapejs }}?');"
                             >
-                                <i class="bi bi-trash"></i>
-                            </button>
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger" type="submit">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% empty %}
@@ -131,37 +135,4 @@
         </div>
     </div>
 </div>
-
-{% for proveedor in proveedores %}
-<div class="modal fade" id="modalEliminar{{ proveedor.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0" style="background:#fbcdd9;">
-                <h5 class="modal-title">
-                    <i class="bi bi-exclamation-triangle"></i> Confirmar eliminación
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-
-            <div class="modal-body">
-                ¿Estás seguro que deseas eliminar el proveedor
-                <strong>{{ proveedor.nombre }}</strong>?
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
-                    Cancelar
-                </button>
-
-                <form method="post" action="{% url 'inventario:proveedor_eliminar' proveedor.id %}">
-                    {% csrf_token %}
-                    <button class="btn btn-danger">
-                        <i class="bi bi-trash"></i> Eliminar
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
 {% endblock %}

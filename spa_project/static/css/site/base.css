@@ -156,18 +156,6 @@ a {
   color: #5a4950;
 }
 
-.lista-social {
-  margin-top: 0.5rem;
-  display: flex;
-  justify-content: center;
-  gap: 0.7rem;
-}
-
-.lista-social img {
-  width: 30px;
-  height: 30px;
-}
-
 @media (max-width: 900px) {
   .navegacion-sitio {
     flex-wrap: wrap;
