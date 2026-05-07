@@ -61,6 +61,12 @@
   font-weight: 700;
 }
 
+.texto-ayuda {
+  margin-bottom: 0.2rem;
+  font-size: 0.92rem;
+  color: #7a5b66;
+}
+
 .formulario-acceso .boton {
   margin-top: 0.4rem;
 }

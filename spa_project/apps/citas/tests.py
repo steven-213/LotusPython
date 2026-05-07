@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 from decimal import Decimal
 
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -19,7 +20,7 @@ from apps.citas.services import (
 )
 from apps.inventario.models import Inventario, Producto, Proveedor
 from apps.inventario.services import obtener_stock_disponible, registrar_ingreso
-from apps.sesiones.models import Usuario
+from apps.sesiones.models import RegistroPendiente, Usuario
 from apps.ventas.services import registrar_venta_desde_reserva
 
 
@@ -96,6 +97,13 @@ class CitasFlowTest(TestCase):
         session["usuario_id"] = usuario.id
         session["usuario_rol"] = usuario.rol
         session.save()
+
+    @staticmethod
+    def _extract_code(message_body):
+        for line in message_body.splitlines():
+            if "codigo" in line.lower() and ":" in line:
+                return line.split(":", 1)[1].strip()
+        raise AssertionError("No se encontro el codigo en el correo enviado.")
 
     def _crear_reserva(self, *, cliente=None, servicio=None, fecha_inicio=None, pago=False):
         reserva, _ = crear_reserva(
@@ -190,8 +198,23 @@ class CitasFlowTest(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("sesiones:login"))
+        pending_registration = RegistroPendiente.objects.get(documento=890)
+
+        self.assertRedirects(
+            response,
+            reverse("sesiones:registro_verificar", args=[pending_registration.token]),
+        )
         self.assertTrue(ClienteInvitado.objects.filter(documento=890).exists())
+        self.assertFalse(Usuario.objects.filter(documento=890).exists())
+        self.assertEqual(len(mail.outbox), 1)
+
+        verification_code = self._extract_code(mail.outbox[0].body)
+        verification_response = self.client.post(
+            reverse("sesiones:registro_verificar", args=[pending_registration.token]),
+            {"codigo": verification_code},
+        )
+
+        self.assertRedirects(verification_response, reverse("sesiones:login"))
         self.assertTrue(Usuario.objects.filter(documento=890).exists())
 
     def test_authenticated_booking_without_payment_is_programada(self):

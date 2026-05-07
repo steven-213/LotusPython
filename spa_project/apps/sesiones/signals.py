@@ -1,4 +1,5 @@
 from django.apps import apps as django_apps
+from django.contrib.auth.hashers import make_password
 from django.db.models.signals import post_migrate
 from django.dispatch import receiver
 
@@ -16,6 +17,6 @@ def crear_admin(sender, **kwargs):
             apellido="Sistema",
             correo="admin@sistema.com",
             fecha_nacimiento="1990-01-01",
-            clave="1234",
+            clave=make_password("1234"),
             rol="admin",
         )

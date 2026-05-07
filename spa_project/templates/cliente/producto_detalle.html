@@ -1,0 +1,282 @@
+{% extends "base_public.html" %}
+{% load static inventario_tags %}
+
+{% block title %}{{ producto.nombre }} | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260504a">
+{% endblock %}
+
+{% block content %}
+<section class="shop-shell">
+  <header class="shop-hero shop-detail-hero">
+    <div class="shop-hero-copy">
+      <a class="shop-back-link" href="{{ catalogo_url }}">
+        <i class="bi bi-arrow-left"></i> Volver al catalogo
+      </a>
+      <p class="shop-eyebrow">Ficha de producto</p>
+      <h1>{{ producto.nombre }}</h1>
+      <p class="shop-copy">
+        {{ producto.descripcion|default:"Revisa esta referencia con mas detalle antes de agregarla a tu pedido. Encontraras precio, disponibilidad y contexto del producto en un solo lugar." }}
+      </p>
+
+      <div class="shop-chip-row">
+        <span class="shop-chip"><i class="bi bi-box-seam"></i> {{ producto.stock_disponible }} unidad{{ producto.stock_disponible|pluralize:"es" }} disponibles</span>
+        <span class="shop-chip"><i class="bi bi-cash-stack"></i> {{ producto.precio_venta|currency }}</span>
+        {% if producto.proveedor %}
+        <span class="shop-chip"><i class="bi bi-stars"></i> {{ producto.proveedor.nombre }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="shop-search-card shop-detail-summary">
+      {% if producto.stock_disponible <= 5 %}
+      <span class="product-status product-status-warning">
+        <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
+      </span>
+      {% else %}
+      <span class="product-status product-status-available">
+        <i class="bi bi-check-circle-fill"></i> Disponible
+      </span>
+      {% endif %}
+
+      <div class="shop-detail-summary-grid">
+        <article>
+          <small>Precio</small>
+          <strong>{{ producto.precio_venta|currency }}</strong>
+        </article>
+        <article>
+          <small>Impuesto</small>
+          <strong>{{ producto.impuesto }}%</strong>
+        </article>
+        <article>
+          <small>Stock</small>
+          <strong>{{ producto.stock_disponible }} unidades</strong>
+        </article>
+        <article>
+          <small>Proveedor</small>
+          <strong>{% if producto.proveedor %}{{ producto.proveedor.nombre }}{% else %}Seleccion Lotus{% endif %}</strong>
+        </article>
+      </div>
+    </aside>
+  </header>
+
+  <div class="shop-layout shop-detail-layout">
+    <section class="shop-catalog-column shop-detail-main">
+      <article class="shop-detail-card">
+        <div class="shop-detail-media-panel">
+          {% if producto.imagen %}
+          <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" width="1200" height="900" loading="eager" decoding="async">
+          {% else %}
+          <div class="shop-detail-placeholder">
+            <i class="bi bi-image"></i>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="shop-detail-copy-grid">
+          <section class="shop-detail-copy-card">
+            <p class="shop-search-label">Descripcion completa</p>
+            <h2>Todo lo que el cliente necesita revisar antes de comprar</h2>
+            <p>
+              {{ producto.descripcion|default:"Este producto hace parte de la seleccion de bienestar de Lotus Dream Spa. Puedes usar esta ficha para revisar disponibilidad, proveedor y precio antes de agregarlo a tu pedido." }}
+            </p>
+          </section>
+
+          <section class="shop-detail-copy-card">
+            <p class="shop-search-label">Datos clave</p>
+            <div class="shop-detail-facts">
+              <article>
+                <small>Precio unitario</small>
+                <strong>{{ producto.precio_venta|currency }}</strong>
+                <span>Valor final mostrado al cliente.</span>
+              </article>
+              <article>
+                <small>Disponibilidad actual</small>
+                <strong>{{ producto.stock_disponible }} unidades</strong>
+                <span>Stock consolidado del inventario activo.</span>
+              </article>
+              <article>
+                <small>Impuesto aplicado</small>
+                <strong>{{ producto.impuesto }}%</strong>
+                <span>Incluido en el precio de venta publicado.</span>
+              </article>
+              <article>
+                <small>Proveedor</small>
+                <strong>{% if producto.proveedor %}{{ producto.proveedor.nombre }}{% else %}Seleccion Lotus{% endif %}</strong>
+                <span>Referencia asociada al abastecimiento del producto.</span>
+              </article>
+            </div>
+          </section>
+
+          <section class="shop-detail-copy-card">
+            <p class="shop-search-label">Acciones</p>
+            <div class="product-actions">
+              {% if request.session.usuario_id and producto.stock_disponible > 0 %}
+              <div class="product-cart-row">
+                <label class="product-qty-group" aria-label="Cantidad para {{ producto.nombre }}">
+                  <span>Cantidad</span>
+                  <input
+                    id="qty-{{ producto.id }}"
+                    type="number"
+                    min="1"
+                    max="{{ producto.stock_disponible }}"
+                    value="1"
+                  >
+                </label>
+                <button
+                  class="shop-btn shop-btn-primary"
+                  type="button"
+                  onclick="agregarAlCarrito({{ producto.id }}, '{{ producto.nombre|escapejs }}', '{{ producto.precio_venta|floatformat:2 }}', {{ producto.stock_disponible }})"
+                >
+                  <i class="bi bi-cart-plus"></i> Agregar al carrito
+                </button>
+              </div>
+              {% elif not request.session.usuario_id and producto.stock_disponible > 0 %}
+              <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={{ request.get_full_path|urlencode }}&reason=comprar">
+                <i class="bi bi-person-circle"></i> Inicia sesion para comprar
+              </a>
+              {% else %}
+              <button class="shop-btn shop-btn-disabled" disabled>
+                <i class="bi bi-lock"></i> Producto agotado
+              </button>
+              {% endif %}
+
+              <a class="shop-btn shop-btn-secondary" href="{{ catalogo_url }}">
+                <i class="bi bi-grid"></i> Seguir explorando el catalogo
+              </a>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      {% if productos_relacionados %}
+      <section class="shop-detail-related">
+        <div class="shop-detail-section-head">
+          <div>
+            <p class="shop-search-label">Tambien puede interesarte</p>
+            <h2>Otras referencias del catalogo</h2>
+          </div>
+          <a class="shop-btn shop-btn-secondary shop-btn-inline" href="{{ catalogo_url }}">
+            Ver todo
+          </a>
+        </div>
+
+        <div class="shop-related-grid">
+          {% for item in productos_relacionados %}
+          <article class="shop-related-card">
+            {% if item.imagen %}
+            <img src="{{ item.imagen }}" alt="Imagen de {{ item.nombre }}" width="480" height="360" loading="lazy" decoding="async">
+            {% else %}
+            <div class="shop-related-placeholder">
+              <i class="bi bi-box-seam"></i>
+            </div>
+            {% endif %}
+            <div class="shop-related-copy">
+              <h3>{{ item.nombre }}</h3>
+              <p>{{ item.descripcion|default:"Descubre otra opcion de la boutique Lotus."|truncatewords:16 }}</p>
+              <div class="shop-related-meta">
+                <span>{{ item.precio_venta|currency }}</span>
+                <span>{{ item.stock_disponible }} unidades</span>
+              </div>
+              <a class="shop-btn shop-btn-primary" href="{% url 'inventario:producto_publico_detalle' item.id %}">
+                <i class="bi bi-eye"></i> Ver detalle
+              </a>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </section>
+
+    <aside class="shop-cart-card">
+      {% if request.session.usuario_id %}
+      <div class="shop-cart-header">
+        <div>
+          <p class="shop-cart-label">Carrito Lotus</p>
+          <h2>Tu pedido</h2>
+        </div>
+        <span id="cart-count" class="shop-cart-count">0</span>
+      </div>
+
+      <div id="cart-feedback" class="shop-cart-feedback" hidden></div>
+      <div id="cart-items-list" class="shop-cart-items"></div>
+
+      <div class="shop-cart-section">
+        <label class="shop-field">
+          <span>Metodo de pago</span>
+          <select id="metodo_pago">
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia bancaria</option>
+            <option value="Daviplata/Nequi">Daviplata / Nequi</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="shop-cart-section">
+        <label class="shop-field">
+          <span>Telefono</span>
+          <input type="text" id="telefono_cliente" placeholder="Ej: 3101234567">
+        </label>
+        <label class="shop-field">
+          <span>Direccion de entrega</span>
+          <textarea id="direccion_cliente" rows="3" placeholder="Calle, carrera, barrio o referencia"></textarea>
+        </label>
+      </div>
+
+      <div class="shop-cart-footer">
+        <div class="shop-cart-total-row">
+          <span>Total estimado</span>
+          <strong id="cart-total">{{ 0|currency }}</strong>
+        </div>
+        <p class="shop-cart-note">
+          La compra queda pendiente de confirmacion.
+        </p>
+        <button id="cart-submit" class="shop-btn shop-btn-primary" type="button" onclick="procederAlPago()">
+          <i class="bi bi-bag-check"></i> Procesar pedido
+        </button>
+        <button class="shop-btn shop-btn-secondary" type="button" onclick="vaciarCarrito()">
+          <i class="bi bi-trash3"></i> Limpiar carrito
+        </button>
+      </div>
+      {% else %}
+      <div class="shop-cart-header">
+        <div>
+          <p class="shop-cart-label">Carrito Lotus</p>
+          <h2>Inicia sesion</h2>
+        </div>
+        <span class="shop-cart-count">?</span>
+      </div>
+      <div class="shop-cart-callout">
+        <p>
+          Inicia sesion para agregar este producto al carrito y continuar con tu pedido.
+        </p>
+        <a class="shop-btn shop-btn-primary" href="{% url 'sesiones:login' %}?next={{ request.get_full_path|urlencode }}&reason=comprar">
+          <i class="bi bi-person-circle"></i> Iniciar sesion
+        </a>
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+
+{% if request.session.usuario_id %}
+{{ stock_catalogo|json_script:"shop-stock-data" }}
+{{ checkout_config|json_script:"shop-config-data" }}
+{% endif %}
+
+<a href="https://wa.me/573017152525?text=Hola%20quiero%20informacion%20sobre%20los%20productos%20de%20Lotus%20Dream%20Spa"
+   class="whatsapp-float"
+   target="_blank"
+   rel="noopener noreferrer">
+  <i class="bi bi-whatsapp whatsapp-icon"></i>
+  <span class="whatsapp-texto">WhatsApp</span>
+</a>
+{% endblock %}
+
+{% block extra_js %}
+{% if request.session.usuario_id %}
+<script src="{% static 'js/site/cop_money.js' %}?v=20260416b" defer></script>
+<script src="{% static 'js/site/shop_cart.js' %}?v=20260416a" defer></script>
+{% endif %}
+{% endblock %}

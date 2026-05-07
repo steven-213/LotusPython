@@ -4,6 +4,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from hashlib import md5
 from types import SimpleNamespace
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib import messages
@@ -228,6 +229,45 @@ def _build_productos_structured_data(productos):
     }
 
 
+def _build_producto_structured_data(producto):
+    descripcion = producto.descripcion or "Producto disponible en Lotus Dream Spa."
+    oferta = {
+        "@type": "Offer",
+        "price": producto.precio_venta,
+        "priceCurrency": "COP",
+        "availability": (
+            "https://schema.org/InStock"
+            if producto.stock_disponible > 0
+            else "https://schema.org/OutOfStock"
+        ),
+    }
+
+    if settings.APP_BASE_URL:
+        oferta["url"] = (
+            f"{settings.APP_BASE_URL.rstrip('/')}"
+            f"{reverse('inventario:producto_publico_detalle', kwargs={'producto_id': producto.id})}"
+        )
+
+    data = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": producto.nombre,
+        "description": descripcion,
+        "offers": oferta,
+    }
+
+    if producto.imagen:
+        data["image"] = [producto.imagen]
+
+    if producto.proveedor:
+        data["brand"] = {
+            "@type": "Brand",
+            "name": producto.proveedor.nombre,
+        }
+
+    return data
+
+
 def _cargar_productos_publicos(query):
     productos = (
         Producto.objects.filter(activo=True)
@@ -269,6 +309,14 @@ def _obtener_payload_productos_publicos(query):
     return payload
 
 
+def _build_stock_catalogo_publico():
+    payload = _obtener_payload_productos_publicos("")
+    return {
+        str(producto.id): producto.stock_disponible
+        for producto in payload["productos"]
+    }
+
+
 def productos_publicos(request):
     query = (request.GET.get("q", "") or "").strip()
     payload = _obtener_payload_productos_publicos(query)
@@ -293,6 +341,54 @@ def productos_publicos(request):
         ),
         "structured_data_json": payload["structured_data_json"],
     })
+    return apply_public_page_cache_headers(response)
+
+
+def producto_publico_detalle(request, producto_id):
+    query = (request.GET.get("q", "") or "").strip()
+    producto = get_object_or_404(
+        anotar_stock_disponible(
+            Producto.objects.filter(activo=True).select_related("proveedor")
+        ),
+        id=producto_id,
+        stock_disponible__gt=0,
+    )
+
+    payload_catalogo = _obtener_payload_productos_publicos("")
+    productos_relacionados = [
+        item
+        for item in payload_catalogo["productos"]
+        if item.id != producto.id
+    ][:3]
+
+    descripcion = producto.descripcion or (
+        "Producto seleccionado para complementar tu experiencia de bienestar en casa."
+    )
+    catalogo_url = reverse("inventario:productos_publicos")
+    if query:
+        catalogo_url = f"{catalogo_url}?{urlencode({'q': query})}"
+
+    context = {
+        "producto": producto,
+        "productos_relacionados": productos_relacionados,
+        "catalogo_url": catalogo_url,
+        "query": query,
+        "meta_title": f"{producto.nombre} | Lotus Dream Spa",
+        "meta_description": f"{producto.nombre}. {descripcion}"[:160],
+        "structured_data_json": serialize_structured_data(
+            _build_producto_structured_data(producto)
+        ),
+    }
+
+    if request.session.get("usuario_id"):
+        context["stock_catalogo"] = _build_stock_catalogo_publico()
+        context["checkout_config"] = {
+            "processUrl": reverse("inventario:procesar_pago"),
+            "resultUrl": reverse("inventario:resultado"),
+            "csrfToken": get_token(request),
+        }
+
+    response = render(request, "cliente/producto_detalle.html", context)
     return apply_public_page_cache_headers(response)
 
 

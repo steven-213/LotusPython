@@ -1,7 +1,9 @@
+from django.contrib.auth.hashers import check_password
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from apps.inventario.models import Producto, Proveedor
-from apps.sesiones.models import Usuario
+from apps.sesiones.models import RecuperacionClave, RegistroPendiente, Usuario
 from apps.ventas.models import (
     DetalleVenta,
     SolicitudDevolucionVenta,
@@ -14,6 +16,7 @@ class SesionesUrlsTest(TestCase):
     def test_reverse_urls(self):
         self.assertEqual(reverse("sesiones:login"), "/login/")
         self.assertEqual(reverse("sesiones:perfil"), "/perfil/")
+        self.assertEqual(reverse("sesiones:password_reset_request"), "/olvide-contrasena/")
 
     def test_login_page(self):
         response = self.client.get(reverse("sesiones:login"))
@@ -60,6 +63,8 @@ class SesionesAuthFlowTest(TestCase):
         )
         self.assertIn("usuario_id", self.client.session)
         self.assertEqual(response.status_code, 200)
+        usuario = Usuario.objects.get(documento=12345)
+        self.assertTrue(check_password("1234", usuario.clave))
 
     def test_registro_duplicate_documento_shows_alert(self):
         response = self.client.post(
@@ -108,6 +113,75 @@ class SesionesAuthFlowTest(TestCase):
             "Ese correo ya tiene una cuenta registrada.",
         )
         self.assertEqual(Usuario.objects.filter(correo__iexact="admin@test.com").count(), 1)
+
+    def test_registro_requires_email_code_before_creating_user(self):
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "54321",
+                "nombre": "Nuevo",
+                "apellido": "Cliente",
+                "correo": "nuevo@test.com",
+                "fechaNacimiento": "1995-05-10",
+                "clave": "abcd1234",
+            },
+        )
+
+        pending_registration = RegistroPendiente.objects.get(correo="nuevo@test.com")
+
+        self.assertRedirects(
+            response,
+            reverse("sesiones:registro_verificar", args=[pending_registration.token]),
+        )
+        self.assertFalse(Usuario.objects.filter(correo="nuevo@test.com").exists())
+        self.assertEqual(len(mail.outbox), 1)
+
+        verification_code = self._extract_code(mail.outbox[0].body)
+        verification_response = self.client.post(
+            reverse("sesiones:registro_verificar", args=[pending_registration.token]),
+            {"codigo": verification_code},
+        )
+
+        self.assertRedirects(verification_response, reverse("sesiones:login"))
+        usuario = Usuario.objects.get(correo="nuevo@test.com")
+        self.assertTrue(check_password("abcd1234", usuario.clave))
+        self.assertFalse(RegistroPendiente.objects.filter(pk=pending_registration.pk).exists())
+
+    def test_password_reset_updates_password_after_code_validation(self):
+        response = self.client.post(
+            reverse("sesiones:password_reset_request"),
+            {"documento": "12345", "correo": "admin@test.com"},
+        )
+
+        password_reset = RecuperacionClave.objects.get(usuario__documento=12345)
+
+        self.assertRedirects(
+            response,
+            reverse("sesiones:password_reset_confirm", args=[password_reset.token]),
+        )
+        self.assertEqual(len(mail.outbox), 1)
+
+        verification_code = self._extract_code(mail.outbox[0].body)
+        confirm_response = self.client.post(
+            reverse("sesiones:password_reset_confirm", args=[password_reset.token]),
+            {
+                "codigo": verification_code,
+                "clave": "nueva1234",
+                "confirmar_clave": "nueva1234",
+            },
+        )
+
+        self.assertRedirects(confirm_response, reverse("sesiones:login"))
+        usuario = Usuario.objects.get(documento=12345)
+        self.assertTrue(check_password("nueva1234", usuario.clave))
+        self.assertFalse(RecuperacionClave.objects.filter(pk=password_reset.pk).exists())
+
+    @staticmethod
+    def _extract_code(message_body):
+        for line in message_body.splitlines():
+            if "codigo" in line.lower() and ":" in line:
+                return line.split(":", 1)[1].strip()
+        raise AssertionError("No se encontro el codigo en el correo enviado.")
 
 
 class PerfilClienteTest(TestCase):

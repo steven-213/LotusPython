@@ -3,7 +3,7 @@
 
 {% block title %}Tienda | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260416a">
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260504a">
 {% endblock %}
 
 {% block content %}
@@ -81,6 +81,9 @@
             </div>
 
             <div class="product-actions">
+              <a class="shop-btn shop-btn-secondary" href="{% url 'inventario:producto_publico_detalle' p.id %}{% if query %}?q={{ query|urlencode }}{% endif %}">
+                <i class="bi bi-eye"></i> Ver detalle
+              </a>
               {% if request.session.usuario_id and p.stock_disponible > 0 %}
               <div class="product-cart-row">
                 <label class="product-qty-group" aria-label="Cantidad para {{ p.nombre }}">

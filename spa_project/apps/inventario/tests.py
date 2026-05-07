@@ -56,6 +56,12 @@ class InventarioUrlsTest(TestCase):
             "/inventario/productos/importar-csv/",
         )
 
+    def test_reverse_producto_publico_detalle(self):
+        self.assertEqual(
+            reverse("inventario:producto_publico_detalle", args=[9]),
+            "/inventario/catalogo/9/",
+        )
+
     def test_importa_productos_desde_csv_con_proveedor_por_defecto(self):
         archivo = SimpleUploadedFile(
             "productos.csv",
@@ -173,6 +179,47 @@ class InventarioUrlsTest(TestCase):
         self.assertEqual(len(productos), 1)
         self.assertEqual(productos[0].nombre, "Serum publico")
         self.assertEqual(productos[0].stock_disponible, 5)
+        self.assertContains(
+            response,
+            reverse("inventario:producto_publico_detalle", args=[producto.id]),
+        )
+
+    def test_producto_publico_detalle_muestra_ficha_completa(self):
+        producto = Producto.objects.create(
+            nombre="Crema restauradora",
+            descripcion="Formula de nutricion intensa para el cuidado diario de la piel.",
+            proveedor=self.proveedor,
+            precio_compra=15000,
+            precio_venta=28000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        Inventario.objects.create(producto=producto, lote="CR-1", stock=4, precio_venta=28000)
+
+        response = self.client.get(reverse("inventario:producto_publico_detalle", args=[producto.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Crema restauradora")
+        self.assertContains(response, "Formula de nutricion intensa")
+        self.assertContains(response, "4 unidades")
+        self.assertContains(response, self.proveedor.nombre)
+        self.assertNotContains(response, "NavegaciÃ³n admin")
+
+    def test_producto_publico_detalle_rechaza_producto_sin_stock(self):
+        producto = Producto.objects.create(
+            nombre="Esencia agotada",
+            descripcion="Producto no disponible.",
+            proveedor=self.proveedor,
+            precio_compra=12000,
+            precio_venta=21000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        Inventario.objects.create(producto=producto, lote="ES-0", stock=0, precio_venta=21000)
+
+        response = self.client.get(reverse("inventario:producto_publico_detalle", args=[producto.id]))
+
+        self.assertEqual(response.status_code, 404)
 
     def test_compra_nueva_rechaza_valores_negativos_o_en_cero(self):
         producto = Producto.objects.create(
