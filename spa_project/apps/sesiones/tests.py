@@ -2,6 +2,7 @@ from django.contrib.auth.hashers import check_password
 from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from apps.inventario.models import Producto, Proveedor
 from apps.sesiones.models import RecuperacionClave, RegistroPendiente, Usuario
 from apps.ventas.models import (
@@ -62,9 +63,29 @@ class SesionesAuthFlowTest(TestCase):
             follow=True,
         )
         self.assertIn("usuario_id", self.client.session)
+        self.assertIn("usuario_session_expires_at", self.client.session)
         self.assertEqual(response.status_code, 200)
         usuario = Usuario.objects.get(documento=12345)
         self.assertTrue(check_password("1234", usuario.clave))
+
+    def test_sesion_vencida_redirige_a_login_y_limpia_el_estado(self):
+        usuario = Usuario.objects.get(documento=12345)
+        session = self.client.session
+        session["usuario_id"] = usuario.id
+        session["usuario_rol"] = usuario.rol
+        session["usuario_nombre"] = f"{usuario.nombre} {usuario.apellido}".strip()
+        session["usuario_session_started_at"] = int(timezone.now().timestamp()) - 7200
+        session["usuario_session_expires_at"] = int(timezone.now().timestamp()) - 60
+        session.save()
+
+        response = self.client.get(reverse("sesiones:perfil"))
+
+        self.assertRedirects(
+            response,
+            f"{reverse('sesiones:login')}?next={reverse('sesiones:perfil')}&reason=session_expired",
+            fetch_redirect_response=False,
+        )
+        self.assertNotIn("usuario_id", self.client.session)
 
     def test_registro_duplicate_documento_shows_alert(self):
         response = self.client.post(

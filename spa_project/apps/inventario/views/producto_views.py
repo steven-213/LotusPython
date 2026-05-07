@@ -253,17 +253,15 @@ def _build_producto_structured_data(producto):
         "@type": "Product",
         "name": producto.nombre,
         "description": descripcion,
+        "brand": {
+            "@type": "Brand",
+            "name": "Lotus Dream Spa",
+        },
         "offers": oferta,
     }
 
     if producto.imagen:
         data["image"] = [producto.imagen]
-
-    if producto.proveedor:
-        data["brand"] = {
-            "@type": "Brand",
-            "name": producto.proveedor.nombre,
-        }
 
     return data
 

@@ -110,6 +110,15 @@
     <p>&copy; 2026 Lotus Dream Spa</p>
   </footer>
   {% endif %}
+  {% if request.session.usuario_id and session_timeout_expires_at and session_timeout_redirect_url %}
+  <script
+    id="session-timeout-data"
+    type="application/json"
+    data-expires-at="{{ session_timeout_expires_at }}"
+    data-redirect-url="{{ session_timeout_redirect_url }}"
+  ></script>
+  <script src="{% static 'js/site/session_timeout.js' %}?v=20260506a" defer></script>
+  {% endif %}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

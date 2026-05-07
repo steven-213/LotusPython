@@ -3,7 +3,7 @@
 
 {% block title %}Tienda | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260504a">
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260506a">
 {% endblock %}
 
 {% block content %}
@@ -12,10 +12,6 @@
     <div class="shop-hero-copy">
       <p class="shop-eyebrow">Boutique Lotus</p>
       <h1>Productos para prolongar el ritual en casa</h1>
-      <p class="shop-copy">
-        Explora una seleccion curada de productos para cuidado, descanso y bienestar.
-        Compra desde tu cuenta y deja tu validacion lista para confirmacion.
-      </p>
 
       <div class="shop-chip-row">
         <span class="shop-chip"><i class="bi bi-bag-heart"></i> {{ productos|length }} referencias disponibles</span>
@@ -74,12 +70,6 @@
             </div>
 
             <p class="product-description">{{ p.descripcion|default:"Cuidado premium para prolongar tu ritual en casa."|truncatewords:18 }}</p>
-
-            <div class="product-meta">
-              <span><i class="bi bi-box-seam"></i> {{ p.stock_disponible }} unidades</span>
-              <span><i class="bi bi-shield-check"></i> Compra segura</span>
-            </div>
-
             <div class="product-actions">
               <a class="shop-btn shop-btn-secondary" href="{% url 'inventario:producto_publico_detalle' p.id %}{% if query %}?q={{ query|urlencode }}{% endif %}">
                 <i class="bi bi-eye"></i> Ver detalle
@@ -120,7 +110,7 @@
       </section>
     </section>
 
-    <aside class="shop-cart-card">
+    <aside class="shop-cart-card{% if request.session.usuario_id %} shop-cart-card-active{% endif %}">
       {% if request.session.usuario_id %}
       <div class="shop-cart-header">
         <div>
@@ -130,29 +120,31 @@
         <span id="cart-count" class="shop-cart-count">0</span>
       </div>
 
-      <div id="cart-feedback" class="shop-cart-feedback" hidden></div>
-      <div id="cart-items-list" class="shop-cart-items"></div>
+      <div class="shop-cart-body">
+        <div id="cart-feedback" class="shop-cart-feedback" hidden></div>
+        <div id="cart-items-list" class="shop-cart-items"></div>
 
-      <div class="shop-cart-section">
-        <label class="shop-field">
-          <span>Metodo de pago</span>
-          <select id="metodo_pago">
-            <option value="Efectivo">Efectivo</option>
-            <option value="Transferencia">Transferencia bancaria</option>
-            <option value="Daviplata/Nequi">Daviplata / Nequi</option>
-          </select>
-        </label>
-      </div>
+        <div class="shop-cart-section">
+          <label class="shop-field">
+            <span>Metodo de pago</span>
+            <select id="metodo_pago">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia bancaria</option>
+              <option value="Daviplata/Nequi">Daviplata / Nequi</option>
+            </select>
+          </label>
+        </div>
 
-      <div class="shop-cart-section">
-        <label class="shop-field">
-          <span>Telefono</span>
-          <input type="text" id="telefono_cliente" placeholder="Ej: 3101234567">
-        </label>
-        <label class="shop-field">
-          <span>Direccion de entrega</span>
-          <textarea id="direccion_cliente" rows="3" placeholder="Calle, carrera, barrio o referencia"></textarea>
-        </label>
+        <div class="shop-cart-section">
+          <label class="shop-field">
+            <span>Telefono</span>
+            <input type="text" id="telefono_cliente" placeholder="Ej: 3101234567">
+          </label>
+          <label class="shop-field">
+            <span>Direccion de entrega</span>
+            <textarea id="direccion_cliente" rows="3" placeholder="Calle, carrera, barrio o referencia"></textarea>
+          </label>
+        </div>
       </div>
 
       <div class="shop-cart-footer">

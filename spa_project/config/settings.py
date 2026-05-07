@@ -88,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "apps.sesiones.middleware.ManualSessionTimeoutMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -198,6 +199,8 @@ CACHES = {
 
 PUBLIC_CATALOG_CACHE_TIMEOUT = _env_int("PUBLIC_CATALOG_CACHE_TIMEOUT", 300)
 PUBLIC_PAGE_CACHE_TIMEOUT = _env_int("PUBLIC_PAGE_CACHE_TIMEOUT", 600)
+MANUAL_SESSION_TIMEOUT_SECONDS = _env_int("MANUAL_SESSION_TIMEOUT_SECONDS", 3600)
+SESSION_COOKIE_AGE = MANUAL_SESSION_TIMEOUT_SECONDS
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]

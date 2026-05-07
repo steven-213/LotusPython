@@ -1,15 +1,20 @@
 from functools import wraps
+from urllib.parse import urlencode
 
 from django.shortcuts import redirect
 from django.urls import reverse
 
 from apps.sesiones.models import Usuario
+from apps.sesiones.session_utils import asegurar_vencimiento_sesion
 
 
 def _resolver_usuario_sesion(request):
-    usuario_id = request.session.get("usuario_id")
-    if not usuario_id:
+    if not getattr(request, "_manual_session_checked", False) and not asegurar_vencimiento_sesion(request):
         return None
+    if not request.session.get("usuario_id"):
+        return None
+
+    usuario_id = request.session.get("usuario_id")
 
     usuario = Usuario.objects.filter(id=usuario_id).only("id", "rol").first()
     if not usuario:
@@ -26,9 +31,14 @@ def _resolver_usuario_sesion(request):
 def _redirigir_login(request):
     login_url = reverse("sesiones:login")
     next_url = request.get_full_path()
+    params = {}
     if next_url and next_url != login_url:
-        return redirect(f"{login_url}?next={next_url}")
-    return redirect("sesiones:login")
+        params["next"] = next_url
+    if getattr(request, "manual_session_expired", False):
+        params["reason"] = "session_expired"
+    if params:
+        return redirect(f"{login_url}?{urlencode(params)}")
+    return redirect(login_url)
 
 
 def login_required_session(view_func):

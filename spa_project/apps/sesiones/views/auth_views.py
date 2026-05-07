@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import RecuperacionClave, RegistroPendiente, Usuario
+from apps.sesiones.session_utils import iniciar_sesion_manual
 from apps.sesiones.security import (
     MailDeliveryError,
     check_usuario_password,
@@ -69,15 +70,15 @@ def login_view(request):
         messages.info(request, "Debes iniciar sesion para agendar una cita.")
     elif request.method == "GET" and reason == "comprar":
         messages.info(request, "Debes iniciar sesion para continuar con la compra.")
+    elif request.method == "GET" and reason == "session_expired":
+        messages.info(request, "Tu sesion expiro despues de una hora. Inicia sesion nuevamente.")
 
     if request.method == "POST":
         documento = request.POST.get("documento")
         clave = request.POST.get("clave") or ""
         usuario = Usuario.objects.filter(documento=documento).first()
         if usuario and check_usuario_password(usuario, clave):
-            request.session["usuario_id"] = usuario.id
-            request.session["usuario_rol"] = usuario.rol
-            request.session["usuario_nombre"] = f"{usuario.nombre} {usuario.apellido}".strip()
+            iniciar_sesion_manual(request, usuario)
             if next_url:
                 return redirect(next_url)
             if usuario.rol == Usuario.ROL_ADMIN:

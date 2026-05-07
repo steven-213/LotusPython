@@ -334,6 +334,8 @@ def admin_shell(request):
     return {
         "show_admin_sidebar": show_admin_sidebar,
         "session_user_name": request.session.get("usuario_nombre", ""),
+        "session_timeout_expires_at": getattr(request, "manual_session_expires_at", None),
+        "session_timeout_redirect_url": f"{_safe_reverse('sesiones:login')}?reason=session_expired",
         **sidebar_state,
         **build_site_meta(request, show_admin_sidebar=show_admin_sidebar),
     }

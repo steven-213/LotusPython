@@ -201,8 +201,10 @@ class InventarioUrlsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Crema restauradora")
         self.assertContains(response, "Formula de nutricion intensa")
-        self.assertContains(response, "4 unidades")
-        self.assertContains(response, self.proveedor.nombre)
+        self.assertContains(response, "Todo lo necesario antes de comprar")
+        self.assertContains(response, "Tu pedido queda pendiente de validacion")
+        self.assertNotContains(response, "4 unidades")
+        self.assertNotContains(response, self.proveedor.nombre)
         self.assertNotContains(response, "NavegaciÃ³n admin")
 
     def test_producto_publico_detalle_rechaza_producto_sin_stock(self):

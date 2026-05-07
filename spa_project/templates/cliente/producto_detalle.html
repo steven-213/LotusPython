@@ -3,112 +3,89 @@
 
 {% block title %}{{ producto.nombre }} | Lotus Dream Spa{% endblock %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260504a">
+<link rel="stylesheet" href="{% static 'css/site/shop_page.css' %}?v=20260506b">
 {% endblock %}
 
 {% block content %}
 <section class="shop-shell">
-  <header class="shop-hero shop-detail-hero">
-    <div class="shop-hero-copy">
-      <a class="shop-back-link" href="{{ catalogo_url }}">
-        <i class="bi bi-arrow-left"></i> Volver al catalogo
-      </a>
-      <p class="shop-eyebrow">Ficha de producto</p>
-      <h1>{{ producto.nombre }}</h1>
-      <p class="shop-copy">
-        {{ producto.descripcion|default:"Revisa esta referencia con mas detalle antes de agregarla a tu pedido. Encontraras precio, disponibilidad y contexto del producto en un solo lugar." }}
-      </p>
-
-      <div class="shop-chip-row">
-        <span class="shop-chip"><i class="bi bi-box-seam"></i> {{ producto.stock_disponible }} unidad{{ producto.stock_disponible|pluralize:"es" }} disponibles</span>
-        <span class="shop-chip"><i class="bi bi-cash-stack"></i> {{ producto.precio_venta|currency }}</span>
-        {% if producto.proveedor %}
-        <span class="shop-chip"><i class="bi bi-stars"></i> {{ producto.proveedor.nombre }}</span>
-        {% endif %}
-      </div>
-    </div>
-
-    <aside class="shop-search-card shop-detail-summary">
-      {% if producto.stock_disponible <= 5 %}
-      <span class="product-status product-status-warning">
-        <i class="bi bi-exclamation-circle-fill"></i> Pocas unidades
-      </span>
-      {% else %}
-      <span class="product-status product-status-available">
-        <i class="bi bi-check-circle-fill"></i> Disponible
-      </span>
-      {% endif %}
-
-      <div class="shop-detail-summary-grid">
-        <article>
-          <small>Precio</small>
-          <strong>{{ producto.precio_venta|currency }}</strong>
-        </article>
-        <article>
-          <small>Impuesto</small>
-          <strong>{{ producto.impuesto }}%</strong>
-        </article>
-        <article>
-          <small>Stock</small>
-          <strong>{{ producto.stock_disponible }} unidades</strong>
-        </article>
-        <article>
-          <small>Proveedor</small>
-          <strong>{% if producto.proveedor %}{{ producto.proveedor.nombre }}{% else %}Seleccion Lotus{% endif %}</strong>
-        </article>
-      </div>
-    </aside>
-  </header>
-
+  {% with detalle_texto=producto.descripcion|default:"Este producto hace parte de la seleccion de bienestar de Lotus Dream Spa. Usa esta ficha para revisar su precio y decidir si quieres agregarlo a tu pedido." %}
   <div class="shop-layout shop-detail-layout">
     <section class="shop-catalog-column shop-detail-main">
-      <article class="shop-detail-card">
-        <div class="shop-detail-media-panel">
-          {% if producto.imagen %}
-          <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" width="1200" height="900" loading="eager" decoding="async">
-          {% else %}
-          <div class="shop-detail-placeholder">
-            <i class="bi bi-image"></i>
+      <article class="shop-detail-stage">
+        <div class="shop-detail-stage-media">
+          <div class="shop-detail-media-panel">
+            {% if producto.imagen %}
+            <img src="{{ producto.imagen }}" alt="Imagen de {{ producto.nombre }}" width="900" height="900" loading="eager" decoding="async" fetchpriority="high">
+            {% else %}
+            <div class="shop-detail-placeholder">
+              <i class="bi bi-image"></i>
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
         </div>
 
-        <div class="shop-detail-copy-grid">
-          <section class="shop-detail-copy-card">
-            <p class="shop-search-label">Descripcion completa</p>
-            <h2>Todo lo que el cliente necesita revisar antes de comprar</h2>
-            <p>
-              {{ producto.descripcion|default:"Este producto hace parte de la seleccion de bienestar de Lotus Dream Spa. Puedes usar esta ficha para revisar disponibilidad, proveedor y precio antes de agregarlo a tu pedido." }}
-            </p>
-          </section>
+        <div class="shop-detail-stage-copy">
+          <a class="shop-back-link" href="{{ catalogo_url }}">
+            <i class="bi bi-arrow-left"></i> Volver al catalogo
+          </a>
+          <p class="shop-eyebrow">Ficha de producto</p>
 
-          <section class="shop-detail-copy-card">
-            <p class="shop-search-label">Datos clave</p>
-            <div class="shop-detail-facts">
-              <article>
-                <small>Precio unitario</small>
-                <strong>{{ producto.precio_venta|currency }}</strong>
-                <span>Valor final mostrado al cliente.</span>
-              </article>
-              <article>
-                <small>Disponibilidad actual</small>
-                <strong>{{ producto.stock_disponible }} unidades</strong>
-                <span>Stock consolidado del inventario activo.</span>
-              </article>
-              <article>
-                <small>Impuesto aplicado</small>
-                <strong>{{ producto.impuesto }}%</strong>
-                <span>Incluido en el precio de venta publicado.</span>
-              </article>
-              <article>
-                <small>Proveedor</small>
-                <strong>{% if producto.proveedor %}{{ producto.proveedor.nombre }}{% else %}Seleccion Lotus{% endif %}</strong>
-                <span>Referencia asociada al abastecimiento del producto.</span>
-              </article>
-            </div>
-          </section>
+          <div class="shop-detail-title-block">
+            {% if producto.stock_disponible > 0 %}
+            <span class="product-status product-status-available">
+              <i class="bi bi-check-circle-fill"></i> Disponible
+            </span>
+            {% else %}
+            <span class="product-status product-status-warning">
+              <i class="bi bi-slash-circle-fill"></i> Agotado
+            </span>
+            {% endif %}
 
-          <section class="shop-detail-copy-card">
+            <h1>{{ producto.nombre }}</h1>
+            <p class="shop-detail-lead">{{ detalle_texto }}</p>
+          </div>
+
+          <div class="shop-detail-price-band">
+            <article class="shop-detail-price-card">
+              <small>Precio final</small>
+              <strong>{{ producto.precio_venta|currency }}</strong>
+              <span>Impuesto {{ producto.impuesto }}% incluido en el valor publicado.</span>
+            </article>
+
+            <article class="shop-detail-assurance">
+              <i class="bi bi-bag-heart"></i>
+              <div>
+                <strong>Compra con validacion posterior</strong>
+                <p>Revisamos tu pedido y te acompanamos para confirmar pago, entrega y cualquier detalle final.</p>
+              </div>
+            </article>
+          </div>
+
+          <div class="shop-detail-points">
+            <article>
+              <i class="bi bi-stars"></i>
+              <div>
+                <strong>Seleccion Lotus</strong>
+                <p>Una referencia pensada para extender tu rutina de bienestar fuera del spa.</p>
+              </div>
+            </article>
+            <article>
+              <i class="bi bi-chat-heart"></i>
+              <div>
+                <strong>Acompanamiento humano</strong>
+                <p>Si lo necesitas, podemos ayudarte a resolver dudas antes de confirmar el pedido.</p>
+              </div>
+            </article>
+            <article>
+              <i class="bi bi-truck"></i>
+              <div>
+                <strong>Entrega coordinada</strong>
+                <p>La entrega se acuerda contigo una vez validemos la compra desde tu cuenta.</p>
+              </div>
+            </article>
+          </div>
+
+          <section class="shop-detail-action-panel">
             <p class="shop-search-label">Acciones</p>
             <div class="product-actions">
               {% if request.session.usuario_id and producto.stock_disponible > 0 %}
@@ -145,9 +122,45 @@
                 <i class="bi bi-grid"></i> Seguir explorando el catalogo
               </a>
             </div>
+            <p class="shop-detail-action-note">Tu pedido queda pendiente de validacion.</p>
           </section>
         </div>
       </article>
+
+      <div class="shop-detail-story-grid">
+        <section class="shop-detail-copy-card">
+          <p class="shop-search-label">Descripcion completa</p>
+          <h2>Todo lo necesario antes de comprar</h2>
+          <p>{{ detalle_texto }}</p>
+        </section>
+
+        <section class="shop-detail-copy-card">
+          <p class="shop-search-label">Como funciona</p>
+          <div class="shop-detail-journey">
+            <article>
+              <span class="shop-detail-step">1</span>
+              <div>
+                <strong>Elige tu producto</strong>
+                <p>Agrega la cantidad que necesitas desde tu cuenta y envianos tu pedido.</p>
+              </div>
+            </article>
+            <article>
+              <span class="shop-detail-step">2</span>
+              <div>
+                <strong>Confirmamos contigo</strong>
+                <p>Tu pedido queda pendiente de validacion y te contactaremos para revisarlo.</p>
+              </div>
+            </article>
+            <article>
+              <span class="shop-detail-step">3</span>
+              <div>
+                <strong>Coordinamos la entrega</strong>
+                <p>Cuando todo este listo, cerramos contigo el metodo de pago y la entrega.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
 
       {% if productos_relacionados %}
       <section class="shop-detail-related">
@@ -176,7 +189,6 @@
               <p>{{ item.descripcion|default:"Descubre otra opcion de la boutique Lotus."|truncatewords:16 }}</p>
               <div class="shop-related-meta">
                 <span>{{ item.precio_venta|currency }}</span>
-                <span>{{ item.stock_disponible }} unidades</span>
               </div>
               <a class="shop-btn shop-btn-primary" href="{% url 'inventario:producto_publico_detalle' item.id %}">
                 <i class="bi bi-eye"></i> Ver detalle
@@ -258,6 +270,7 @@
       {% endif %}
     </aside>
   </div>
+  {% endwith %}
 </section>
 
 {% if request.session.usuario_id %}
