@@ -1,0 +1,103 @@
+{% extends "base_public.html" %}
+{% load static %}
+{% block title %}Compras - Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/compras/compras.css' %}?v=20260420a">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 compras-container">
+    <div class="card mb-4 shadow-sm border-0 card-custom">
+        <div class="card-body">
+            <form method="get">
+                <div class="input-group w-100">
+                    <span class="input-group-text search-icon">
+                        <i class="bi bi-search"></i>
+                    </span>
+
+                    <input
+                        type="text"
+                        name="q"
+                        class="form-control search-input"
+                        placeholder="Buscar por número de factura o proveedor..."
+                        value="{{ query }}"
+                    >
+
+                    <button class="btn btn-primary btn-search" type="submit">
+                        Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-lg border-0 card-custom inv-table-card">
+        <div class="card-header card-header-custom">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <h5 class="mb-0 titulo-tabla">
+                    <i class="bi bi-table"></i> Lista de compras
+                </h5>
+
+                <a href="{% url 'inventario:compra_nueva' %}" class="btn btn-primary btn-nueva">
+                    <i class="bi bi-plus-circle"></i> Nueva compra
+                </a>
+            </div>
+        </div>
+
+        <div class="table-responsive inv-table-scroll">
+            <table class="table table-hover mb-0">
+                <thead class="thead-custom">
+                    <tr>
+                        <th>Proveedor</th>
+                        <th>Factura</th>
+                        <th class="text-end">Total</th>
+                        <th>Fecha</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for compra in compras %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'inventario:proveedor_detalle' compra.proveedor.id %}" class="link-proveedor">
+                                <strong>{{ compra.proveedor.nombre }}</strong>
+                            </a>
+                        </td>
+
+                        <td><code>{{ compra.numero_factura|default:"—" }}</code></td>
+
+                        <td class="text-end">
+                            <strong class="precio">${{ compra.total|floatformat:2 }}</strong>
+                        </td>
+
+                        <td class="fecha">
+                            {{ compra.fecha|date:"d/m/Y H:i" }}
+                        </td>
+
+                        <td class="text-end">
+                            <a href="{% url 'inventario:compra_detalle' compra.id %}" class="btn btn-sm btn-ver">
+                                <i class="bi bi-eye"></i>
+                            </a>
+
+                            <a href="{% url 'inventario:compra_editar' compra.id %}" class="btn btn-sm btn-editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="bi bi-inbox icon-empty"></i>
+                            <p class="text-muted mt-2">No hay compras registradas.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

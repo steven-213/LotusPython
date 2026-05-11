@@ -1,0 +1,34 @@
+<aside class="admin-sidebar" aria-label="Navegación admin">
+    <div class="admin-sidebar-top">
+        <p class="admin-sidebar-eyebrow">{{ admin_sidebar_eyebrow }}</p>
+        {% if admin_sidebar_title %}
+        <h2 class="admin-sidebar-title">{{ admin_sidebar_title }}</h2>
+        {% endif %}
+        <p class="admin-sidebar-copy">
+            {{ admin_sidebar_copy }}
+        </p>
+        {% if admin_sidebar_back_url %}
+        <a href="{{ admin_sidebar_back_url }}" class="admin-sidebar-back">
+            <i class="bi bi-arrow-left"></i>
+            <span>{{ admin_sidebar_back_label }}</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="admin-sidebar-groups">
+        {% for section in admin_sidebar_sections %}
+        <section class="admin-sidebar-group {% if section.is_active %}is-current{% endif %}">
+            <p class="admin-sidebar-group-title">{{ section.title }}</p>
+
+            <nav class="admin-sidebar-links" aria-label="{{ section.title }}">
+                {% for item in section.items %}
+                <a href="{{ item.url }}" class="admin-sidebar-link {% if item.is_active %}is-active{% endif %}">
+                    <i class="bi {{ item.icon }}"></i>
+                    <span>{{ item.label }}</span>
+                </a>
+                {% endfor %}
+            </nav>
+        </section>
+        {% endfor %}
+    </div>
+</aside>

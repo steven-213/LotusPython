@@ -1,0 +1,358 @@
+/* ================= PORTADA ================= */
+.portada {
+  background: #ffffff;
+  border: 1px solid #fee7ed;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.texto-portada h1 {
+  margin: 0.4rem 0;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.etiqueta-superior {
+  color: #8b3d56;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.portada img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 16px;
+}
+
+.acciones-portada {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.7rem;
+}
+
+/* ================= DESTACADOS ================= */
+.grilla-destacados {
+  margin-top: 2rem; /* más aire */
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tarjeta-destacado {
+  background: #ffffff;
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tarjeta-destacado:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 15px 35px rgba(106, 66, 80, 0.18);
+}
+
+.tarjeta-destacado img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+
+.tarjeta-destacado h2,
+.tarjeta-destacado p {
+  margin: 0;
+  padding: 0 1rem;
+}
+
+.tarjeta-destacado h2 {
+  padding-top: 0.9rem;
+  font-size: 1.2rem;
+}
+
+.tarjeta-destacado p {
+  padding-bottom: 1rem;
+  color: #5a4950;
+}
+
+/* ================= PANEL VISITA (MEJORADO TOTAL) ================= */
+.panel-visita {
+  margin-top: 2.5rem;
+  background: #ffffff;
+  border: 1px solid #fee7ed;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
+  padding: 1.5rem;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 50/50 */
+  gap: 2.5rem; /* más elegante */
+  align-items: stretch;
+}
+
+/* BLOQUES */
+.panel-visita-bloque {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.2rem;
+}
+
+/* SEPARADOR */
+.panel-visita-bloque--ubicacion {
+  padding-left: 2rem;
+  border-left: 1px solid #fee7ed;
+}
+
+/* INFO */
+.panel-visita-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.panel-visita-info h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.panel-visita-info p {
+  margin: 0;
+  color: #5a4950;
+}
+
+.panel-visita-info .direccion {
+  font-weight: 600;
+  color: #3b2b32;
+}
+
+/* BOTÓN */
+.panel-visita-info .boton {
+  margin-top: 0.8rem;
+  width: fit-content;
+}
+
+/* ================= HORARIOS ================= */
+.grilla-horario {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bloque-horario {
+  background: linear-gradient(135deg, #fffafc 0%, #ffffff 100%);
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
+  padding: 1rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.bloque-horario-dia {
+  color: #8b3d56;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bloque-horario strong {
+  font-size: 1.1rem;
+  color: #3b2b32;
+}
+
+.bloque-horario p {
+  margin: 0;
+  color: #5a4950;
+  font-size: 0.92rem;
+}
+
+/* ================= MAPA ================= */
+.ubicacion-mapa {
+  flex: 1;
+  display: flex;
+}
+
+.ubicacion-mapa-placeholder {
+  width: 100%;
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  gap: 0.8rem;
+  padding: 1.1rem;
+  border-radius: 18px;
+  border: 1px dashed #f5ccd9;
+  background: linear-gradient(135deg, #fff9fc 0%, #fff2f7 100%);
+  text-align: center;
+}
+
+.ubicacion-mapa-placeholder p {
+  margin: 0;
+  max-width: 34ch;
+  color: #6f5962;
+  font-weight: 600;
+}
+
+.mapa-cargar-boton {
+  min-width: 220px;
+}
+
+.ubicacion-mapa-placeholder iframe {
+  display: none;
+}
+
+.ubicacion-mapa-placeholder.is-loaded {
+  padding: 0;
+  border-style: solid;
+  background: transparent;
+}
+
+.ubicacion-mapa-placeholder.is-loaded p,
+.ubicacion-mapa-placeholder.is-loaded .mapa-cargar-boton {
+  display: none;
+}
+
+.ubicacion-mapa-placeholder.is-loaded iframe {
+  display: block;
+}
+
+.ubicacion-mapa iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border-radius: 18px;
+  border: 0;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 900px) {
+  .portada {
+    grid-template-columns: 1fr;
+  }
+
+  .portada img {
+    height: 220px;
+  }
+
+  .grilla-destacados {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-visita {
+    grid-template-columns: 1fr;
+    padding: 1.2rem;
+  }
+
+  .panel-visita-bloque--ubicacion {
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid #fee7ed;
+    padding-top: 1.5rem;
+  }
+
+  .ubicacion-mapa iframe {
+    height: 240px;
+  }
+}
+
+
+
+/* ================= BOTON WHATSAPP ================= */
+.whatsapp-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #25d366;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 999;
+  transition: all 0.2s ease;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.05);
+  background: #1ebe5d;
+}
+
+.whatsapp-icon {
+  font-size: 1.2rem;
+}
+
+.whatsapp-texto {
+  font-size: 0.9rem;
+}
+
+/* ================= OPINIONES ================= */
+.seccion-opiniones {
+  margin-top: 2.5rem;
+  background: #ffffff;
+  border: 1px solid #fee7ed;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgba(106, 66, 80, 0.12);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.form-opinion {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* ESTRELLAS */
+.estrellas {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 5px;
+}
+
+.estrellas input {
+  display: none;
+}
+
+.estrellas label {
+  font-size: 2rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.estrellas input:checked ~ label,
+.estrellas label:hover,
+.estrellas label:hover ~ label {
+  color: #f5b301;
+}
+
+/* TEXTAREA */
+.form-opinion textarea {
+  width: 100%;
+  max-width: 400px;
+  height: 100px;
+  border-radius: 12px;
+  border: 1px solid #fee7ed;
+  padding: 10px;
+  resize: none;
+  outline: none;
+}
+
+/* BOTÓN */
+.form-opinion button {
+  margin-top: 0.5rem;
+}

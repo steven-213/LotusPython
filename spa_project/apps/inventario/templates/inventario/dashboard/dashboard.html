@@ -1,0 +1,192 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Dashboard - Inventario{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420a">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3 inv-dashboard">
+    
+
+    <div class="inv-kpi-grid">
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Productos activos</div>
+            <div class="inv-kpi-value">{{ total_productos }}</div>
+
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Proveedores</div>
+            <div class="inv-kpi-value">{{ total_proveedores }}</div>
+
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Compras registradas</div>
+            <div class="inv-kpi-value">{{ total_compras }}</div>
+
+        </article>
+        <article class="inv-kpi-card">
+            <div class="inv-kpi-label">Devoluciones de compra</div>
+            <div class="inv-kpi-value">{{ total_devoluciones }}</div>
+
+        </article>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="inv-surface-card inv-table-card h-100">
+                <div class="card-header inv-card-header-wrap py-3 px-4">
+                    <div>
+                        <h2 class="h5 mb-1 inv-card-title">Resumen del inventario</h2>
+                        <p class="inv-card-subtitle mb-0">Revisa existencias y recorre la tabla con overflow interno para navegar mejor.</p>
+                    </div>
+                    <a href="{% url 'inventario:producto_nuevo' %}" class="inv-nav-button">
+                        <i class="bi bi-plus-circle"></i> Nuevo producto
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive inv-table-scroll">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Producto</th>
+                                    <th>Proveedor</th>
+                                    <th>Precio venta</th>
+                                    <th>Stock</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in inventario %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <strong>{{ item.producto__nombre }}</strong>
+                                    </td>
+                                    <td>{{ item.producto__proveedor__nombre|default:"Sin proveedor" }}</td>
+                                    <td>${{ item.precio_venta|default:"0.00"|floatformat:2 }}</td>
+                                    <td>{{ item.stock_total }}</td>
+                                    <td>
+                                        {% if item.stock_total == 0 %}
+                                        <span class="inv-status-badge is-danger">Sin stock</span>
+                                        {% elif item.stock_total < 10 %}
+                                        <span class="inv-status-badge is-warning">Bajo</span>
+                                        {% else %}
+                                        <span class="inv-status-badge is-success">Disponible</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="py-4">
+                                        <div class="inv-empty">
+                                            <i class="bi bi-inbox"></i>
+                                            No hay inventario disponible todavia.
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="inv-surface-card inv-wide-card h-100">
+                <div class="card-header inv-card-header-wrap py-3 px-4">
+                    <div>
+                        <h2 class="h5 mb-1 inv-card-title">Compras recientes</h2>
+                        <p class="inv-card-subtitle mb-0">Filtra por compra, proveedor, fecha o total desde una busqueda rapida.</p>
+                    </div>
+                    <div class="inv-card-tools">
+                        {% if compras_recientes %}
+                        <label class="inv-inline-search" for="compras-recientes-search">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                            <input
+                                type="search"
+                                id="compras-recientes-search"
+                                class="form-control form-control-sm inv-search-input"
+                                placeholder="Buscar compra o proveedor"
+                                autocomplete="off"
+                            >
+                        </label>
+                        {% endif %}
+                        <a href="{% url 'inventario:compra_lista' %}" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if compras_recientes %}
+                    <div class="inv-list-shell">
+                        <div class="inv-list" id="compras-recientes-list">
+                            {% for compra in compras_recientes %}
+                            <div class="inv-list-item" data-compra-item>
+                                <div>
+                                    <strong>Compra #{{ compra.id }}</strong>
+                                    <small class="d-block">{{ compra.proveedor.nombre }} - {{ compra.fecha|date:"d/m/Y H:i" }}</small>
+                                </div>
+                                <a href="{% url 'inventario:compra_detalle' compra.id %}" class="inv-pill">
+                                    ${{ compra.total|floatformat:2 }}
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="inv-empty inv-search-empty d-none" id="compras-recientes-empty">
+                        <i class="bi bi-search"></i>
+                        No se encontraron compras con ese criterio.
+                    </div>
+                    {% else %}
+                    <div class="inv-empty">
+                        <i class="bi bi-cart-x"></i>
+                        Aun no hay compras registradas.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("compras-recientes-search");
+    const searchEmpty = document.getElementById("compras-recientes-empty");
+    const items = Array.from(document.querySelectorAll("[data-compra-item]"));
+
+    if (!searchInput || !items.length) {
+        return;
+    }
+
+    const filterCompras = () => {
+        const term = searchInput.value.trim().toLowerCase();
+        let visibles = 0;
+
+        items.forEach((item) => {
+            const matches = !term || item.textContent.toLowerCase().includes(term);
+            item.classList.toggle("d-none", !matches);
+
+            if (matches) {
+                visibles += 1;
+            }
+        });
+
+        if (searchEmpty) {
+            searchEmpty.classList.toggle("d-none", visibles !== 0);
+        }
+    };
+
+    searchInput.addEventListener("input", filterCompras);
+});
+</script>
+{% endblock %}

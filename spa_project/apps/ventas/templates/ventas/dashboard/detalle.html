@@ -1,0 +1,265 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Detalle Venta #{{ venta.id }} | Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260406c">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 ventas-shell">
+    <section class="admin-page-hero">
+        <div class="admin-page-copy">
+            <div class="admin-page-breadcrumbs">
+                <a href="{% url 'sesiones:admin_dashboard' %}">Panel admin</a>
+                <span>/</span>
+                <a href="{% url 'ventas:venta_lista' %}">Ventas</a>
+                <span>/</span>
+                <span>Venta #{{ venta.id }}</span>
+            </div>
+            <h1 class="admin-page-title">Detalle de venta #{{ venta.id }}</h1>
+            <p class="admin-page-description">
+                Haz seguimiento al cliente, al pago y a las devoluciones asociadas a esta venta.
+            </p>
+        </div>
+    </section>
+
+    <div class="ventas-split-grid">
+        <div class="ventas-card-grid">
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Información del cliente</h2>
+                        <p>Datos principales asociados a la compra.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body">
+                    <div class="ventas-form-grid two-up">
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Nombre</span>
+                            <strong>{{ venta.cliente_nombre_completo }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Correo</span>
+                            <strong>{{ venta.cliente_correo|default:"No registrado" }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Documento</span>
+                            <strong>{{ venta.cliente_documento|default:"No registrado" }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Origen</span>
+                            <strong>{% if venta.reserva %}Cita #{{ venta.reserva.id }}{% else %}Venta directa{% endif %}</strong>
+                        </div>
+                        {% if reserva_asociada %}
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Servicio asociado</span>
+                            <strong>{{ reserva_asociada.servicio.nombre }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Fecha de la cita</span>
+                            <strong>{{ reserva_asociada.fecha_inicio|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Productos vendidos</h2>
+                        <p>Detalle de cantidades, subtotales y estado de devolución por producto.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body is-tight">
+                    {% if detalles_venta %}
+                    <div class="table-responsive">
+                        <table class="table ventas-table">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio unitario</th>
+                                    <th>Subtotal</th>
+                                    <th>Devolución cliente</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in detalles_venta %}
+                                <tr>
+                                    <td><strong>{{ item.detalle.producto.nombre }}</strong></td>
+                                    <td>{{ item.detalle.cantidad }}</td>
+                                    <td>{{ item.detalle.precio_unitario|currency }}</td>
+                                    <td><span class="ventas-price">{{ item.subtotal|currency }}</span></td>
+                                    <td>
+                                        {% if item.devolucion_resumen.slug == "pendiente" %}
+                                        <span class="ventas-status-badge is-rose"><i class="bi bi-clock-history"></i> {{ item.devolucion_resumen.label }}</span>
+                                        {% elif item.devolucion_resumen.slug == "devuelta_total" or item.devolucion_resumen.slug == "devuelta_parcial" %}
+                                        <span class="ventas-status-badge is-dark"><i class="bi bi-arrow-repeat"></i> {{ item.devolucion_resumen.label }}</span>
+                                        {% elif item.devolucion_resumen.slug == "rechazada" %}
+                                        <span class="ventas-status-badge is-muted"><i class="bi bi-x-octagon"></i> {{ item.devolucion_resumen.label }}</span>
+                                        {% else %}
+                                        <span class="ventas-status-badge is-muted"><i class="bi bi-dash-circle"></i> {{ item.devolucion_resumen.label }}</span>
+                                        {% endif %}
+                                        <p class="ventas-note">{{ item.devolucion_resumen.detail }}</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="ventas-empty">
+                        <i class="bi bi-basket"></i>
+                        <p>Sin productos registrados en esta venta.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Devoluciones del Cliente</h2>
+                        <p>Solicitudes asociadas a los productos incluidos en la venta.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body is-tight">
+                    {% if devoluciones_cliente %}
+                    <div class="table-responsive">
+                        <table class="table ventas-table">
+                            <thead>
+                                <tr>
+                                    <th>Solicitud</th>
+                                    <th>Producto</th>
+                                    <th>Cantidad</th>
+                                    <th>Estado</th>
+                                    <th>Motivo</th>
+                                    <th>Respuesta admin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for solicitud in devoluciones_cliente %}
+                                <tr>
+                                    <td>
+                                        <strong>Solicitud #{{ solicitud.id }}</strong>
+                                        <p class="ventas-note">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                                    </td>
+                                    <td>{{ solicitud.detalle_venta.producto.nombre }}</td>
+                                    <td>{{ solicitud.cantidad }}</td>
+                                    <td>
+                                        {% if solicitud.estado == "pendiente" %}
+                                        <span class="ventas-status-badge is-rose">En espera</span>
+                                        {% elif solicitud.estado == "aprobada" %}
+                                        <span class="ventas-status-badge is-dark">Aprobada</span>
+                                        {% else %}
+                                        <span class="ventas-status-badge is-muted">Rechazada</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ solicitud.motivo }}</td>
+                                    <td>{{ solicitud.comentario_admin|default:"Pendiente de respuesta del administrador." }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="ventas-empty">
+                        <i class="bi bi-arrow-return-left"></i>
+                        <p>Esta venta no tiene devoluciones registradas por el cliente.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+
+        <aside class="ventas-card-grid">
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Resumen</h2>
+                        <p>Vista compacta del valor total y del estado operativo.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body">
+                    <div class="ventas-summary-box">
+                        {% if venta.subtotal_servicios %}
+                        <div class="ventas-summary-line">
+                            <span>Servicio asociado</span>
+                            <strong>{{ venta.subtotal_servicios|currency }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="ventas-summary-line">
+                            <span>Productos</span>
+                            <strong>{{ venta.total|currency }}</strong>
+                        </div>
+                        <div class="ventas-highlight-total">
+                            <span><strong>Total factura</strong></span>
+                            <strong class="ventas-price">{{ venta.total_factura|currency }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Detalles de transacción</h2>
+                        <p>Estado actual de compra y devoluciones.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body">
+                    <div class="ventas-info-panel">
+                        <div class="ventas-info-line">
+                            <span class="ventas-summary-label">ID de venta</span>
+                            <strong>{{ venta.id }}</strong>
+                        </div>
+                        <div class="ventas-info-line">
+                            <span class="ventas-summary-label">Fecha y hora</span>
+                            <strong>{{ venta.fecha|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                        <div class="ventas-info-line">
+                            <span class="ventas-summary-label">Estado de compra</span>
+                            {% if validacion_reciente %}
+                                {% if validacion_reciente.estado == "comprado" or validacion_reciente.estado == "validada" %}
+                                <span class="ventas-status-badge is-dark">Comprada</span>
+                                {% elif validacion_reciente.estado == "pendiente" %}
+                                <span class="ventas-status-badge is-rose">Pendiente</span>
+                                {% else %}
+                                <span class="ventas-status-badge is-muted">Rechazada</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="ventas-status-badge is-muted">Sin validar</span>
+                            {% endif %}
+                        </div>
+                        <div class="ventas-info-line">
+                            <span class="ventas-summary-label">Estado de devolución cliente</span>
+                            {% if devolucion_resumen.slug == "pendiente" %}
+                            <span class="ventas-status-badge is-rose">{{ devolucion_resumen.label }}</span>
+                            {% elif devolucion_resumen.slug == "devuelta_total" or devolucion_resumen.slug == "devuelta_parcial" %}
+                            <span class="ventas-status-badge is-dark">{{ devolucion_resumen.label }}</span>
+                            {% elif devolucion_resumen.slug == "rechazada" %}
+                            <span class="ventas-status-badge is-muted">{{ devolucion_resumen.label }}</span>
+                            {% else %}
+                            <span class="ventas-status-badge is-muted">{{ devolucion_resumen.label }}</span>
+                            {% endif %}
+                            <p class="ventas-note">{{ devolucion_resumen.detail }}</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="admin-action-button is-compact">
+            <i class="bi bi-check-square"></i> Validar pago
+        </a>
+        <a href="{% url 'ventas:venta_lista' %}" class="admin-action-button is-muted is-compact">
+            <i class="bi bi-receipt"></i> Volver a ventas
+        </a>
+    </div>
+</div>
+{% endblock %}

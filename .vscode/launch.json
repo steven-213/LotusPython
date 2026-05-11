@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Django: runserver",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/spa_project/manage.py",
+            "args": [
+                "runserver"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/spa_project",
+            "envFile": "${workspaceFolder}/spa_project/.env"
+        },
+        {
+            "name": "Django: tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/spa_project/manage.py",
+            "args": [
+                "test",
+                "--settings=config.test_settings",
+                "--noinput"
+            ],
+            "django": true,
+            "cwd": "${workspaceFolder}/spa_project",
+            "envFile": "${workspaceFolder}/spa_project/.env"
+        }
+    ]
+}
