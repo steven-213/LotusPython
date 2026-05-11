@@ -482,8 +482,8 @@ class CitasFlowTest(TestCase):
         response = self.client.get(reverse("citas:dashboard"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Gestion de citas")
-        self.assertContains(response, "Almanaque")
+        self.assertContains(response, "Ingresos facturados")
+        self.assertNotContains(response, "Dashboard admin")
         self.assertContains(response, f"{reserva.cliente_nombre_completo}")
         self.assertNotContains(response, "Registrar pago o cancelar")
         self.assertNotContains(response, 'id="calendar"', html=False)

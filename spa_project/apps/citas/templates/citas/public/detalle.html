@@ -12,63 +12,57 @@
 <section class="citas-page-shell">
   <header class="citas-hero">
     <div>
-      <p class="eyebrow">Seguimiento de cita</p>
       <h1>{{ reserva.servicio.nombre }}</h1>
-      <p>Revisa el estado operativo, el historial de cambios y los pagos asociados a esta reserva.</p>
-    </div>
-    <div class="hero-actions hero-actions-stacked">
-      <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
-      <div class="hero-actions">
-        {% if usuario.rol == "admin" %}
-        <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}">Volver al dashboard</a>
-        {% else %}
-        <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Volver a mis citas</a>
-        {% endif %}
-        {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
-        <a class="btn-primary-strong" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar</a>
-        {% endif %}
+      <div class="status-stack">
+        <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+        <span class="estado-badge">{{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</span>
       </div>
+    </div>
+    <div class="hero-actions">
+      {% if usuario.rol == "admin" %}
+      <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}">Volver</a>
+      {% else %}
+      <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Volver</a>
+      {% endif %}
+      {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar</a>
+      {% endif %}
     </div>
   </header>
 
   <section class="detail-grid">
     <article class="detail-panel">
       <header class="panel-heading">
-        <h2>Resumen de la reserva</h2>
+        <h2>Resumen</h2>
       </header>
       <div class="summary-grid">
         <div class="summary-card">
           <span class="summary-label">Fecha</span>
-          <strong>{{ reserva.fecha_inicio|date:"l d \\d\\e F \\d\\e Y" }}</strong>
+          <strong>{{ reserva.fecha_inicio|date:"d/m/Y" }}</strong>
           <p>{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
         </div>
         <div class="summary-card">
           <span class="summary-label">Profesional</span>
-          <strong>{{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</strong>
-          <p>{{ reserva.servicio.duracion_minutos }} minutos</p>
+          <strong>{{ reserva.profesional_reserva.nombre|default:"Pendiente" }}</strong>
+          <p>{{ reserva.servicio.duracion_minutos }} min</p>
         </div>
         <div class="summary-card">
-          <span class="summary-label">Pago registrado</span>
+          <span class="summary-label">Pagado</span>
           <strong>{{ reserva.total_pagado|currency }}</strong>
-          <p>Saldo pendiente: {{ reserva.saldo_pendiente|currency }}</p>
+          <p>Saldo: {{ reserva.saldo_pendiente|currency }}</p>
         </div>
         {% if venta_asociada %}
         <div class="summary-card">
-          <span class="summary-label">Factura mixta</span>
+          <span class="summary-label">Factura</span>
           <strong>{{ reserva.total_factura|currency }}</strong>
           <p>Productos: {{ reserva.total_productos_facturados|currency }}</p>
         </div>
         {% endif %}
-        <div class="summary-card">
-          <span class="summary-label">Origen</span>
-          <strong>{{ reserva.get_origen_reserva_display }}</strong>
-          <p>Creada {{ reserva.created_at|date:"d/m/Y H:i" }}</p>
-        </div>
         {% if usuario.rol == "admin" %}
         <div class="summary-card summary-card-wide">
           <span class="summary-label">Cliente</span>
           <strong>{{ reserva.cliente_nombre_completo }}</strong>
-          <p>{{ reserva.cliente_correo }} · Documento {{ reserva.cliente_documento }}</p>
+          <p>{{ reserva.cliente_correo }} - {{ reserva.cliente_documento }}</p>
         </div>
         {% endif %}
         {% if reserva.notas %}
@@ -79,7 +73,7 @@
         {% endif %}
         {% if reserva.motivo_cancelacion %}
         <div class="summary-card summary-card-wide danger-surface">
-          <span class="summary-label">Motivo de cancelacion</span>
+          <span class="summary-label">Cancelacion</span>
           <p>{{ reserva.motivo_cancelacion }}</p>
         </div>
         {% endif %}
@@ -88,7 +82,7 @@
 
     <article class="detail-panel">
       <header class="panel-heading">
-        <h2>Linea de tiempo</h2>
+        <h2>Historial</h2>
       </header>
       {% if historial %}
       <div class="timeline">
@@ -100,9 +94,6 @@
               <strong>{{ item.estado_nuevo_legible }}</strong>
               <span>{{ item.fecha|date:"d/m/Y H:i" }}</span>
             </div>
-            {% if item.usuario_actor %}
-            <p>Accion registrada por {{ item.usuario_actor.nombre }} {{ item.usuario_actor.apellido }}</p>
-            {% endif %}
             {% if item.observacion %}
             <p>{{ item.observacion }}</p>
             {% endif %}
@@ -111,7 +102,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <p class="empty-copy">Todavia no hay movimientos registrados en esta cita.</p>
+      <p class="empty-copy">Sin movimientos.</p>
       {% endif %}
     </article>
   </section>
@@ -119,7 +110,7 @@
   <section class="detail-grid">
     <article class="detail-panel">
       <header class="panel-heading">
-        <h2>Pagos y comprobantes</h2>
+        <h2>Pagos</h2>
       </header>
 
       {% if pagos %}
@@ -129,36 +120,33 @@
           <div>
             <span class="summary-label">{{ pago.get_tipo_display }}</span>
             <strong>{{ pago.monto|currency }}</strong>
-            <p>{{ pago.get_metodo_pago_display }} · {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
+            <p>{{ pago.get_metodo_pago_display }} - {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
             {% if pago.referencia %}
-            <p>Referencia: {{ pago.referencia }}</p>
+            <p>Ref: {{ pago.referencia }}</p>
             {% endif %}
-            <p>Comprobante: {{ pago.numero_comprobante }}</p>
+            <p>{{ pago.numero_comprobante }}</p>
           </div>
-          <a class="btn-secondary-soft" href="{% url 'citas:comprobante_pago_pdf' pago.id %}">Descargar PDF</a>
+          <a class="btn-secondary-soft" href="{% url 'citas:comprobante_pago_pdf' pago.id %}">PDF</a>
         </article>
         {% endfor %}
       </div>
       {% else %}
       <div class="payment-callout">
         <i class="bi bi-wallet2"></i>
-        <div>
-          <strong>No hay pagos registrados</strong>
-          <p>La cita sigue con saldo pendiente hasta que se registre un pago valido.</p>
-        </div>
+        <strong>Sin pagos</strong>
       </div>
       {% endif %}
 
       {% if venta_asociada %}
       <div class="embedded-form">
-        <h3>Productos ya facturados en esta cita</h3>
+        <h3>Productos facturados</h3>
         <div class="payments-list">
           {% for item in venta_detalles %}
           <article class="payment-card">
             <div>
               <span class="summary-label">Producto</span>
               <strong>{{ item.detalle.producto.nombre }}</strong>
-              <p>{{ item.detalle.cantidad }} unidad{{ item.detalle.cantidad|pluralize }} · {{ item.detalle.precio_unitario|currency }} c/u</p>
+              <p>{{ item.detalle.cantidad }} - {{ item.detalle.precio_unitario|currency }}</p>
             </div>
             <strong>{{ item.subtotal|currency }}</strong>
           </article>
@@ -174,7 +162,7 @@
             <strong>{{ venta_asociada.total|currency }}</strong>
           </div>
           <div>
-            <span class="summary-label">Total factura</span>
+            <span class="summary-label">Total</span>
             <strong>{{ venta_asociada.total_factura|currency }}</strong>
           </div>
         </div>
@@ -185,12 +173,11 @@
         {% if usuario.rol == "admin" %}
         <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form" data-payment-form data-saldo-pendiente="{{ reserva.saldo_pendiente }}">
           {% csrf_token %}
-          <h3>Registrar pago y facturar productos</h3>
+          <h3>Registrar pago</h3>
           <div class="form-grid two-up">
             <label class="field">
               <span>Monto</span>
               <input class="form-control" type="number" name="monto" min="0" max="{{ reserva.saldo_pendiente }}" step="0.01" value="{{ reserva.saldo_pendiente }}" data-payment-amount>
-              <small class="field-help" data-payment-help>Pago completo: debe coincidir exactamente con el saldo pendiente. Anticipo: debe ser menor al saldo pendiente.</small>
             </label>
             <label class="field">
               <span>Tipo</span>
@@ -201,7 +188,7 @@
               </select>
             </label>
             <label class="field">
-              <span>Metodo de pago</span>
+              <span>Metodo</span>
               <select class="form-select" name="metodo_pago" required>
                 <option value="">Selecciona una opcion</option>
                 {% for value, label in metodos_pago %}
@@ -215,15 +202,15 @@
             </label>
           </div>
           {% include "citas/partials/productos_carrito.html" %}
-          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Guardar gestion completa</button>
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Guardar</button>
         </form>
         {% elif not reserva.esta_pagada and reserva.estado != "finalizada" %}
         <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
           {% csrf_token %}
-          <h3>Pagar esta cita ahora</h3>
+          <h3>Pagar cita</h3>
           <div class="form-grid two-up">
             <label class="field">
-              <span>Metodo de pago</span>
+              <span>Metodo</span>
               <select class="form-select" name="metodo_pago" required>
                 <option value="">Selecciona una opcion</option>
                 {% for value, label in metodos_pago %}
@@ -244,7 +231,7 @@
 
     <article class="detail-panel">
       <header class="panel-heading">
-        <h2>Acciones disponibles</h2>
+        <h2>Acciones</h2>
       </header>
 
       {% if usuario.rol == "admin" %}
@@ -252,10 +239,10 @@
       <form method="post" action="{% url 'citas:reserva_actualizar_profesional' reserva.id %}" class="embedded-form compact">
         {% csrf_token %}
         <h3>Reasignar profesional</h3>
-        <p class="summary-muted">Actual: {{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</p>
+        <p class="summary-muted">{{ reserva.profesional_reserva.nombre|default:"Pendiente" }}</p>
         <div class="form-grid two-up">
           <label class="field">
-            <span>Elegir existente</span>
+            <span>Existente</span>
             <select class="form-select" name="profesional_id">
               <option value="">Selecciona una profesional</option>
               {% for profesional in profesionales %}
@@ -264,9 +251,8 @@
             </select>
           </label>
           <label class="field">
-            <span>O crear una nueva</span>
-            <input class="form-control" type="text" name="profesional_nombre" placeholder="Nombre de la nueva profesional">
-            <small class="field-help">Si escribes un nombre nuevo, esa profesional se crea y queda asignada a esta cita.</small>
+            <span>Nueva</span>
+            <input class="form-control" type="text" name="profesional_nombre" placeholder="Nombre">
           </label>
         </div>
         <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-person-gear"></i> Guardar profesional</button>
@@ -293,10 +279,7 @@
         {% elif reserva.estado == "en_proceso" and not reserva.esta_pagada %}
         <div class="payment-callout">
           <i class="bi bi-wallet2"></i>
-          <div>
-            <strong>Falta pago para finalizar</strong>
-            <p>La cita sigue en proceso hasta completar el saldo pendiente de {{ reserva.saldo_pendiente|currency }}.</p>
-          </div>
+          <strong>Falta pago para finalizar</strong>
         </div>
         {% endif %}
         {% if puede_no_asistir %}
@@ -309,8 +292,8 @@
         <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <label class="field">
-            <span>Motivo de cancelacion</span>
-            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Describe la razon">
+            <span>Motivo</span>
+            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Motivo">
           </label>
           <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
         </form>
@@ -325,7 +308,7 @@
         <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <label class="field">
-            <span>Motivo de cancelacion</span>
+            <span>Motivo</span>
             <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Opcional">
           </label>
           <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
@@ -333,16 +316,6 @@
         {% endif %}
       </div>
       {% endif %}
-
-      <div class="side-panel subtle">
-        <h3>Flujo esperado</h3>
-        <ol class="flow-list">
-          <li>Programada o confirmada segun el pago inicial.</li>
-          <li>Cuando el equipo inicia la atencion, la cita pasa a en proceso.</li>
-          <li>La cita solo pasa a finalizada cuando la atencion termina y el servicio queda totalmente pagado.</li>
-          <li>Si la persona no llega, el dashboard puede marcarla como no asistio.</li>
-        </ol>
-      </div>
     </article>
   </section>
 </section>

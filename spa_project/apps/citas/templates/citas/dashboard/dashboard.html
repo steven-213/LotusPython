@@ -9,18 +9,6 @@
 
 {% block content %}
 <section class="dashboard-shell">
-  <header class="dashboard-hero">
-    <div>
-      <p class="eyebrow">Dashboard admin</p>
-      <h1>Gestion de citas</h1>
-      <p>Supervisa el estado operativo de las reservas y reasigna la profesional cuando lo necesites sin salir del detalle.</p>
-      <p class="tracking-note">{{ horario_atencion }}</p>
-    </div>
-    <div class="hero-actions">
-      <a class="btn-secondary-soft" href="{% url 'citas:almanaque' %}">Almanaque</a>
-      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Nueva reserva</a>
-    </div>
-  </header>
   <!-- SECCIÓN DE KPIs FINANCIEROS -->
   <section class="stats-grid" style="background: linear-gradient(135deg, #f5e6e8 0%, #ffe8ec 100%); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; gap: 16px;">
     <article style="flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">

@@ -1,7 +1,6 @@
 <section class="product-cart-panel" data-product-cart data-service-balance="{{ reserva.saldo_pendiente|default:0 }}">
   <div class="section-heading">
-    <h4>Productos para esta factura</h4>
-    <p>Agrega productos del inventario y el sistema los asociara a la cita como una venta ligada a esta atencion.</p>
+    <h4>Productos</h4>
   </div>
 
   <div class="form-grid two-up">
@@ -16,11 +15,10 @@
           data-price="{{ producto.precio_facturable|floatformat:2 }}"
           data-stock="{{ producto.stock_disponible }}"
         >
-          {{ producto.nombre }} · {{ producto.precio_facturable|currency }} · Stock {{ producto.stock_disponible }}
+          {{ producto.nombre }} - {{ producto.precio_facturable|currency }} - Stock {{ producto.stock_disponible }}
         </option>
         {% endfor %}
       </select>
-      <small class="field-help">Al seleccionar un producto veras su precio unitario y el stock disponible.</small>
     </label>
     <label class="field">
       <span>Cantidad</span>
@@ -64,7 +62,7 @@
 
   <div class="product-cart-empty" data-product-empty>
     <i class="bi bi-bag-plus"></i>
-    <p>Aun no has agregado productos al carrito de la cita.</p>
+    <p>Sin productos.</p>
   </div>
   <div class="product-cart-list" data-product-list></div>
   <div data-product-hidden-inputs></div>
