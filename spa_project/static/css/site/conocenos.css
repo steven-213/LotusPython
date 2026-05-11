@@ -1,0 +1,103 @@
+.portada-conocenos {
+  background: linear-gradient(135deg, #fbd9e2, #fff);
+  border: 1px solid #fee7ed;
+  border-radius: 20px;
+  padding: 1.4rem;
+}
+
+.portada-conocenos h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.grilla-conocenos {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.texto-conocenos,
+.media-conocenos {
+  background: #fff;
+  border: 1px solid #fee7ed;
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.media-conocenos img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.media-conocenos {
+  max-width: 420px;
+  justify-self: center;
+  padding: 0.85rem;
+}
+
+.grilla-valores {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tarjeta-valor {
+  background: #fff;
+  border: 1px solid #fee7ed;
+  border-radius: 16px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.tarjeta-valor img {
+  width: 56px;
+  height: 56px;
+}
+
+.tarjeta-valor p {
+  color: #5a4950;
+}
+
+@media (max-width: 900px) {
+  .grilla-conocenos,
+  .grilla-valores {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= BOTON WHATSAPP ================= */
+.whatsapp-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #25d366;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 999;
+  transition: all 0.2s ease;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.05);
+  background: #1ebe5d;
+}
+
+.whatsapp-icon {
+  font-size: 1.2rem;
+}
+
+.whatsapp-texto {
+  font-size: 0.9rem;
+}

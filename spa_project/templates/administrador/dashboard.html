@@ -1,66 +1,54 @@
+﻿{% extends "base_public.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel Administrador - SPA Manicura</title>
+{% block title %}Panel | Dashboard Admin{% endblock %}
 
-    <link rel="stylesheet" href="{% static 'css/global_style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard/dashboard.css' %}">
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'administrador/dashboard_style.css' %}?v=20260420a">
+{% endblock %}
 
-</head>
-<body>
+{% block content %}
+<div class="container-lg py-2 admin-dashboard">
+    {% if pending_client_returns %}
+    <section class="admin-panel-alert">
+        <div>
+            <p class="admin-panel-alert-label">Atención</p>
+            <h1 class="admin-panel-alert-title">Hay {{ pending_client_returns }} devolución(es) de clientes pendientes</h1>
+            <p class="admin-panel-alert-copy">
+                Revísalas desde el módulo de devoluciones para mantener el panel al día.
+            </p>
+        </div>
+        <a href="{% url 'inventario:devolucion_lista' %}" class="admin-action-button">
+            <i class="bi bi-arrow-return-left"></i> Revisar devoluciones
+        </a>
+    </section>
+    {% endif %}
 
-<nav class="navbar">
-    <h3>SPA Manicura</h3>
-    <ul>
-        <li><a href="{% url 'logout' %}" class="btn cerrar">Cerrar</a></li>
-    </ul>
-</nav>
-
-<section class="hero">
-    <h1>Panel del Administrador</h1>
-    <p>Bienvenido, aquí puedes administrar tu sistema de forma sencilla.</p>
-</section>
-
-<article class="dashboard">
-
-    <div class="cards">
-
-        <section class="card">
-            <h3>Productos</h3>
-            <img src="{% static 'img/productos.png' %}">
-            <a href="{% url 'lista' %}" class="btn">Administrar</a>
-        </section>
-
-        <section class="card">
-            <h3>Servicios</h3>
-            <img src="{% static 'img/Servicios.png' %}">
-            <a href="{% url 'servicios_lista' %}" class="btn">Administrar</a>
-        </section>
-
-        <section class="card">
-            <h3>Citas</h3>
-            <img src="{% static 'img/citas.png' %}">
-            <a href="{% url 'calendario' %}" class="btn">Ver Citas</a>
-        </section>
-
-        <section class="card">
-            <h3>Ventas</h3>
-            <img src="{% static 'img/usuarios.png' %}">
-            <a href="{% url 'ventas' %}" class="btn">Ver Ventas</a>
-        </section>
-
-        <section class="card">
-            <h3>Empleados</h3>
-            <img src="{% static 'img/usuarios.png' %}">
-            <a href="#" class="btn">Ver Empleados</a>
-        </section>
-
-    </div>
-
-</article>
-
-</body>
-</html>
+    <section class="admin-dashboard-grid" aria-label="Módulos del sistema">
+        {% for module in module_cards %}
+        <article class="module-card admin-module-card">
+            <div class="admin-module-card-top">
+                <span class="badge module-badge admin-module-icon">
+                    <i class="bi {{ module.icon }}"></i>
+                </span>
+                {% if module.badge %}
+                <span class="admin-module-badge">{{ module.badge }}</span>
+                {% endif %}
+            </div>
+            <div class="admin-module-copy">
+                <h2 class="module-title admin-module-title">{{ module.title }}</h2>
+                <p class="module-subtitle admin-module-subtitle">{{ module.copy }}</p>
+            </div>
+            <div class="admin-module-links">
+                {% for link in module.links %}
+                <a href="{{ link.url }}" class="admin-module-link">{{ link.label }}</a>
+                {% endfor %}
+            </div>
+            <a href="{{ module.url }}" class="admin-action-button">
+                <i class="bi bi-arrow-right-circle"></i> Abrir módulo
+            </a>
+        </article>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

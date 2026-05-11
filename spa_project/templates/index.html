@@ -1,176 +1,150 @@
+{% extends "base_public.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block title %}Inicio | Lotus Dream Spa{% endblock %}
 
-<link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% block preload_assets %}
+<link rel="preload" href="{% static 'img/index/masaje.jpg' %}" as="image" fetchpriority="high">
+{% endblock %}
 
-<title>Lotus Dream Spa</title>
-</head>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/home.css' %}?v=20260416a">
+{% endblock %}
 
-<body>
+{% block content %}
+<section class="portada">
+  <div class="texto-portada">
+    <p class="etiqueta-superior">Bienestar y belleza</p>
+    <h1>Bienvenido a Lotus Dream Spa</h1>
+    <p>Descubre una experiencia &uacute;nica de relajaci&oacute;n y cuidado personal.</p>
+    <div class="acciones-portada">
+      <a class="boton boton-primario" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
+      <a class="boton boton-suave" href="{% url 'inventario:productos_publicos' %}">Ver productos</a>
+    </div>
+  </div>
+  <img src="{% static 'img/index/masaje.jpg' %}" alt="Experiencia Lotus Dream Spa" width="720" height="540" fetchpriority="high" decoding="async">
+</section>
 
-<header id="header">
-<nav class="nav-container">
+<section class="grilla-destacados">
+  <article class="tarjeta-destacado">
+    <img src="{% static 'img/index/masaje.jpg' %}" alt="Masajes corporales" width="480" height="360" loading="lazy" decoding="async">
+    <h2>Masajes corporales</h2>
+    <p>Sesiones enfocadas en liberar tensi&oacute;n y mejorar tu descanso.</p>
+  </article>
 
-<a class="logo" href="{% url 'home' %}">
-<img src="{% static 'img/logo.png' %}" width="100">
+  <article class="tarjeta-destacado">
+    <img src="{% static 'img/index/faciales.png' %}" alt="Faciales" width="480" height="360" loading="lazy" decoding="async">
+    <h2>Faciales</h2>
+    <p>Rituales para hidratar, revitalizar y cuidar la piel.</p>
+  </article>
+
+  <article class="tarjeta-destacado">
+    <img src="{% static 'img/index/pestanas.jpg' %}" alt="Pestanas" width="480" height="360" loading="lazy" decoding="async">
+    <h2>Pesta&ntilde;as</h2>
+    <p>Dise&ntilde;os personalizados para una mirada definida y natural.</p>
+  </article>
+</section>
+
+<section class="panel-visita">
+  <article class="panel-visita-bloque panel-visita-bloque--horario">
+    <div class="panel-visita-info">
+      <p class="etiqueta-superior">Vis&iacute;tanos</p>
+      <h2>Horarios de atenci&oacute;n</h2>
+      <p>Te esperamos con espacios pensados para que reserves con tranquilidad durante toda la semana.</p>
+    </div>
+
+    <div class="grilla-horario">
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">Lunes a viernes</span>
+          <p>Jornada ideal para pausas de bienestar y tratamientos de cuidado personal.</p>
+        </div>
+        <strong>10:00 AM - 6:00 PM</strong>
+      </article>
+
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">S&aacute;bados</span>
+          <p>Horario extendido para quienes prefieren venir con m&aacute;s calma el fin de semana.</p>
+        </div>
+        <strong>10:00 AM - 8:00 PM</strong>
+      </article>
+
+      <article class="bloque-horario">
+        <div class="bloque-horario-info">
+          <span class="bloque-horario-dia">Domingos y festivos</span>
+          <p>Usamos este tiempo para preparaci&oacute;n interna y cuidado de cada experiencia del spa.</p>
+        </div>
+        <strong>Cerrado</strong>
+      </article>
+    </div>
+  </article>
+
+  <article class="panel-visita-bloque panel-visita-bloque--ubicacion">
+    <div class="panel-visita-info">
+      <p class="etiqueta-superior">Ubicaci&oacute;n</p>
+      <h2>Vis&iacute;tanos en nuestro spa</h2>
+      <p>Estamos ubicados en un espacio dise&ntilde;ado para tu relajaci&oacute;n y bienestar.</p>
+      <p class="direccion">Cra. 112A #78f-14, Bogot&aacute;</p>
+      <a href="https://maps.google.com/?q=Cra+112A+%2378f-14+Bogota" target="_blank" rel="noopener noreferrer" class="boton boton-primario">
+        C&oacute;mo llegar
+      </a>
+    </div>
+
+    <div class="ubicacion-mapa">
+      <div class="ubicacion-mapa-placeholder" data-lazy-embed>
+        <button class="boton boton-suave mapa-cargar-boton" type="button" data-load-embed>
+          Cargar mapa interactivo
+        </button>
+        <p>El mapa se carga solo cuando lo necesitas para acelerar la portada.</p>
+        <iframe
+          data-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.2970107042097!2d-74.12340802603433!3d4.71838284150613!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f84a6325d509d%3A0x42c97c07d27de6dc!2sCra.%20112A%20%2378f-14%2C%20Engativ%C3%A1%2C%20Bogot%C3%A1%2C%20Cundinamarca!5e0!3m2!1ses!2sco!4v1776356695898!5m2!1ses!2sco"
+          title="Mapa de Lotus Dream Spa"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+        <noscript>
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.2970107042097!2d-74.12340802603433!3d4.71838284150613!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e3f84a6325d509d%3A0x42c97c07d27de6dc!2sCra.%20112A%20%2378f-14%2C%20Engativ%C3%A1%2C%20Bogot%C3%A1%2C%20Cundinamarca!5e0!3m2!1ses!2sco!4v1776356695898!5m2!1ses!2sco"
+            title="Mapa de Lotus Dream Spa"
+            loading="lazy"></iframe>
+        </noscript>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section class="seccion-opiniones">
+  <p class="etiqueta-superior">Opiniones</p>
+  <h2>&iquest;Qu&eacute; opinas de nuestro spa?</h2>
+  <p>Tu opini&oacute;n nos ayuda a mejorar y brindar una mejor experiencia.</p>
+
+  <form class="form-opinion">
+    <div class="estrellas">
+      <input type="radio" name="estrella" id="estrella5"><label for="estrella5">&#9733;</label>
+      <input type="radio" name="estrella" id="estrella4"><label for="estrella4">&#9733;</label>
+      <input type="radio" name="estrella" id="estrella3"><label for="estrella3">&#9733;</label>
+      <input type="radio" name="estrella" id="estrella2"><label for="estrella2">&#9733;</label>
+      <input type="radio" name="estrella" id="estrella1"><label for="estrella1">&#9733;</label>
+    </div>
+
+    <textarea placeholder="Escribe tu opini&oacute;n (opcional)..."></textarea>
+
+    <button type="submit" class="boton boton-primario">
+      Enviar opini&oacute;n
+    </button>
+  </form>
+</section>
+
+<a href="https://wa.me/573017152525?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20servicios%20de%20Lotus%20Dream%20Spa"
+   class="whatsapp-float"
+   target="_blank">
+  <span class="whatsapp-icon">&#128172;</span>
+  <span class="whatsapp-texto">WhatsApp</span>
 </a>
 
-<ul class="items_ul">
+{% endblock %}
 
-<li><a href="{% url 'conocenos' %}">Conócenos</a></li>
-<li><a href="{% url 'servicios' %}">Servicios</a></li>
-<li><a href="{% url 'compra' %}">Productos</a></li>
-
-{% if request.session.usuario_id %}
-
-<li>
-<a href="{% url 'logout' %}">Cerrar sesión</a>
-</li>
-
-<li>
-<a class="btn-panel" href="{% url 'dashboard' %}">Panel admin</a>
-</li>
-
-{% else %}
-
-<li>
-<a href="{% url 'login' %}">Inicia sesión</a>
-</li>
-
-<li>
-<a href="{% url 'registro' %}">Regístrate</a>
-</li>
-
-{% endif %}
-
-</ul>
-
-</nav>
-</header>
-
-
-<div class="cajaprincipal">
-
-<section class="hero">
-<h1>Bienvenido a Lotus Dream Spa</h1>
-<p>Descubre una experiencia única de relajación y bienestar.</p>
-<a href="#servicios" class="btn">Conoce nuestros servicios</a>
-</section>
-
-
-<section class="services">
-<h2>Estamos ubicados en <strong>Carrera 7 #128 - 45</strong></h2>
-
-<div class="service-item">
-<img src="{% static 'img/index/local.webp' %}">
-<p>Relaja tu cuerpo y mente con nuestras técnicas especializadas.</p>
-</div>
-
-<div class="service-item">
-<img src="{% static 'img/index/instalacion.jpg' %}">
-<p>Con nuestras excelentes instalaciones, siéntete como en casa.</p>
-</div>
-
-</section>
-
-
-<section id="servicios" class="services">
-
-<h2>Servicios Destacados</h2>
-
-<div class="service-item">
-<img src="{% static 'img/index/masaje.jpg' %}">
-<h3>Masajes Corporales</h3>
-</div>
-
-<div class="service-item">
-<img src="{% static 'img/index/faciales.png' %}">
-<h3>Faciales</h3>
-</div>
-
-<div class="service-item">
-<img src="{% static 'img/index/pestañas.jpg' %}">
-<h3>Pestañas</h3>
-</div>
-
-</section>
-
-
-<section class="products">
-
-<h2>Productos Destacados</h2>
-
-<div class="product-item">
-<img src="{% static 'img/Productos/MatizantesBukiPro.jpg' %}">
-<h3>Matizantes Buki Pro</h3>
-</div>
-
-<div class="product-item">
-<img src="{% static 'img/Productos/MantequillasHidratantesArtesanalesfrutosrojos.jpg' %}">
-<h3>Mantequillas Hidratantes</h3>
-</div>
-
-<div class="product-item">
-<img src="{% static 'img/Productos/serum.jpg' %}">
-<h3>Serum Facial</h3>
-</div>
-
-</section>
-
-
-<section class="promotions">
-
-<h2>Promociones</h2>
-
-<div class="promotion-item">
-<img src="{% static 'img/Promociones/Promocion.jpg' %}">
-<h3>Descuento en Masajes</h3>
-</div>
-
-<div class="promotion-item">
-<img src="{% static 'img/Promociones/Promocion.jpg' %}">
-<h3>Combo Facial + Manicura</h3>
-</div>
-
-</section>
-
-
-<section class="horarios">
-
-<h2>Horarios de Atención</h2>
-
-<table class="tabla-horarios">
-
-<tr>
-<th>Día</th>
-<th>Horario</th>
-</tr>
-
-<tr>
-<td>Lunes a Viernes</td>
-<td>10:00 AM - 6:00 PM</td>
-</tr>
-
-<tr>
-<td>Sábados</td>
-<td>10:00 AM - 8:00 PM</td>
-</tr>
-
-<tr>
-<td>Domingos y Festivos</td>
-<td>Cerrado</td>
-</tr>
-
-</table>
-
-</section>
-
-</div>
-
-</body>
-</html>
+{% block extra_js %}
+<script src="{% static 'js/site/lazy_embeds.js' %}?v=20260416a" defer></script>
+{% endblock %}

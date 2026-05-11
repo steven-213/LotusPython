@@ -1,0 +1,226 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Ventas | Administracion{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260422a">
+{% endblock %}
+
+{% block content %}
+<div class="container-lg py-4 ventas-shell">
+    <section class="ventas-summary-strip">
+        <article class="ventas-summary-box">
+            <span class="ventas-summary-label">Ingresos totales</span>
+            <strong class="ventas-kpi-value">{{ monto_total }}</strong>
+        </article>
+        <article class="ventas-summary-box">
+            <span class="ventas-summary-label">Promedio por venta</span>
+            <strong class="ventas-kpi-value">{{ promedio_venta }}</strong>
+        </article>
+        <article class="ventas-summary-box">
+            <span class="ventas-summary-label">Clientes unicos</span>
+            <strong class="ventas-kpi-value">{{ clientes_unicos }}</strong>
+        </article>
+    </section>
+
+    <section class="ventas-surface-card">
+        <div class="ventas-surface-head">
+            <div>
+                <h2>Ingresos por periodo</h2>
+                <p>Cada boton actualiza este resumen y tambien la tabla de ventas del mismo panel.</p>
+            </div>
+        </div>
+        <div class="ventas-surface-body">
+            <div class="ventas-period-tabs">
+                {% for periodo in periodos_nav %}
+                <a href="{{ periodo.url }}" class="ventas-period-tab {% if periodo.is_active %}is-active{% endif %}">
+                    {{ periodo.label }}
+                </a>
+                {% endfor %}
+            </div>
+            <div class="ventas-period-grid">
+                <div class="ventas-period-item">
+                    <span class="ventas-period-label">Ingresos</span>
+                    <strong class="ventas-period-value">{{ periodo_info.monto_total }}</strong>
+                </div>
+                <div class="ventas-period-item">
+                    <span class="ventas-period-label">Ventas</span>
+                    <strong class="ventas-period-value">{{ periodo_info.total_ventas }}</strong>
+                </div>
+                <div class="ventas-period-item">
+                    <span class="ventas-period-label">Promedio</span>
+                    <strong class="ventas-period-value">{{ periodo_info.promedio }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="ventas-listado" class="ventas-surface-card">
+        <div class="ventas-surface-head">
+            <div>
+                <h2>Listado de ventas</h2>
+                <p>{{ periodo_info.label }}. {{ panel_info.copy }}</p>
+            </div>
+            <div class="ventas-inline-actions">
+                <span class="ventas-status-badge is-rose">{{ ventas_total }} resultado(s)</span>
+                <a href="{{ excel_url }}" class="admin-action-button is-muted is-compact">Excel</a>
+                <a href="{{ pdf_url }}" class="admin-action-button is-muted is-compact">PDF</a>
+            </div>
+        </div>
+
+        <div class="ventas-surface-body">
+            <div class="ventas-filter-pills">
+                {% for item in panel_nav %}
+                <a href="{{ item.url }}" class="ventas-filter-pill {% if item.is_active %}is-active{% endif %}">
+                    <span class="ventas-filter-pill-label">{{ item.label }}</span>
+                    <strong class="ventas-filter-pill-value">{{ item.value }}</strong>
+                    <span class="ventas-filter-pill-meta">{{ item.meta }}</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="ventas-surface-body">
+            <form method="get" class="ventas-filter-form ventas-filter-form-listado">
+                <input type="hidden" name="periodo" value="{{ periodo_actual }}">
+                <input type="hidden" name="panel" value="{{ panel_actual }}">
+
+                <label class="ventas-field">
+                    <span>Busqueda</span>
+                    <input type="text" name="q" class="ventas-input" value="{{ query }}" placeholder="Cliente...">
+                </label>
+
+                <label class="ventas-field">
+                    <span>Cliente</span>
+                    <select name="cliente_id" class="ventas-select">
+                        <option value="">Todos</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if cliente.id|stringformat:"s" == cliente_id %}selected{% endif %}>
+                            {{ cliente.nombre }} {{ cliente.apellido }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="ventas-field">
+                    <span>Dia</span>
+                    <select name="dia" class="ventas-select">
+                        <option value="">Todos</option>
+                        {% for numero in dias_disponibles %}
+                        <option value="{{ numero }}" {% if numero|stringformat:"s" == dia %}selected{% endif %}>{{ numero }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="ventas-field">
+                    <span>Mes</span>
+                    <select name="mes" class="ventas-select">
+                        <option value="">Todos</option>
+                        {% for numero, nombre in meses_disponibles %}
+                        <option value="{{ numero }}" {% if numero|stringformat:"s" == mes %}selected{% endif %}>{{ nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="ventas-field">
+                    <span>Anio</span>
+                    <select name="anio" class="ventas-select">
+                        <option value="">Todos</option>
+                        {% for numero in anios_disponibles %}
+                        <option value="{{ numero }}" {% if numero|stringformat:"s" == anio %}selected{% endif %}>{{ numero }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <label class="ventas-field">
+                    <span>Estado</span>
+                    <select name="estado" class="ventas-select">
+                        <option value="">Todos</option>
+                        <option value="pendiente" {% if estado_filtro == "pendiente" %}selected{% endif %}>Pendiente</option>
+                        <option value="comprado" {% if estado_filtro == "comprado" %}selected{% endif %}>Aprobado</option>
+                        <option value="rechazado" {% if estado_filtro == "rechazado" %}selected{% endif %}>Rechazado</option>
+                    </select>
+                </label>
+
+                <div class="ventas-filter-actions ventas-filter-actions-centered">
+                    <button type="submit" class="admin-action-button is-compact">Filtrar</button>
+                    <a href="{{ limpiar_url }}" class="admin-action-button is-muted is-compact">Limpiar</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="ventas-surface-body is-tight">
+            {% if ventas %}
+            <div class="table-responsive ventas-table-scroll">
+                <table class="table ventas-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Estado de pago</th>
+                            <th>Devolucion cliente</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venta in ventas %}
+                        <tr>
+                            <td><span class="ventas-status-badge is-rose">#{{ venta.id }}</span></td>
+                            <td>
+                                <strong>{{ venta.cliente_nombre_completo }}</strong>
+                                {% if venta.reserva %}
+                                <p class="ventas-note">Cita #{{ venta.reserva.id }} - {{ venta.reserva.servicio.nombre }}</p>
+                                {% endif %}
+                            </td>
+                            <td>{{ venta.fecha|date:"d/m/Y H:i" }}</td>
+                            <td><span class="ventas-price">{{ venta.total|currency }}</span></td>
+                            <td>
+                                {% if venta.estado_pago_resumen.slug == "aprobado" %}
+                                <span class="ventas-status-badge is-dark">{{ venta.estado_pago_resumen.label }}</span>
+                                {% elif venta.estado_pago_resumen.slug == "pendiente" %}
+                                <span class="ventas-status-badge is-rose">{{ venta.estado_pago_resumen.label }}</span>
+                                {% else %}
+                                <span class="ventas-status-badge is-muted">{{ venta.estado_pago_resumen.label }}</span>
+                                {% endif %}
+                                <p class="ventas-note">{{ venta.estado_pago_resumen.detail }}</p>
+                            </td>
+                            <td>
+                                {% if venta.devolucion_resumen.slug == "pendiente" %}
+                                <span class="ventas-status-badge is-rose">{{ venta.devolucion_resumen.label }}</span>
+                                {% elif venta.devolucion_resumen.slug == "devuelta_total" or venta.devolucion_resumen.slug == "devuelta_parcial" %}
+                                <span class="ventas-status-badge is-dark">{{ venta.devolucion_resumen.label }}</span>
+                                {% else %}
+                                <span class="ventas-status-badge is-muted">{{ venta.devolucion_resumen.label }}</span>
+                                {% endif %}
+                                <p class="ventas-note">{{ venta.devolucion_resumen.detail }}</p>
+                            </td>
+                            <td class="text-end">
+                                <div class="ventas-inline-actions is-end">
+                                    <a href="{% url 'ventas:venta_detalle' venta.id %}" class="admin-action-button is-muted is-compact">Ver</a>
+                                    <a href="{% url 'ventas:venta_validaciones' venta.id %}" class="admin-action-button is-compact">Validar</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="ventas-empty">
+                <i class="bi bi-inbox"></i>
+                <p>No hay ventas que coincidan con el periodo y los filtros actuales.</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'ventas:venta_nueva' %}" class="admin-action-button is-compact">
+            Nueva venta
+        </a>
+    </div>
+</div>
+{% endblock %}

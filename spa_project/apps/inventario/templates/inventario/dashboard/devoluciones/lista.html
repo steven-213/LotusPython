@@ -1,0 +1,196 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Devoluciones de Compra - Administracion{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    {% if solicitudes_cliente_pendientes %}
+    <div class="inv-alert-banner is-warning mb-4">
+        <div>
+            <span class="inv-alert-label">Alerta del panel</span>
+            <strong>Hay {{ solicitudes_cliente_pendientes }} devolucion(es) de clientes pendientes por revisar.</strong>
+        </div>
+        <span class="inv-pill">
+            <i class="bi bi-bell"></i> Atencion inmediata
+        </span>
+    </div>
+    {% endif %}
+
+    <div class="inv-kpi-grid is-triad">
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Pendientes</div>
+            <div class="inv-kpi-value">{{ devoluciones_pendientes }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-pill"><i class="bi bi-clock"></i> En revision</span>
+            </div>
+        </div>
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Aprobadas</div>
+            <div class="inv-kpi-value">{{ devoluciones_aprobadas }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-status-badge is-success"><i class="bi bi-check-circle"></i> Procesadas</span>
+            </div>
+        </div>
+        <div class="inv-kpi-card">
+            <div class="inv-kpi-label">Rechazadas</div>
+            <div class="inv-kpi-value">{{ devoluciones_rechazadas }}</div>
+            <div class="inv-kpi-meta">
+                <span class="inv-status-badge is-danger"><i class="bi bi-x-circle"></i> No aprobadas</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="inv-surface-card mb-4">
+        <div class="inv-surface-head">
+            <h5><i class="bi bi-funnel"></i> Filtrar devoluciones</h5>
+        </div>
+        <div class="card-body p-4">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label inv-form-label">Estado</label>
+                    <select class="form-select inv-form-input" name="estado">
+                        <option value="">-- Todos los estados --</option>
+                        <option value="pendiente" {% if estado_filtro == "pendiente" %}selected{% endif %}>Pendiente</option>
+                        <option value="aprobada" {% if estado_filtro == "aprobada" %}selected{% endif %}>Aprobada</option>
+                        <option value="rechazada" {% if estado_filtro == "rechazada" %}selected{% endif %}>Rechazada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label inv-form-label">Desde</label>
+                    <input type="date" class="form-control inv-form-input" name="fecha_inicio" value="{{ fecha_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label inv-form-label">Hasta</label>
+                    <input type="date" class="form-control inv-form-input" name="fecha_fin" value="{{ fecha_fin }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 inv-filter-button">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="inv-surface-card mb-4">
+        <div class="inv-surface-head">
+            <h5><i class="bi bi-arrow-counterclockwise"></i> Devoluciones solicitadas por clientes</h5>
+        </div>
+        <div class="card-body">
+            {% if solicitudes_cliente %}
+            <div class="inv-list-shell inv-client-returns-shell">
+                <div class="inv-list">
+                    {% for solicitud in solicitudes_cliente %}
+                    <article class="inv-list-item inv-client-return-item">
+                        <div>
+                            <strong>{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido }}</strong>
+                            <small class="d-block">
+                                Venta #{{ solicitud.detalle_venta.venta_id }} · {{ solicitud.detalle_venta.producto.nombre }}
+                            </small>
+                            <small class="d-block">
+                                {{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }} · {{ solicitud.motivo|truncatewords:10 }}
+                            </small>
+                        </div>
+                        <div class="inv-client-return-meta">
+                            <span class="inv-pill">{{ solicitud.cantidad }} unid.</span>
+                            {% if solicitud.estado == "pendiente" %}
+                            <span class="inv-pill">Pendiente</span>
+                            {% elif solicitud.estado == "aprobada" %}
+                            <span class="inv-status-badge is-success">Aprobada</span>
+                            {% else %}
+                            <span class="inv-status-badge is-danger">Rechazada</span>
+                            {% endif %}
+                            <a href="{% url 'ventas:venta_detalle' solicitud.detalle_venta.venta_id %}" class="inv-nav-button inv-nav-button-muted">
+                                <i class="bi bi-eye"></i> Ver venta
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="inv-empty">
+                <i class="bi bi-emoji-smile"></i>
+                No hay devoluciones solicitadas por clientes.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="inv-surface-card inv-table-card">
+        <div class="inv-surface-head">
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <div>
+                    <h5><i class="bi bi-table"></i> Historial de devoluciones</h5>
+                </div>
+                <a href="{% url 'inventario:devolucion_nueva' %}" class="inv-nav-button">
+                    <i class="bi bi-plus-circle"></i> Nueva devolucion
+                </a>
+            </div>
+        </div>
+        <div class="table-responsive inv-table-scroll">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Compra</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for devolucion in devoluciones %}
+                    <tr>
+                        <td>
+                            <strong>#{{ devolucion.id }}</strong>
+                        </td>
+                        <td>Compra #{{ devolucion.compra.id }}</td>
+                        <td>{{ devolucion.producto.nombre }}</td>
+                        <td>
+                            <span class="inv-pill">
+                                {{ devolucion.cantidad }} unid.
+                            </span>
+                        </td>
+                        <td>
+                            {% if devolucion.estado == "pendiente" %}
+                            <span class="inv-pill">Pendiente</span>
+                            {% elif devolucion.estado == "aprobada" %}
+                            <span class="inv-status-badge is-success">Aprobada</span>
+                            {% else %}
+                            <span class="inv-status-badge is-danger">Rechazada</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ devolucion.fecha|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display: inline;" onsubmit="return confirm('Eliminar esta devolucion?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            No hay devoluciones de compra registradas.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

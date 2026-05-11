@@ -1,0 +1,131 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Mis citas | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="citas-page-shell">
+  <header class="citas-hero">
+    <div>
+      <p class="eyebrow">Seguimiento personal</p>
+      <h1>Mis citas</h1>
+      <p>Consulta el estado de cada reserva, revisa si ya tiene pagos registrados y abre el detalle para seguir todo el proceso.</p>
+    </div>
+    <div class="hero-actions">
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}"><i class="bi bi-calendar-plus"></i> Agendar nueva cita</a>
+      <a class="btn-secondary-soft" href="{% url 'citas:servicios_publicos' %}">Ver servicios</a>
+    </div>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card compact">
+      <span class="summary-label">Total de reservas</span>
+      <strong>{{ reservas|length }}</strong>
+    </article>
+    <article class="info-card compact">
+      <span class="summary-label">Filtro activo</span>
+      <strong>{% if estado_filtro %}{{ estado_filtro|capfirst }}{% else %}Todos{% endif %}</strong>
+      <p>Filtra por estado para enfocarte en las que aun requieren gestion.</p>
+    </article>
+    <article class="info-card compact">
+      <span class="summary-label">Ruta recomendada</span>
+      <p>Abre el detalle de la cita para ver historial, pagos y acciones disponibles.</p>
+    </article>
+  </section>
+
+  <form method="get" class="filter-bar">
+    <label class="field-inline">
+      <span>Estado</span>
+      <select class="form-select" name="estado">
+        <option value="">Todos</option>
+        {% for value, label in estados_reserva %}
+        <option value="{{ value }}" {% if estado_filtro == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="hero-actions">
+      <button type="submit" class="btn-secondary-soft">Filtrar</button>
+      {% if estado_filtro %}
+      <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Limpiar</a>
+      {% endif %}
+    </div>
+  </form>
+
+  {% if reservas %}
+  <div class="card-grid">
+    {% for reserva in reservas %}
+    <article class="tracking-card">
+      <div class="tracking-card-top">
+        <div>
+          <p class="tracking-date">{{ reserva.fecha_inicio|date:"l d \\d\\e F \\d\\e Y" }}</p>
+          <h2>{{ reserva.servicio.nombre }}</h2>
+          <p class="tracking-meta"><i class="bi bi-clock"></i> {{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+        </div>
+        <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+      </div>
+
+      <div class="tracking-summary-grid">
+        <div>
+          <span class="summary-label">Profesional</span>
+          <strong>{{ reserva.profesional_reserva.nombre|default:"Pendiente por asignar" }}</strong>
+        </div>
+        <div>
+          <span class="summary-label">Pago registrado</span>
+          <strong>{{ reserva.total_pagado|currency }}</strong>
+          <p class="summary-muted">Saldo: {{ reserva.saldo_pendiente|currency }}</p>
+        </div>
+        <div>
+          <span class="summary-label">Origen</span>
+          <strong>{{ reserva.get_origen_reserva_display }}</strong>
+        </div>
+        <div>
+          <span class="summary-label">Estado de pago</span>
+          {% if reserva.esta_pagada %}
+          <strong class="text-paid">Pagada</strong>
+          {% elif reserva.total_pagado %}
+          <strong class="text-pending">Pago parcial</strong>
+          {% else %}
+          <strong class="text-pending">Sin pago</strong>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if reserva.notas %}
+      <p class="tracking-note">{{ reserva.notas }}</p>
+      {% endif %}
+
+      <div class="tracking-actions">
+        <a class="btn-primary-strong" href="{% url 'citas:reserva_detalle' reserva.id %}">
+          <i class="bi bi-diagram-3"></i> Ver seguimiento
+        </a>
+        {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+        <a class="btn-secondary-soft" href="{% url 'citas:reserva_editar' reserva.id %}">
+          <i class="bi bi-pencil-square"></i> Editar
+        </a>
+        {% endif %}
+      </div>
+
+      {% if reserva.estado != "cancelada" and reserva.estado != "finalizada" and reserva.estado != "no_asistio" %}
+      <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="inline-danger-form">
+        {% csrf_token %}
+        <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Motivo de cancelacion (opcional)">
+        <button type="submit" class="btn-danger-soft"><i class="bi bi-x-circle"></i> Cancelar cita</button>
+      </form>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <article class="empty-state-panel">
+    <div class="empty-state-icon"><i class="bi bi-calendar-x"></i></div>
+    <h2>No tienes citas registradas</h2>
+    <p>Cuando hagas tu primera reserva, aqui veras el estado, los pagos y el seguimiento completo.</p>
+    <a class="btn-primary-strong" href="{% url 'citas:reserva_nueva' %}">Agendar mi primera cita</a>
+  </article>
+  {% endif %}
+</section>
+{% endblock %}

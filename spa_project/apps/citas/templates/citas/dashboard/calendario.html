@@ -1,0 +1,59 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Almanaque de citas | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
+<link rel="stylesheet" href="{% static 'citas/css/dashboard/citas.css' %}?v=20260406c">
+{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell">
+  <section class="calendar-panel">
+    <div id="calendar"></div>
+  </section>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="{% static 'citas/js/product_cart.js' %}?v=20260419b"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const calendarEl = document.getElementById("calendar");
+    const events = [
+      {% for reserva in reservas %}
+      {
+        id: "{{ reserva.id }}",
+        title: "{{ reserva.cliente_nombre_completo|escapejs }} - {{ reserva.servicio.nombre|escapejs }}",
+        start: "{{ reserva.fecha_inicio|date:'c' }}",
+        end: "{{ reserva.fecha_fin|date:'c' }}",
+        classNames: ["fc-estado-{{ reserva.estado }}"]
+      }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: "dayGridMonth",
+      locale: "es",
+      height: "auto",
+      buttonText: {
+        today: "Hoy",
+        dayGridMonth: "Mes",
+        timeGridWeek: "Semana",
+        timeGridDay: "Día"
+      },
+      headerToolbar: {
+        left: "prev,next today",
+        center: "title",
+        right: "dayGridMonth,timeGridWeek,timeGridDay"
+      },
+      events: events,
+      eventClick: function (info) {
+        window.location.href = "/citas/" + info.event.id + "/detalle/";
+      }
+    });
+
+    calendar.render();
+  });
+</script>
+{% endblock %}

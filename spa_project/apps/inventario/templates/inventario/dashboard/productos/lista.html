@@ -1,0 +1,206 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Productos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'inventario/productos/productos.css' %}?v=20260420a">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
+{% endblock %}
+
+{% block content %}
+<div class="contenedor-productos">
+    <div class="row g-4 align-items-stretch mb-4">
+        <div class="col-12 col-xl-6">
+            <div class="card border-0 shadow-sm h-100 panel-productos-card">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3">
+                        <h4 class="mb-1">Buscar productos</h4>
+                    </div>
+
+                    <form method="get" class="row g-3 flex-grow-1 align-content-start">
+                        <div class="col-12">
+                            <label class="form-label panel-label">Buscar</label>
+                            <div class="input-group">
+                                <span class="input-group-text panel-addon">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    name="q"
+                                    class="form-control panel-input"
+                                    placeholder="Buscar por nombre o descripción..."
+                                    value="{{ query }}"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="col-12 productos-provider-field">
+                            <label class="form-label panel-label">Proveedor</label>
+                            <select name="proveedor_id" class="form-select panel-input">
+                                <option value="">-- Todos --</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}"
+                                    {% if proveedor.id|stringformat:"s" == proveedor_id %}selected{% endif %}>
+                                    {{ proveedor.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 mt-auto pt-2">
+                            <div class="productos-action-row">
+                                <button class="btn btn-primary panel-btn-primary" type="submit">
+                                    Buscar
+                                </button>
+                                <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary panel-btn-secondary">
+                                    Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card border-0 shadow-sm h-100 panel-productos-card">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="mb-3">
+                        <h4 class="mb-1">Importar productos desde CSV</h4>
+                        <p class="text-muted mb-0">
+                            Usa columnas como <code>nombre</code>, <code>descripcion</code>,
+                            <code>precio_compra</code>, <code>proveedor</code>,
+                            <code>impuesto</code> y <code>margen_ganancia</code>.
+                            Si la columna <code>proveedor</code> viene vacía o no coincide con uno existente,
+                            se usará el proveedor por defecto que selecciones aquí.
+                        </p>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{% url 'inventario:producto_importar_csv' %}"
+                        enctype="multipart/form-data"
+                        class="row g-3 flex-grow-1 align-content-start"
+                    >
+                        {% csrf_token %}
+                        <div class="col-12">
+                            <label class="form-label fw-semibold panel-label">Archivo CSV</label>
+                            <input
+                                type="file"
+                                name="archivo_csv"
+                                accept=".csv,text/csv"
+                                class="form-control panel-input"
+                                required
+                            >
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold panel-label">Proveedor por defecto</label>
+                            <select name="proveedor_base_id" class="form-select panel-input">
+                                <option value="">-- Selecciona --</option>
+                                {% for proveedor in proveedores %}
+                                <option value="{{ proveedor.id }}">{{ proveedor.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold panel-label">IVA</label>
+                            <input type="number" name="impuesto_default" class="form-control panel-input" value="19" step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold panel-label">Margen</label>
+                            <input type="number" name="margen_default" class="form-control panel-input" value="20" step="0.01">
+                        </div>
+
+                        <div class="col-12 mt-auto pt-3">
+                            <div class="productos-action-row">
+                                <button class="btn btn-primary panel-btn-primary" type="submit">
+                                    Importar CSV
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="productos-scroll-card">
+        <div class="productos-scroll-head">
+            <h4 class="mb-0">Productos</h4>
+        </div>
+
+        <div class="productos-scroll-shell">
+            <div class="grid-productos">
+                {% for item in productos %}
+                {% with p=item.producto margen=item.margen %}
+                <article class="card-producto">
+                    {% if p.imagen %}
+                    <img src="{{ p.imagen }}" class="imagen" alt="{{ p.nombre }}">
+                    {% else %}
+                    <div class="sin-imagen">Sin imagen</div>
+                    {% endif %}
+
+                    <div class="info">
+                        <h3>{{ p.nombre }}</h3>
+                        <p>{{ p.descripcion|default:"Sin descripción disponible."|truncatewords:12 }}</p>
+
+                        <div class="datos">
+                            <div>
+                                <span>Compra</span>
+                                <strong>${{ p.precio_compra }}</strong>
+                            </div>
+                            <div>
+                                <span>Venta</span>
+                                <strong class="precio">${{ p.precio_venta }}</strong>
+                            </div>
+                            <div>
+                                <span>Margen</span>
+                                <strong>{{ margen }}%</strong>
+                            </div>
+                            <div>
+                                <span>Stock</span>
+                                <strong>{{ p.stock_disponible }} unidades</strong>
+                            </div>
+                            {% if p.proveedor %}
+                            <div>
+                                <span>Proveedor</span>
+                                <small>{{ p.proveedor.nombre }}</small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="acciones">
+                        <a href="{% url 'inventario:producto_detalle' p.id %}">Ver</a>
+                        <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
+                        <form method="POST" action="{% url 'inventario:producto_eliminar' p.id %}">
+                            {% csrf_token %}
+                            <button
+                                type="submit"
+                                class="btn btn-danger"
+                                onclick="return confirm('¿Seguro que deseas eliminar?');"
+                            >
+                                Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </article>
+                {% endwith %}
+                {% empty %}
+                <p>No hay productos para mostrar.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'inventario:producto_nuevo' %}" class="inv-nav-button">
+            <i class="bi bi-plus-circle"></i> Nuevo producto
+        </a>
+    </div>
+</div>
+{% endblock %}

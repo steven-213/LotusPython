@@ -1,0 +1,501 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}{% if reserva %}Editar cita{% else %}Agendar cita{% endif %} | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+{% endblock %}
+
+{% block content %}
+<section class="citas-page-shell">
+  <header class="citas-hero">
+    <div>
+      <p class="eyebrow">Modulo de citas</p>
+      <h1>{% if reserva %}Editar cita{% else %}Agenda tu cita{% endif %}</h1>
+      {% if reserva %}
+      <p>Actualiza el servicio, la fecha o las notas de la reserva sin perder el seguimiento del proceso.</p>
+      {% elif usuario %}
+      <p>Reserva tu espacio y decide si quieres pagar ahora o hacerlo de manera presencial el dia de la atencion.</p>
+      {% else %}
+      <p>Puedes reservar sin cuenta. En ese caso el pago se registra en este mismo paso para dejar tu cita confirmada.</p>
+      {% endif %}
+    </div>
+    <div class="hero-actions hero-actions-stacked">
+      {% if usuario %}
+      <span class="mode-pill mode-pill-auth"><i class="bi bi-person-check"></i> Cliente autenticado</span>
+      {% else %}
+      <span class="mode-pill mode-pill-guest"><i class="bi bi-person-bounding-box"></i> Reserva sin iniciar sesion</span>
+      {% endif %}
+      <a class="btn-secondary-soft" href="{% url 'citas:servicios_publicos' %}">Ver catalogo de servicios</a>
+    </div>
+  </header>
+
+ 
+  <div class="citas-form-layout">
+    <article class="form-surface">
+      <form method="post" class="citas-form" novalidate>
+        {% csrf_token %}
+
+        {% if not reserva and not usuario %}
+        <section class="form-section">
+          <div class="section-heading">
+            <h2>Datos del cliente</h2>
+            <p>Usaremos esta informacion para crear o reutilizar tu registro como cliente y asociar la reserva.</p>
+          </div>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Documento</span>
+              <input class="form-control" type="number" name="documento" min="1" value="{{ request.POST.documento|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Fecha de nacimiento</span>
+              <input class="form-control" type="date" name="fecha_nacimiento" value="{{ request.POST.fecha_nacimiento|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Nombre</span>
+              <input class="form-control" type="text" name="nombre" value="{{ request.POST.nombre|default:'' }}" required>
+            </label>
+            <label class="field">
+              <span>Apellido</span>
+              <input class="form-control" type="text" name="apellido" value="{{ request.POST.apellido|default:'' }}" required>
+            </label>
+            <label class="field field-full">
+              <span>Correo</span>
+              <input class="form-control" type="email" name="correo" value="{{ request.POST.correo|default:'' }}" required>
+            </label>
+          </div>
+        </section>
+        {% endif %}
+
+        <section class="form-section">
+          <div class="section-heading">
+            <h2>Datos de la cita</h2>
+            <p>Selecciona el servicio y el momento en el que quieres ser atendido.</p>
+            <div class="schedule-inline-note">
+              <i class="bi bi-clock-history"></i>
+              <span>{{ horario_atencion }}</span>
+            </div>
+          </div>
+          <div class="form-grid two-up">
+            <label class="field field-full">
+              <span>Servicio</span>
+              <select class="form-select" name="servicio_id" id="servicio" required>
+                <option value="">Selecciona un servicio</option>
+                {% for s in servicios %}
+                <option
+                  value="{{ s.id }}"
+                  data-precio="{{ s.precio }}"
+                  data-profesional="{{ s.profesional.nombre|default:'Sin asignar' }}"
+                  data-duracion="{{ s.duracion_minutos }}"
+                  {% if reserva and reserva.servicio_id == s.id %}selected{% elif not reserva and servicio_preseleccionado == s.id|stringformat:"s" %}selected{% elif request.POST.servicio_id == s.id|stringformat:"s" %}selected{% endif %}
+                >
+                  {{ s.nombre }}
+                </option>
+                {% endfor %}
+              </select>
+            </label>
+            <input type="hidden" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio_value }}">
+            <label class="field">
+              <span>Fecha</span>
+              <input
+                class="form-control"
+                type="date"
+                id="fecha_reserva"
+                name="fecha_reserva"
+                value="{{ fecha_reserva_value }}"
+                min="{% now 'Y-m-d' %}"
+                autocomplete="off"
+                required
+              >
+              <small class="field-help" id="fecha_reserva_help">Solo puedes elegir desde hoy en adelante. Los domingos no hay atencion.</small>
+            </label>
+            <label class="field">
+              <span>Hora de inicio</span>
+              <select class="form-select" id="hora_reserva" name="hora_reserva" required data-initial-time="{{ hora_reserva_value }}">
+                <option value="">Selecciona primero una fecha</option>
+              </select>
+              <small class="field-help">Quitamos automaticamente las horas ya ocupadas por otras citas.</small>
+            </label>
+            <label class="field">
+              <span>Notas</span>
+              <textarea class="form-control" name="notas" rows="4" placeholder="Comentarios, preferencias o informacion adicional.">{% if request.POST.notas %}{{ request.POST.notas }}{% elif reserva %}{{ reserva.notas }}{% endif %}</textarea>
+            </label>
+          </div>
+
+          <aside class="service-summary" id="servicio-details">
+            <div>
+              <span class="summary-label">Precio</span>
+              <strong id="servicio-precio">{{ 0|currency }}</strong>
+            </div>
+            <div>
+              <span class="summary-label">Profesional</span>
+              <strong id="servicio-profesional">Sin asignar</strong>
+            </div>
+            <div>
+              <span class="summary-label">Duracion</span>
+              <strong><span id="servicio-duracion">0</span> min</strong>
+            </div>
+          </aside>
+        </section>
+
+        {% if not reserva %}
+        <section class="form-section payment-section" id="payment-section">
+          <div class="section-heading">
+            <h2>Pago</h2>
+            {% if usuario %}
+            <p>Si prefieres, puedes dejar esta cita programada y pagarla mas tarde de forma presencial.</p>
+            {% else %}
+            <p>Para reservar sin iniciar sesion necesitamos registrar el pago en este mismo flujo.</p>
+            {% endif %}
+          </div>
+
+          {% if usuario %}
+          <label class="toggle-payment">
+            <input type="checkbox" id="pagar_ahora" name="pagar_ahora" value="1" {% if request.POST.pagar_ahora == '1' %}checked{% endif %}>
+            <span>Registrar el pago ahora para dejar la cita confirmada</span>
+          </label>
+          {% else %}
+          <div class="payment-callout required">
+            <i class="bi bi-exclamation-circle"></i>
+            <div>
+              <strong>Pago obligatorio en reserva publica</strong>
+              <p>Tu cita quedara confirmada apenas registremos el pago en este paso.</p>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="form-grid two-up" id="payment-fields">
+            <label class="field">
+              <span>Metodo de pago</span>
+              <select class="form-select" name="metodo_pago" id="metodo_pago">
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}" {% if request.POST.metodo_pago == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" value="{{ request.POST.referencia_pago|default:'' }}" placeholder="Opcional si aplica">
+            </label>
+          </div>
+        </section>
+        {% endif %}
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary-strong">
+            {% if reserva %}<i class="bi bi-check2-circle"></i> Guardar cambios{% else %}<i class="bi bi-calendar-plus"></i> Confirmar solicitud{% endif %}
+          </button>
+          <a class="btn-secondary-soft" href="{% if reserva %}{% url 'citas:reserva_detalle' reserva.id %}{% else %}{% url 'citas:servicios_publicos' %}{% endif %}">
+            Volver
+          </a>
+        </div>
+      </form>
+    </article>
+
+    <aside class="side-surface">
+      <div class="side-panel">
+        <h2>Como funcionara esta reserva</h2>
+        <ol class="flow-list">
+          <li>Seleccionas el servicio y la fecha de inicio.</li>
+          {% if usuario %}
+          <li>Decides si pagas ahora o si la dejas para pago presencial.</li>
+          <li>La cita quedara programada o confirmada segun esa decision.</li>
+          {% else %}
+          <li>Se registra tu pago y la cita queda confirmada de inmediato.</li>
+          <li>Al final veras el resumen y podras descargar el comprobante.</li>
+          {% endif %}
+        </ol>
+      </div>
+      <div class="side-panel subtle">
+        <h2>Estados del proceso</h2>
+        <div class="status-stack">
+          <span class="estado-badge estado-programada">Programada</span>
+          <span class="estado-badge estado-confirmada">Confirmada</span>
+          <span class="estado-badge estado-en_proceso">En proceso</span>
+          <span class="estado-badge estado-finalizada">Finalizada</span>
+          <span class="estado-badge estado-cancelada">Cancelada</span>
+          <span class="estado-badge estado-no_asistio">No asistio</span>
+        </div>
+      </div>
+      <div class="side-panel subtle">
+        <h2>Horario permitido</h2>
+        <p>{{ horario_atencion }}</p>
+      </div>
+    </aside>
+  </div>
+</section>
+
+{{ configuracion_horario_reserva|json_script:"configuracion-horario-reserva" }}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/es.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const serviceSelect = document.getElementById("servicio");
+    const details = document.getElementById("servicio-details");
+    const price = document.getElementById("servicio-precio");
+    const professional = document.getElementById("servicio-profesional");
+    const duration = document.getElementById("servicio-duracion");
+    const paymentCheckbox = document.getElementById("pagar_ahora");
+    const paymentFields = document.getElementById("payment-fields");
+    const paymentRequired = {{ usuario|yesno:"false,true" }};
+    const paymentMethod = document.getElementById("metodo_pago");
+    const hiddenDateTimeInput = document.getElementById("fecha_inicio");
+    const bookingDateInput = document.getElementById("fecha_reserva");
+    const bookingDateHelp = document.getElementById("fecha_reserva_help");
+    const bookingTimeSelect = document.getElementById("hora_reserva");
+    const availabilityUrl = "{% url 'citas:api_disponibilidad' %}";
+    const editingReservationId = "{{ reserva.id|default:'' }}";
+    const defaultBookingDateHelpText = bookingDateHelp ? bookingDateHelp.textContent : "";
+    
+    let availabilityRequestToken = 0;
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateInputValue(date) {
+      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    function parseBookingDateValue(dateValue) {
+      if (!dateValue) {
+        return null;
+      }
+
+      const parsedDate = new Date(`${dateValue}T00:00:00`);
+      return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+    }
+
+    function getBookingDateError(dateValue) {
+      const selectedDate = parseBookingDateValue(dateValue);
+      if (!selectedDate) {
+        return "";
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        return "No puedes reservar fechas anteriores a hoy.";
+      }
+      if (selectedDate.getDay() === 0) {
+        return "Los domingos no hay atencion disponible. Selecciona otro dia.";
+      }
+      return "";
+    }
+
+    function setBookingDateHelpText(message) {
+      if (!bookingDateHelp) {
+        return;
+      }
+      bookingDateHelp.textContent = message || defaultBookingDateHelpText;
+    }
+
+    function updateHiddenDateTime() {
+      if (!hiddenDateTimeInput || !bookingDateInput || !bookingTimeSelect) {
+        return;
+      }
+
+      if (bookingDateInput.value && bookingTimeSelect.value) {
+        hiddenDateTimeInput.value = `${bookingDateInput.value}T${bookingTimeSelect.value}`;
+      } else {
+        hiddenDateTimeInput.value = "";
+      }
+    }
+
+    function renderTimeOptions(slots, selectedTime, emptyMessage) {
+      if (!bookingTimeSelect) {
+        return;
+      }
+
+      bookingTimeSelect.innerHTML = "";
+      if (!slots.length) {
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = emptyMessage || "No hay horarios disponibles para esa fecha";
+        bookingTimeSelect.appendChild(emptyOption);
+        bookingTimeSelect.disabled = true;
+        bookingTimeSelect.setCustomValidity(emptyMessage || "Selecciona otra fecha con horario disponible.");
+        updateHiddenDateTime();
+        return;
+      }
+
+      bookingTimeSelect.disabled = false;
+      bookingTimeSelect.setCustomValidity("");
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Selecciona una hora";
+      bookingTimeSelect.appendChild(placeholder);
+
+      slots.forEach(function (timeValue) {
+        const option = document.createElement("option");
+        option.value = timeValue;
+        option.textContent = timeValue;
+        bookingTimeSelect.appendChild(option);
+      });
+
+      const finalSelection = slots.includes(selectedTime) ? selectedTime : slots[0];
+      bookingTimeSelect.value = finalSelection;
+      updateHiddenDateTime();
+    }
+
+    function showLoadingTimeOptions() {
+      if (!bookingTimeSelect) {
+        return;
+      }
+      bookingTimeSelect.innerHTML = '<option value="">Consultando horarios disponibles...</option>';
+      bookingTimeSelect.disabled = true;
+      bookingTimeSelect.setCustomValidity("Espera a que terminemos de cargar las horas disponibles.");
+      updateHiddenDateTime();
+    }
+
+    function buildAvailabilityRequestUrl(dateValue) {
+      const params = new URLSearchParams({
+        servicio_id: serviceSelect.value,
+        fecha: dateValue,
+      });
+      if (editingReservationId) {
+        params.set("exclude_reserva_id", editingReservationId);
+      }
+      return `${availabilityUrl}?${params.toString()}`;
+    }
+
+    async function fetchAvailableTimeSlots(dateValue) {
+      const requestToken = ++availabilityRequestToken;
+      try {
+        const response = await fetch(buildAvailabilityRequestUrl(dateValue), {
+          headers: { Accept: "application/json" },
+        });
+        const payload = await response.json();
+        if (requestToken !== availabilityRequestToken) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error(payload.error || "No fue posible consultar la disponibilidad.");
+        }
+        return Array.isArray(payload.horas_disponibles) ? payload.horas_disponibles : [];
+      } catch (error) {
+        if (requestToken !== availabilityRequestToken) {
+          return null;
+        }
+        renderTimeOptions([], "", error.message || "No fue posible consultar la disponibilidad.");
+        return null;
+      }
+    }
+
+    async function loadAvailableHours() {
+      if (!bookingDateInput || !bookingTimeSelect || !serviceSelect || !serviceSelect.value) {
+        return;
+      }
+
+      const dateValue = bookingDateInput.value;
+      if (!dateValue) {
+        bookingDateInput.setCustomValidity("");
+        setBookingDateHelpText();
+        renderTimeOptions([], "", "Selecciona una fecha.");
+        return;
+      }
+
+      const bookingDateError = getBookingDateError(dateValue);
+      if (bookingDateError) {
+        availabilityRequestToken += 1;
+        bookingDateInput.setCustomValidity(bookingDateError);
+        setBookingDateHelpText(bookingDateError);
+        bookingDateInput.value = "";
+        renderTimeOptions([], "", bookingDateError);
+        return;
+      }
+
+      bookingDateInput.setCustomValidity("");
+      setBookingDateHelpText();
+
+      showLoadingTimeOptions();
+      const slots = await fetchAvailableTimeSlots(dateValue);
+      if (slots === null) {
+        return;
+      }
+      renderTimeOptions(slots, bookingTimeSelect.value);
+    }
+
+    function updateServiceDetails() {
+      const selected = serviceSelect.options[serviceSelect.selectedIndex];
+      if (!selected || !selected.value) {
+        availabilityRequestToken += 1;
+        details.classList.remove("is-visible");
+        price.textContent = window.CopMoney ? window.CopMoney.formatDisplay(0) : "{{ 0|currency }}";
+        professional.textContent = "Sin asignar";
+        duration.textContent = "0";
+        renderTimeOptions([], "", "Selecciona primero un servicio.");
+        if (hiddenDateTimeInput) {
+          hiddenDateTimeInput.value = "";
+        }
+        return;
+      }
+      price.textContent = window.CopMoney
+        ? window.CopMoney.formatDisplay(selected.dataset.precio || "0")
+        : "{{ 0|currency }}";
+      professional.textContent = selected.dataset.profesional || "Sin asignar";
+      duration.textContent = selected.dataset.duracion || "0";
+      details.classList.add("is-visible");
+      void loadAvailableHours();
+    }
+
+    function togglePaymentFields() {
+      if (!paymentFields) {
+        return;
+      }
+      const visible = paymentRequired || (paymentCheckbox && paymentCheckbox.checked);
+      paymentFields.classList.toggle("is-visible", visible);
+      if (paymentMethod) {
+        paymentMethod.required = visible;
+      }
+    }
+
+    // Event listeners
+    if (serviceSelect) {
+      serviceSelect.addEventListener("change", updateServiceDetails);
+    }
+
+    if (paymentCheckbox) {
+      paymentCheckbox.addEventListener("change", togglePaymentFields);
+    }
+    togglePaymentFields();
+
+    if (bookingDateInput) {
+      bookingDateInput.min = formatDateInputValue(new Date());
+
+      const handleBookingDateChange = function () {
+        void loadAvailableHours();
+      };
+
+      if (window.flatpickr) {
+        window.flatpickr(bookingDateInput, {
+          locale: window.flatpickr.l10ns.es,
+          dateFormat: "Y-m-d",
+          minDate: "today",
+          disableMobile: true,
+          disable: [
+            function (date) {
+              return date.getDay() === 0;
+            },
+          ],
+          onChange: handleBookingDateChange,
+        });
+      } else {
+        bookingDateInput.addEventListener("change", handleBookingDateChange);
+      }
+    }
+
+    if (bookingTimeSelect) {
+      bookingTimeSelect.addEventListener("change", updateHiddenDateTime);
+    }
+
+    if (serviceSelect) {
+      updateServiceDetails();
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Perfil | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/perfil.css' %}?v=20260416a">
+{% endblock %}
+
+{% block content %}
+<section class="perfil-shell">
+  <header class="perfil-hero">
+    {% if usuario %}
+    <div>
+      <p class="perfil-tag">Mi cuenta</p>
+      <h1>{{ usuario.nombre }} {{ usuario.apellido }}</h1>
+      <p class="perfil-copy">Revisa tu agenda y tus compras en un solo lugar.</p>
+      <div class="perfil-meta">
+        <span>{{ usuario.correo }}</span>
+        <span class="chip chip-rol">{{ usuario.rol|capfirst }}</span>
+
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a class="boton boton-suave" href="{% url 'citas:agenda' %}">Ver agenda completa</a>
+      <a class="boton boton-primario" href="{% url 'inventario:productos_publicos' %}">Comprar productos</a>
+    </div>
+    {% else %}
+    <div>
+      <h1>Perfil</h1>
+      <p class="perfil-copy">No hay sesion activa en este momento.</p>
+    </div>
+    {% endif %}
+  </header>
+
+  <section class="resumen-grid" aria-label="Resumen de tu cuenta">
+    <article class="resumen-card">
+      <p class="resumen-label">Agendas registradas</p>
+      <p class="resumen-value">{{ total_agendas }}</p>
+    </article>
+    <article class="resumen-card">
+      <p class="resumen-label">Proxima agenda</p>
+      {% if proxima_reserva %}
+      <p class="resumen-value resumen-value-sm">{{ proxima_reserva.fecha_inicio|date:"d/m/Y" }}</p>
+      <p class="resumen-sub">{{ proxima_reserva.fecha_inicio|time:"H:i" }} - {{ proxima_reserva.servicio.nombre }}</p>
+      {% else %}
+      <p class="resumen-value resumen-value-sm">Sin agenda proxima</p>
+      {% endif %}
+    </article>
+    <article class="resumen-card">
+      <p class="resumen-label">Compras confirmadas</p>
+      <p class="resumen-value">{{ compras_compradas|length }}</p>
+    </article>
+    <article class="resumen-card">
+      <p class="resumen-label">Productos comprados</p>
+      <p class="resumen-value">{{ total_items_comprados }}</p>
+      <p class="resumen-sub">{{ total_productos_comprados }} productos diferentes</p>
+    </article>
+
+  </section>
+  <section class="perfil-grid">
+    <article class="panel-perfil">
+      <header class="panel-head">
+        <h2>Mis agendas</h2>
+        <a class="texto-link" href="{% url 'citas:reserva_nueva' %}">Agendar nueva cita</a>
+      </header>
+
+      <div class="panel-block">
+        <h3>Proximas citas</h3>
+        {% if agendas_proximas %}
+        <div class="agenda-lista">
+          {% for reserva in agendas_proximas %}
+          <article class="agenda-card">
+            <div class="agenda-top">
+              <strong>{{ reserva.servicio.nombre }}</strong>
+              <span class="estado-pill estado-{{ reserva.estado|slugify }}">{{ reserva.get_estado_display }}</span>
+            </div>
+            <p class="agenda-date">{{ reserva.fecha_inicio|date:"l d \d\e F, Y" }}</p>
+            <p class="agenda-time">{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+            {% if reserva.notas %}
+            <p class="agenda-note">{{ reserva.notas }}</p>
+            {% endif %}
+            <div class="chips-row">
+              <span class="chip chip-comprado">Pagado: {{ reserva.total_pagado|currency }}</span>
+              <span class="chip chip-pendiente">Saldo: {{ reserva.saldo_pendiente|currency }}</span>
+            </div>
+            <a class="texto-link" href="{% url 'citas:reserva_detalle' reserva.id %}">Ver seguimiento</a>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="empty-card">
+          <p>No tienes citas activas. Agenda una para comenzar.</p>
+        </article>
+        {% endif %}
+      </div>
+
+      <div class="panel-block">
+        <h3>Historial de agendas</h3>
+        {% if agendas_historial %}
+        <div class="agenda-lista agenda-historial">
+          {% for reserva in agendas_historial|slice:":6" %}
+          <article class="agenda-card agenda-card-lite">
+            <div class="agenda-top">
+              <strong>{{ reserva.servicio.nombre }}</strong>
+              <span class="estado-pill estado-{{ reserva.estado|slugify }}">{{ reserva.get_estado_display }}</span>
+            </div>
+            <p class="agenda-time">{{ reserva.fecha_inicio|date:"d/m/Y H:i" }}</p>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <article class="empty-card">
+          <p>Todavia no tienes historial de citas.</p>
+        </article>
+        {% endif %}
+      </div>
+    </article>
+
+    <article class="panel-perfil">
+      <header class="panel-head">
+        <h2>Productos comprados</h2>
+        <a class="texto-link" href="{% url 'inventario:productos_publicos' %}">Ver catalogo</a>
+      </header>
+
+      {% if productos_comprados %}
+      <div class="productos-grid">
+        {% for item in productos_comprados %}
+        <article class="producto-card-perfil">
+          <div class="producto-media">
+            {% if item.producto.imagen %}
+            <img src="{{ item.producto.imagen }}" alt="Imagen de {{ item.producto.nombre }}" loading="lazy">
+            {% else %}
+            <div class="producto-placeholder">{{ item.producto.nombre|slice:":1"|upper }}</div>
+            {% endif %}
+          </div>
+          <div class="producto-info">
+            <div class="producto-heading">
+              <div>
+                <h3>{{ item.producto.nombre }}</h3>
+                {% if item.producto.descripcion %}
+                <p>{{ item.producto.descripcion|truncatechars:95 }}</p>
+                {% endif %}
+              </div>
+              <span class="chip chip-outline">Venta #{{ item.venta_id }}</span>
+            </div>
+            <div class="producto-metas">
+              <span>{{ item.cantidad_comprada }} unidades</span>
+              <span>{{ item.total_gastado|currency }}</span>
+              <span>Disponible para devolver: {{ item.cantidad_disponible }}</span>
+            </div>
+
+            <div class="producto-status-strip">
+              <article class="producto-status-card">
+                <span class="producto-status-label">Estado de compra</span>
+                <span class="estado-pill estado-comprado">{{ item.estado_compra }}</span>
+              </article>
+              <article class="producto-status-card">
+                <span class="producto-status-label">Estado de devolucion</span>
+                <span class="estado-pill estado-{{ item.estado_devolucion.slug }}">
+                  {{ item.estado_devolucion.label }}
+                </span>
+                <span class="producto-status-copy">{{ item.estado_devolucion.detalle }}</span>
+              </article>
+            </div>
+
+            <div class="producto-devolucion-row">
+              <span class="producto-compra-fecha">Compra: {{ item.fecha_compra|date:"d/m/Y" }}</span>
+
+              {% if item.cantidad_disponible > 0 or item.solicitudes %}
+              <details class="devolucion-box">
+                <summary class="devolucion-toggle">Devolucion</summary>
+                <div class="devolucion-panel">
+                  {% if item.solicitudes %}
+                  <div class="devolucion-status-list">
+                    {% for solicitud in item.solicitudes %}
+                    <article class="devolucion-status-card">
+                      <div class="devolucion-status-head">
+                        <div class="devolucion-status-id">
+                          <strong>Solicitud #{{ solicitud.id }}</strong>
+                          <span>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="devolucion-status-meta">
+                          <span class="estado-pill estado-{{ solicitud.estado|slugify }}">{{ solicitud.estado|capfirst }}</span>
+                          <span class="devolucion-qty-tag">
+                            {{ solicitud.cantidad }} unidad{{ solicitud.cantidad|pluralize }}
+                          </span>
+                        </div>
+                      </div>
+                      <p class="devolucion-motivo"><strong>Motivo:</strong> {{ solicitud.motivo }}</p>
+                      {% if solicitud.comentario_admin %}
+                      <p class="devolucion-admin"><strong>Respuesta:</strong> {{ solicitud.comentario_admin }}</p>
+                      {% endif %}
+                    </article>
+                    {% endfor %}
+                  </div>
+                  {% endif %}
+
+                  {% if item.cantidad_disponible > 0 %}
+                  <p class="devolucion-panel-copy">
+                    Puedes solicitar hasta {{ item.cantidad_disponible }} unidad{{ item.cantidad_disponible|pluralize }} de este producto.
+                  </p>
+                  <form
+                    class="devolucion-form"
+                    method="post"
+                    action="{% url 'ventas:solicitar_devolucion' item.detalle.id %}"
+                  >
+                    {% csrf_token %}
+                    <label class="devolucion-label" for="cantidad-{{ item.detalle.id }}">Cantidad a devolver</label>
+                    <input
+                      id="cantidad-{{ item.detalle.id }}"
+                      class="devolucion-input"
+                      type="number"
+                      name="cantidad"
+                      min="1"
+                      max="{{ item.cantidad_disponible }}"
+                      value="1"
+                      required
+                    >
+
+                    <label class="devolucion-label" for="motivo-{{ item.detalle.id }}">Motivo de devolucion</label>
+                    <textarea
+                      id="motivo-{{ item.detalle.id }}"
+                      class="devolucion-textarea"
+                      name="motivo"
+                      rows="3"
+                      placeholder="Escribe el motivo de la devolucion."
+                      required
+                    ></textarea>
+
+                    <button class="boton boton-primario devolucion-submit" type="submit">
+                      Enviar solicitud
+                    </button>
+                  </form>
+                  {% else %}
+                  <p class="devolucion-panel-copy">
+                    Ya no tienes unidades disponibles para abrir una nueva solicitud de devolucion para este producto.
+                  </p>
+                  {% endif %}
+                </div>
+              </details>
+              {% else %}
+              <span class="chip chip-rechazado">Sin saldo para devolucion</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <article class="empty-card">
+        <p>Aun no tienes compras confirmadas de productos.</p>
+      </article>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="panel-perfil panel-validaciones">
+    <header class="panel-head">
+      <h2>Estado de compras recientes</h2>
+    </header>
+
+    <div class="chips-row">
+      <span class="chip chip-pendiente">Pendientes: {{ compras_pendientes|length }}</span>
+      <span class="chip chip-comprado">Confirmadas: {{ compras_compradas|length }}</span>
+      <span class="chip chip-rechazado">Rechazadas: {{ compras_rechazadas|length }}</span>
+    </div>
+
+    {% if validaciones_recientes %}
+    <div class="validaciones-lista">
+      {% for item in validaciones_recientes %}
+      <article class="validacion-item validacion-item-rich">
+        <div class="validacion-main">
+          <strong>Venta #{{ item.validacion.venta.id }}</strong>
+          <p>{{ item.validacion.fecha_validacion|date:"d/m/Y H:i" }}</p>
+          <p class="validacion-products">Productos: {{ item.productos_resumen }}</p>
+          <p class="validacion-return-copy">
+            {{ item.estado_devolucion.identificador|default:"Sin solicitudes" }}
+            {% if item.estado_devolucion.detalle %}
+            · {{ item.estado_devolucion.detalle }}
+            {% endif %}
+          </p>
+        </div>
+        <div class="validacion-side">
+          <div class="validacion-state-block">
+            <span class="validacion-state-label">Compra</span>
+            <span class="estado-pill estado-{{ item.estado_compra.slug }}">{{ item.estado_compra.label }}</span>
+          </div>
+          <div class="validacion-state-block">
+            <span class="validacion-state-label">Devolucion</span>
+            <span class="estado-pill estado-{{ item.estado_devolucion.slug }}">{{ item.estado_devolucion.label }}</span>
+          </div>
+          <span class="validacion-amount">{{ item.validacion.monto|currency }}</span>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <article class="empty-card">
+      <p>No hay validaciones de compra registradas.</p>
+    </article>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}

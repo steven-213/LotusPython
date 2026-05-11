@@ -1,0 +1,400 @@
+{% extends "base_public.html" %}
+{% load static %}
+{% load money_tags %}
+
+{% block title %}Detalle de cita | Lotus Dream Spa{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'citas/css/citas.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="citas-page-shell">
+  <header class="citas-hero">
+    <div>
+      <h1>{{ reserva.servicio.nombre }}</h1>
+      <div class="status-stack">
+        <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
+        <span class="estado-badge">{{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      {% if usuario.rol == "admin" %}
+      <a class="btn-secondary-soft" href="{% url 'citas:dashboard' %}">Volver</a>
+      {% else %}
+      <a class="btn-secondary-soft" href="{% url 'citas:agenda' %}">Volver</a>
+      {% endif %}
+      {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+      <a class="btn-primary-strong" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <section class="detail-grid">
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Resumen</h2>
+      </header>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">Fecha</span>
+          <strong>{{ reserva.fecha_inicio|date:"d/m/Y" }}</strong>
+          <p>{{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</p>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Profesional</span>
+          <strong>{{ reserva.profesional_reserva.nombre|default:"Pendiente" }}</strong>
+          <p>{{ reserva.servicio.duracion_minutos }} min</p>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Pagado</span>
+          <strong>{{ reserva.total_pagado|currency }}</strong>
+          <p>Saldo: {{ reserva.saldo_pendiente|currency }}</p>
+        </div>
+        {% if venta_asociada %}
+        <div class="summary-card">
+          <span class="summary-label">Factura</span>
+          <strong>{{ reserva.total_factura|currency }}</strong>
+          <p>Productos: {{ reserva.total_productos_facturados|currency }}</p>
+        </div>
+        {% endif %}
+        {% if usuario.rol == "admin" %}
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">Cliente</span>
+          <strong>{{ reserva.cliente_nombre_completo }}</strong>
+          <p>{{ reserva.cliente_correo }} - {{ reserva.cliente_documento }}</p>
+        </div>
+        {% endif %}
+        {% if reserva.notas %}
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">Notas</span>
+          <p>{{ reserva.notas }}</p>
+        </div>
+        {% endif %}
+        {% if reserva.motivo_cancelacion %}
+        <div class="summary-card summary-card-wide danger-surface">
+          <span class="summary-label">Cancelacion</span>
+          <p>{{ reserva.motivo_cancelacion }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </article>
+
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Historial</h2>
+      </header>
+      {% if historial %}
+      <div class="timeline">
+        {% for item in historial %}
+        <article class="timeline-item">
+          <span class="timeline-dot estado-{{ item.estado_nuevo }}"></span>
+          <div class="timeline-body">
+            <div class="timeline-top">
+              <strong>{{ item.estado_nuevo_legible }}</strong>
+              <span>{{ item.fecha|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% if item.observacion %}
+            <p>{{ item.observacion }}</p>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-copy">Sin movimientos.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="detail-grid">
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Pagos</h2>
+      </header>
+
+      {% if pagos %}
+      <div class="payments-list">
+        {% for pago in pagos %}
+        <article class="payment-card">
+          <div>
+            <span class="summary-label">{{ pago.get_tipo_display }}</span>
+            <strong>{{ pago.monto|currency }}</strong>
+            <p>{{ pago.get_metodo_pago_display }} - {{ pago.fecha_pago|date:"d/m/Y H:i" }}</p>
+            {% if pago.referencia %}
+            <p>Ref: {{ pago.referencia }}</p>
+            {% endif %}
+            <p>{{ pago.numero_comprobante }}</p>
+          </div>
+          <a class="btn-secondary-soft" href="{% url 'citas:comprobante_pago_pdf' pago.id %}">PDF</a>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="payment-callout">
+        <i class="bi bi-wallet2"></i>
+        <strong>Sin pagos</strong>
+      </div>
+      {% endif %}
+
+      {% if venta_asociada %}
+      <div class="embedded-form">
+        <h3>Productos facturados</h3>
+        <div class="payments-list">
+          {% for item in venta_detalles %}
+          <article class="payment-card">
+            <div>
+              <span class="summary-label">Producto</span>
+              <strong>{{ item.detalle.producto.nombre }}</strong>
+              <p>{{ item.detalle.cantidad }} - {{ item.detalle.precio_unitario|currency }}</p>
+            </div>
+            <strong>{{ item.subtotal|currency }}</strong>
+          </article>
+          {% endfor %}
+        </div>
+        <div class="invoice-summary-card">
+          <div>
+            <span class="summary-label">Servicio</span>
+            <strong>{{ venta_asociada.subtotal_servicios|currency }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Productos</span>
+            <strong>{{ venta_asociada.total|currency }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Total</span>
+            <strong>{{ venta_asociada.total_factura|currency }}</strong>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if reserva.estado != "cancelada" and reserva.estado != "no_asistio" %}
+        {% if usuario.rol == "admin" %}
+        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form" data-payment-form data-saldo-pendiente="{{ reserva.saldo_pendiente }}">
+          {% csrf_token %}
+          <h3>Registrar pago</h3>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Monto</span>
+              <input class="form-control" type="number" name="monto" min="0" max="{{ reserva.saldo_pendiente }}" step="0.01" value="{{ reserva.saldo_pendiente }}" data-payment-amount>
+            </label>
+            <label class="field">
+              <span>Tipo</span>
+              <select class="form-select" name="tipo_pago" data-payment-type>
+                {% for value, label in tipos_pago %}
+                <option value="{{ value }}" {% if value == "total" %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Metodo</span>
+              <select class="form-select" name="metodo_pago" required>
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
+            </label>
+          </div>
+          {% include "citas/partials/productos_carrito.html" %}
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Guardar</button>
+        </form>
+        {% elif not reserva.esta_pagada and reserva.estado != "finalizada" %}
+        <form method="post" action="{% url 'citas:reserva_registrar_pago' reserva.id %}" class="embedded-form">
+          {% csrf_token %}
+          <h3>Pagar cita</h3>
+          <div class="form-grid two-up">
+            <label class="field">
+              <span>Metodo</span>
+              <select class="form-select" name="metodo_pago" required>
+                <option value="">Selecciona una opcion</option>
+                {% for value, label in metodos_pago %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="field">
+              <span>Referencia</span>
+              <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
+            </label>
+          </div>
+          <button type="submit" class="btn-primary-strong"><i class="bi bi-credit-card"></i> Registrar pago</button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </article>
+
+    <article class="detail-panel">
+      <header class="panel-heading">
+        <h2>Acciones</h2>
+      </header>
+
+      {% if usuario.rol == "admin" %}
+      {% if puede_reasignar_profesional %}
+      <form method="post" action="{% url 'citas:reserva_actualizar_profesional' reserva.id %}" class="embedded-form compact">
+        {% csrf_token %}
+        <h3>Reasignar profesional</h3>
+        <p class="summary-muted">{{ reserva.profesional_reserva.nombre|default:"Pendiente" }}</p>
+        <div class="form-grid two-up">
+          <label class="field">
+            <span>Existente</span>
+            <select class="form-select" name="profesional_id">
+              <option value="">Selecciona una profesional</option>
+              {% for profesional in profesionales %}
+              <option value="{{ profesional.id }}" {% if reserva.profesional_reserva and reserva.profesional_reserva.id == profesional.id %}selected{% endif %}>{{ profesional.nombre }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="field">
+            <span>Nueva</span>
+            <input class="form-control" type="text" name="profesional_nombre" placeholder="Nombre">
+          </label>
+        </div>
+        <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-person-gear"></i> Guardar profesional</button>
+      </form>
+      {% endif %}
+      <div class="action-stack">
+        {% if puede_confirmar %}
+        <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-patch-check"></i> Confirmar cita</button>
+        </form>
+        {% endif %}
+        {% if puede_iniciar %}
+        <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-play-circle"></i> Iniciar atencion</button>
+        </form>
+        {% endif %}
+        {% if puede_finalizar %}
+        <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-primary-strong btn-block"><i class="bi bi-check2-square"></i> Finalizar cita</button>
+        </form>
+        {% elif reserva.estado == "en_proceso" and not reserva.esta_pagada %}
+        <div class="payment-callout">
+          <i class="bi bi-wallet2"></i>
+          <strong>Falta pago para finalizar</strong>
+        </div>
+        {% endif %}
+        {% if puede_no_asistir %}
+        <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-warning-soft btn-block"><i class="bi bi-person-x"></i> Marcar no asistio</button>
+        </form>
+        {% endif %}
+        {% if puede_cancelar_admin %}
+        <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
+          {% csrf_token %}
+          <label class="field">
+            <span>Motivo</span>
+            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Motivo">
+          </label>
+          <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
+        </form>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="action-stack">
+        {% if reserva.estado == "programada" or reserva.estado == "confirmada" %}
+        <a class="btn-secondary-soft btn-block" href="{% url 'citas:reserva_editar' reserva.id %}"><i class="bi bi-pencil-square"></i> Editar reserva</a>
+        {% endif %}
+        {% if reserva.estado != "cancelada" and reserva.estado != "finalizada" and reserva.estado != "no_asistio" %}
+        <form method="post" action="{% url 'citas:reserva_cancelar' reserva.id %}" class="embedded-form compact">
+          {% csrf_token %}
+          <label class="field">
+            <span>Motivo</span>
+            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Opcional">
+          </label>
+          <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </article>
+  </section>
+</section>
+<script src="{% static 'citas/js/product_cart.js' %}?v=20260419b"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const paymentForms = document.querySelectorAll("[data-payment-form]");
+
+    paymentForms.forEach(function (form) {
+      const amountInput = form.querySelector("[data-payment-amount]");
+      const typeSelect = form.querySelector("[data-payment-type]");
+      const helpText = form.querySelector("[data-payment-help]");
+      const pendingBalance = Number(form.dataset.saldoPendiente || 0);
+      const comparisonTolerance = 0.009;
+
+      if (!amountInput || !typeSelect || !Number.isFinite(pendingBalance) || pendingBalance <= 0) {
+        return;
+      }
+
+      const formatter = new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+
+      function buildDefaultHelp() {
+        const formattedBalance = formatter.format(pendingBalance);
+        if (typeSelect.value === "total") {
+          return `Pago completo: debes registrar exactamente ${formattedBalance}.`;
+        }
+        return `Anticipo: debe ser menor a ${formattedBalance}. Si vas a cobrar todo, usa pago completo.`;
+      }
+
+      function validatePaymentAmount() {
+        const rawAmount = amountInput.value;
+        amountInput.setCustomValidity("");
+
+        if (!rawAmount) {
+          if (helpText) {
+            helpText.textContent = buildDefaultHelp();
+          }
+          return true;
+        }
+
+        const amount = Number(rawAmount);
+        if (!Number.isFinite(amount)) {
+          amountInput.setCustomValidity("Ingresa un monto valido.");
+        } else if (amount - pendingBalance > comparisonTolerance) {
+          amountInput.setCustomValidity("El monto no puede superar el saldo pendiente.");
+        } else if (typeSelect.value === "total" && Math.abs(amount - pendingBalance) > comparisonTolerance) {
+          amountInput.setCustomValidity("El pago completo debe coincidir exactamente con el saldo pendiente.");
+        } else if (typeSelect.value === "anticipo" && amount >= pendingBalance - comparisonTolerance) {
+          amountInput.setCustomValidity("El anticipo debe ser menor al saldo pendiente. Si vas a cobrar todo, usa pago completo.");
+        }
+
+        if (helpText) {
+          helpText.textContent = amountInput.validationMessage || buildDefaultHelp();
+        }
+        return !amountInput.validationMessage;
+      }
+
+      typeSelect.addEventListener("change", function () {
+        if (typeSelect.value === "total") {
+          amountInput.value = pendingBalance.toFixed(2);
+        }
+        validatePaymentAmount();
+      });
+
+      amountInput.addEventListener("input", validatePaymentAmount);
+      form.addEventListener("submit", function (event) {
+        if (!validatePaymentAmount()) {
+          event.preventDefault();
+          amountInput.reportValidity();
+        }
+      });
+
+      validatePaymentAmount();
+    });
+  });
+</script>
+{% endblock %}

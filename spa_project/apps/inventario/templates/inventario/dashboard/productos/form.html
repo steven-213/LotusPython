@@ -1,0 +1,143 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}
+{% if producto %}Editar{% else %}Nuevo{% endif %} Producto
+{% endblock %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'inventario/productos/form_style.css' %}">
+<link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-5">
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {% if producto %}
+        {% url 'inventario:producto_detalle' producto.id as producto_back_url %}
+        {% else %}
+        {% url 'inventario:producto_lista' as producto_back_url %}
+        {% endif %}
+        {% if producto %}
+        {% include "inventario/dashboard/partials/panel_header.html" with page_title="Editar Producto" page_description="Completa la informacion principal y vuelve rapidamente al detalle del producto." back_url=producto_back_url back_label="Volver" active_section="productos" %}
+        {% else %}
+        {% include "inventario/dashboard/partials/panel_header.html" with page_title="Nuevo Producto" page_description="Completa la informacion principal y vuelve rapidamente a la lista de productos." back_url=producto_back_url back_label="Volver" active_section="productos" %}
+        {% endif %}
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="card shadow-lg mb-4 tarjeta">
+                <div class="card-header encabezado-tarjeta">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Información General
+                    </h5>
+                </div>
+
+                <div class="card-body p-4">
+
+                    <div class="mb-4">
+                        <label for="nombre" class="form-label fw-bold">
+                            <i class="bi bi-box-seam icono"></i> Nombre del Producto
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nombre"
+                            name="nombre"
+                            class="form-control form-control-lg"
+                            value="{% if request.POST.nombre %}{{ request.POST.nombre }}{% elif producto %}{{ producto.nombre }}{% endif %}"
+                            placeholder="Ej: Shampoo profesional"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="descripcion" class="form-label fw-bold">
+                            <i class="bi bi-chat-left-text icono"></i> Descripción
+                        </label>
+
+                        <textarea
+                            id="descripcion"
+                            name="descripcion"
+                            class="form-control"
+                            rows="3"
+                            placeholder="Describe el producto..."
+                        >{% if request.POST.descripcion %}{{ request.POST.descripcion }}{% elif producto %}{{ producto.descripcion }}{% endif %}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="imagen" class="form-label fw-bold">
+                            <i class="bi bi-image icono"></i> Imagen
+                        </label>
+
+                        {% if producto and producto.imagen %}
+                            <div class="mb-3">
+                                <img src="{{ producto.imagen }}" class="img-preview">
+                                <p class="text-muted small">
+                                    Sube una nueva imagen para reemplazarla
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        <input
+                            type="file"
+                            id="imagen"
+                            name="imagen"
+                            class="form-control"
+                            accept="image/*"
+                        >
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="proveedor_id" class="form-label fw-bold">
+                            <i class="bi bi-building icono"></i> Proveedor
+                        </label>
+
+                        <select id="proveedor_id" name="proveedor_id" class="form-select form-select-lg" required>
+                            <option value="">-- Sin proveedor --</option>
+
+                            {% for prov in proveedores %}
+                                <option value="{{ prov.id }}"
+                                    {% if request.POST.proveedor_id == prov.id|stringformat:"s" %}selected{% elif producto.proveedor_id == prov.id %}selected{% endif %}>
+                                    {{ prov.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end mb-4">
+
+                <a href="{% url 'inventario:producto_lista' %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+
+                <button type="submit" class="btn btn-principal btn-lg">
+                    <i class="bi bi-check-circle"></i>
+                    {% if producto %}Actualizar{% else %}Crear{% endif %} producto
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+</div>
+{% endblock %}

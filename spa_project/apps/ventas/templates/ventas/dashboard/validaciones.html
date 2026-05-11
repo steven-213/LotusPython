@@ -1,0 +1,168 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Validaciones Venta #{{ venta.id }} | Administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ventas/admin.css' %}?v=20260406c">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 ventas-shell">
+    <section class="admin-page-hero">
+        <div class="admin-page-copy">
+            <div class="admin-page-breadcrumbs">
+                <a href="{% url 'sesiones:admin_dashboard' %}">Panel admin</a>
+                <span>/</span>
+                <a href="{% url 'ventas:venta_lista' %}">Ventas</a>
+                <span>/</span>
+                <a href="{% url 'ventas:venta_detalle' venta.id %}">Venta #{{ venta.id }}</a>
+                <span>/</span>
+                <span>Validaciones</span>
+            </div>
+            <h1 class="admin-page-title">Validación de pago - venta #{{ venta.id }}</h1>
+            <p class="admin-page-description">
+                Registra nuevas validaciones y revisa el historial completo de confirmaciones de pago.
+            </p>
+        </div>
+    </section>
+
+    <div class="ventas-split-grid">
+        <div class="ventas-card-grid">
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Información de la venta</h2>
+                        <p>Contexto rápido antes de registrar una nueva validación.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body">
+                    <div class="ventas-form-grid three-up">
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Cliente</span>
+                            <strong>{{ venta.cliente_nombre_completo }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Monto total</span>
+                            <strong class="ventas-price">{{ venta.total|currency }}</strong>
+                        </div>
+                        <div class="ventas-detail-block">
+                            <span class="ventas-summary-label">Fecha</span>
+                            <strong>{{ venta.fecha|date:"d/m/Y H:i" }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ventas-surface-card">
+                <div class="ventas-surface-head">
+                    <div>
+                        <h2>Registrar nueva validación</h2>
+                        <p>Captura método, monto y estado actual del pago.</p>
+                    </div>
+                </div>
+                <div class="ventas-surface-body">
+                    <form method="post" novalidate class="ventas-form-grid">
+                        {% csrf_token %}
+
+                        <div class="ventas-form-grid two-up">
+                            <label class="ventas-field">
+                                <span>Método de pago</span>
+                                <select class="ventas-select" id="metodo_pago" name="metodo_pago" required>
+                                    <option value="" selected disabled>Selecciona método</option>
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="transferencia">Transferencia bancaria</option>
+                                    <option value="tarjeta">Tarjeta de crédito</option>
+                                    <option value="billetera">Billetera digital</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </label>
+                            <label class="ventas-field">
+                                <span>Monto pagado</span>
+                                <div class="ventas-money-group">
+                                    <span class="ventas-money-addon">$</span>
+                                    <input type="text" class="ventas-input" id="monto" name="monto" inputmode="numeric" data-money="cop" placeholder="20.000" required>
+                                </div>
+                            </label>
+                            <label class="ventas-field is-wide">
+                                <span>Referencia de pago / número de transacción</span>
+                                <input type="text" class="ventas-input" id="referencia_pago" name="referencia_pago" placeholder="Ej: TRF123456789 o últimos 4 dígitos">
+                            </label>
+                            <label class="ventas-field">
+                                <span>Estado del pago</span>
+                                <select class="ventas-select" id="estado" name="estado" required>
+                                    <option value="pendiente" selected>Pendiente de confirmación</option>
+                                    <option value="comprado">Aprobado / comprado</option>
+                                    <option value="rechazada">Rechazado</option>
+                                </select>
+                            </label>
+                            <label class="ventas-field">
+                                <span>Observaciones</span>
+                                <textarea class="ventas-textarea" id="observaciones" name="observaciones" rows="4" placeholder="Notas adicionales sobre la validación..."></textarea>
+                            </label>
+                        </div>
+
+                        <div class="ventas-inline-actions">
+                            <button type="submit" class="admin-action-button">
+                                <i class="bi bi-check-circle"></i> Registrar validación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+
+        <aside class="ventas-surface-card">
+            <div class="ventas-surface-head">
+                <div>
+                    <h2>Historial de validaciones</h2>
+                    <p>Secuencia completa de confirmaciones y observaciones registradas.</p>
+                </div>
+            </div>
+            <div class="ventas-surface-body">
+                {% if validaciones %}
+                <div class="ventas-history-list">
+                    {% for validacion in validaciones %}
+                    <article class="ventas-history-item">
+                        <div class="ventas-history-top">
+                            <div>
+                                <strong>{{ validacion.metodo_pago|title }}</strong>
+                                <p class="ventas-note">{{ validacion.fecha_validacion|date:"d/m/Y H:i" }}</p>
+                            </div>
+                            {% if validacion.estado == 'validada' or validacion.estado == 'comprado' %}
+                            <span class="ventas-status-badge is-dark">{{ validacion.estado|title }}</span>
+                            {% elif validacion.estado == 'pendiente' %}
+                            <span class="ventas-status-badge is-rose">{{ validacion.estado|title }}</span>
+                            {% else %}
+                            <span class="ventas-status-badge is-muted">{{ validacion.estado|title }}</span>
+                            {% endif %}
+                        </div>
+                        <p class="ventas-price">{{ validacion.monto|currency }}</p>
+                        {% if validacion.referencia_pago %}
+                        <p class="ventas-note"><i class="bi bi-link-45deg"></i> {{ validacion.referencia_pago }}</p>
+                        {% endif %}
+                        {% if validacion.observaciones %}
+                        <div class="ventas-stack-card">
+                            <p class="ventas-note mb-0">{{ validacion.observaciones }}</p>
+                        </div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="ventas-empty">
+                    <i class="bi bi-clock-history"></i>
+                    <p>Sin validaciones registradas aún.</p>
+                </div>
+                {% endif %}
+            </div>
+        </aside>
+    </div>
+
+    <div class="admin-interface-actions is-spacious">
+        <a href="{% url 'ventas:venta_detalle' venta.id %}" class="admin-action-button is-muted is-compact">
+            <i class="bi bi-eye"></i> Ver detalle
+        </a>
+    </div>
+</div>
+{% endblock %}
