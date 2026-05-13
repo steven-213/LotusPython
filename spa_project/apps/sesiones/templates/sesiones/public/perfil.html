@@ -224,6 +224,8 @@
                       name="motivo"
                       rows="3"
                       placeholder="Escribe el motivo de la devolucion."
+                      minlength="15"
+                      maxlength="200"
                       required
                     ></textarea>
 
@@ -285,6 +287,15 @@
             <span class="validacion-state-label">Compra</span>
             <span class="estado-pill estado-{{ item.estado_compra.slug }}">{{ item.estado_compra.label }}</span>
           </div>
+          {% if item.estado_compra.slug == 'pendiente' %}
+          <form method="post" action="{% url 'ventas:cancelar_compra' item.validacion.id %}">
+              {% csrf_token %}
+            <button type="submit" class="texto-link" style="color: #d9534f; border:none; background:none; cursor:pointer; font-size: 0.85rem; margin-top: 5px;" 
+                onclick="return confirm('¿Seguro que deseas cancelar esta compra?')">
+                  Cancelar compra
+            </button>
+          </form>
+  {% endif %}
           <div class="validacion-state-block">
             <span class="validacion-state-label">Devolucion</span>
             <span class="estado-pill estado-{{ item.estado_devolucion.slug }}">{{ item.estado_devolucion.label }}</span>

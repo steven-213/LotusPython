@@ -1007,3 +1007,19 @@ def rechazar_compra_telegram(request, validacion_id):
     validacion.save(update_fields=["estado", "observaciones"])
     return HttpResponse("Compra rechazada correctamente.")
 
+def cancelar_compra(request, validacion_id):
+    if request.method == 'POST':
+        # Buscamos la validación en la tabla ventas_validacionventa
+        validacion = get_object_or_404(ValidacionVenta, id=validacion_id)
+        
+        # Opcional: Verificar que pertenezca al usuario actual si es necesario
+        
+        # Cambiamos el estado a 'cancelado' (asumiendo que el campo se llama 'estado')
+        # Si el estado está en la Venta relacionada, sería validacion.venta.estado = 'cancelado'
+        validacion.estado = 'cancelado' 
+        validacion.save()
+        
+        messages.success(request, f"La compra #{validacion.id} ha sido cancelada.")
+    
+    return redirect('sesiones:perfil') # Ajusta al nombre de tu URL de perfil
+
