@@ -21,6 +21,7 @@ from apps.citas.services import (
     actualizar_reserva,
     actualizar_profesional_reserva,
     cambiar_estado_reserva,
+    cancelar_reservas_vencidas,
     configuracion_horario_reserva,
     construir_token_comprobante,
     crear_o_reutilizar_cliente_invitado,
@@ -444,6 +445,7 @@ def _redirect_admin_dashboard_target(request, *, default_view="citas:dashboard")
 
 @admin_required_session
 def dashboard(request):
+    cancelar_reservas_vencidas(actor=_usuario_admin(request))
     filtros = _leer_filtros_dashboard(request)
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros)
     reservas = _ordenar_reservas_dashboard(reservas)
@@ -477,6 +479,7 @@ def dashboard(request):
 
 @admin_required_session
 def almanaque(request):
+    cancelar_reservas_vencidas(actor=_usuario_admin(request))
     filtros = _leer_filtros_dashboard(request)
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros).order_by("fecha_inicio")
     resumen = resumen_dashboard_admin()
@@ -616,6 +619,7 @@ def reserva_editar(request, reserva_id):
             return redirect("citas:reserva_detalle", reserva_id=reserva.id)
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
+            # Mantener en la vista de edición si hay error
 
     servicios = Servicio.objects.select_related("profesional").filter(activo=True).order_by("nombre")
     return render(
@@ -640,6 +644,15 @@ def reserva_detalle(request, reserva_id):
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
+    return render(
+        request,
+        "citas/public/detalle.html",
+        _construir_contexto_detalle_reserva(reserva, usuario),
+    )
+
+
+def _construir_contexto_detalle_reserva(reserva, usuario):
+    """Construye el contexto para renderizar la vista de detalle de una reserva."""
     historial = reserva.historial_estados.select_related("usuario_actor").all()
     pagos = pagos_reserva_por_validos(reserva)
     venta_asociada = reserva.venta_asociada_segura
@@ -652,33 +665,29 @@ def reserva_detalle(request, reserva_id):
                     "subtotal": detalle.cantidad * detalle.precio_unitario,
                 }
             )
-    return render(
-        request,
-        "citas/public/detalle.html",
-        {
-            "reserva": reserva,
-            "usuario": usuario,
-            "historial": historial,
-            "pagos": pagos,
-            "venta_asociada": venta_asociada,
-            "venta_detalles": venta_detalles,
-            "productos_facturables": _productos_facturables() if usuario.rol == Usuario.ROL_ADMIN else [],
-            "horario_atencion": resumen_horario_atencion(),
-            "metodos_pago": PagoReserva.METODOS,
-            "tipos_pago": PagoReserva.TIPOS,
-            "profesionales": Profesional.objects.filter(activo=True).order_by("nombre") if usuario.rol == Usuario.ROL_ADMIN else [],
-            "puede_confirmar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CONFIRMADA),
-            "puede_iniciar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_EN_PROCESO),
-            "puede_finalizar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_FINALIZADA) and reserva.esta_pagada,
-            "puede_cancelar_admin": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CANCELADA),
-            "puede_no_asistir": _estado_puede_pasar_a(reserva, Reserva.ESTADO_NO_ASISTIO),
-            "puede_reasignar_profesional": usuario.rol == Usuario.ROL_ADMIN and reserva.estado not in {
-                Reserva.ESTADO_FINALIZADA,
-                Reserva.ESTADO_CANCELADA,
-                Reserva.ESTADO_NO_ASISTIO,
-            },
+    return {
+        "reserva": reserva,
+        "usuario": usuario,
+        "historial": historial,
+        "pagos": pagos,
+        "venta_asociada": venta_asociada,
+        "venta_detalles": venta_detalles,
+        "productos_facturables": _productos_facturables() if usuario.rol == Usuario.ROL_ADMIN else [],
+        "horario_atencion": resumen_horario_atencion(),
+        "metodos_pago": PagoReserva.METODOS,
+        "tipos_pago": PagoReserva.TIPOS,
+        "profesionales": Profesional.objects.filter(activo=True).order_by("nombre") if usuario.rol == Usuario.ROL_ADMIN else [],
+        "puede_confirmar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CONFIRMADA),
+        "puede_iniciar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_EN_PROCESO),
+        "puede_finalizar": _estado_puede_pasar_a(reserva, Reserva.ESTADO_FINALIZADA) and reserva.esta_pagada,
+        "puede_cancelar_admin": _estado_puede_pasar_a(reserva, Reserva.ESTADO_CANCELADA),
+        "puede_no_asistir": _estado_puede_pasar_a(reserva, Reserva.ESTADO_NO_ASISTIO),
+        "puede_reasignar_profesional": usuario.rol == Usuario.ROL_ADMIN and reserva.estado not in {
+            Reserva.ESTADO_FINALIZADA,
+            Reserva.ESTADO_CANCELADA,
+            Reserva.ESTADO_NO_ASISTIO,
         },
-    )
+    }
 
 
 def reserva_confirmada(request):
@@ -892,9 +901,19 @@ def reserva_registrar_pago(request, reserva_id):
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
     except ValidationError as exc:
         messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-        if usuario.rol == Usuario.ROL_ADMIN:
-            return redirect("citas:dashboard")
-        return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+        # Mantener en la misma vista de detalle cuando hay error
+        reserva = get_object_or_404(
+            Reserva.objects.select_related(
+                "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
+            )
+            .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
+            id=reserva_id,
+        )
+        return render(
+            request,
+            "citas/public/detalle.html",
+            _construir_contexto_detalle_reserva(reserva, usuario),
+        )
 
 
 def comprobante_pago_pdf(request, pago_id):
