@@ -13,6 +13,7 @@ from apps.ventas.views.venta_views import (
     venta_lista,
     venta_nueva,
     venta_validaciones,
+    cancelar_compra,
 )
 
 app_name = "ventas"
@@ -42,4 +43,5 @@ urlpatterns = [
     ),
     path("api/ventas/", api_ventas, name="api_ventas"),
     path("api/resumen/", api_resumen, name="api_resumen"),
+    path('cancelar-compra/<int:validacion_id>/', cancelar_compra, name='cancelar_compra'),
 ]
