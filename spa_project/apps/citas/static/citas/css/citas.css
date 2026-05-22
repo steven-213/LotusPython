@@ -366,14 +366,6 @@ textarea.form-control {
   box-shadow: 0 0 0 3px rgba(217, 70, 170, 0.11);
 }
 
-.form-control.is-readonly,
-.form-control:read-only {
-  background-color: #f8f5f7;
-  color: var(--citas-muted);
-  cursor: not-allowed;
-  border-color: #e0d3d8;
-}
-
 .service-summary {
   display: none;
   grid-template-columns: repeat(3, minmax(0, 1fr));

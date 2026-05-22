@@ -178,7 +178,6 @@
             <label class="field">
               <span>Monto</span>
               <input class="form-control" type="number" name="monto" min="0" max="{{ reserva.saldo_pendiente }}" step="0.01" value="{{ reserva.saldo_pendiente }}" data-payment-amount>
-              <small class="payment-help" data-payment-help style="display: block; margin-top: 0.5rem; color: var(--citas-muted); font-size: 0.85rem;"></small>
             </label>
             <label class="field">
               <span>Tipo</span>
@@ -323,28 +322,16 @@
 <script src="{% static 'citas/js/product_cart.js' %}?v=20260419b"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    console.log("Inicializando scripts de pago...");
-    
     const paymentForms = document.querySelectorAll("[data-payment-form]");
-    console.log("Formularios de pago encontrados:", paymentForms.length);
 
-    paymentForms.forEach(function (form, formIndex) {
-      console.log("Procesando formulario", formIndex);
-      
+    paymentForms.forEach(function (form) {
       const amountInput = form.querySelector("[data-payment-amount]");
       const typeSelect = form.querySelector("[data-payment-type]");
       const helpText = form.querySelector("[data-payment-help]");
-      const pendingBalance = parseFloat(form.dataset.saldoPendiente || "0");
+      const pendingBalance = Number(form.dataset.saldoPendiente || 0);
+      const comparisonTolerance = 0.009;
 
-      console.log("Elementos encontrados:", { amountInput, typeSelect, helpText, pendingBalance });
-
-      if (!amountInput || !typeSelect) {
-        console.warn("Formulario incompleto, saltando...");
-        return;
-      }
-
-      if (!isFinite(pendingBalance) || pendingBalance <= 0) {
-        console.warn("Saldo pendiente inválido:", pendingBalance);
+      if (!amountInput || !typeSelect || !Number.isFinite(pendingBalance) || pendingBalance <= 0) {
         return;
       }
 
@@ -355,40 +342,58 @@
         maximumFractionDigits: 2,
       });
 
-      function updateInputState() {
-        console.log("Actualizando estado del input. Tipo:", typeSelect.value);
-        
+      function buildDefaultHelp() {
+        const formattedBalance = formatter.format(pendingBalance);
         if (typeSelect.value === "total") {
-          amountInput.value = pendingBalance.toFixed(2);
-          amountInput.readOnly = true;
-          amountInput.classList.add("is-readonly");
-          
-          if (helpText) {
-            helpText.textContent = `Pago completo: ${formatter.format(pendingBalance)}. El monto se establece automáticamente.`;
-          }
-        } else {
-          amountInput.readOnly = false;
-          amountInput.classList.remove("is-readonly");
-          
-          if (helpText) {
-            helpText.textContent = `Anticipo: ingresa un monto menor a ${formatter.format(pendingBalance)}.`;
-          }
+          return `Pago completo: debes registrar exactamente ${formattedBalance}.`;
         }
+        return `Anticipo: debe ser menor a ${formattedBalance}. Si vas a cobrar todo, usa pago completo.`;
       }
 
-      // Event listeners
+      function validatePaymentAmount() {
+        const rawAmount = amountInput.value;
+        amountInput.setCustomValidity("");
+
+        if (!rawAmount) {
+          if (helpText) {
+            helpText.textContent = buildDefaultHelp();
+          }
+          return true;
+        }
+
+        const amount = Number(rawAmount);
+        if (!Number.isFinite(amount)) {
+          amountInput.setCustomValidity("Ingresa un monto valido.");
+        } else if (amount - pendingBalance > comparisonTolerance) {
+          amountInput.setCustomValidity("El monto no puede superar el saldo pendiente.");
+        } else if (typeSelect.value === "total" && Math.abs(amount - pendingBalance) > comparisonTolerance) {
+          amountInput.setCustomValidity("El pago completo debe coincidir exactamente con el saldo pendiente.");
+        } else if (typeSelect.value === "anticipo" && amount >= pendingBalance - comparisonTolerance) {
+          amountInput.setCustomValidity("El anticipo debe ser menor al saldo pendiente. Si vas a cobrar todo, usa pago completo.");
+        }
+
+        if (helpText) {
+          helpText.textContent = amountInput.validationMessage || buildDefaultHelp();
+        }
+        return !amountInput.validationMessage;
+      }
+
       typeSelect.addEventListener("change", function () {
-        console.log("Tipo de pago cambiado a:", this.value);
-        updateInputState();
+        if (typeSelect.value === "total") {
+          amountInput.value = pendingBalance.toFixed(2);
+        }
+        validatePaymentAmount();
       });
 
-      amountInput.addEventListener("change", function () {
-        console.log("Monto cambió a:", this.value);
+      amountInput.addEventListener("input", validatePaymentAmount);
+      form.addEventListener("submit", function (event) {
+        if (!validatePaymentAmount()) {
+          event.preventDefault();
+          amountInput.reportValidity();
+        }
       });
 
-      // Inicializar
-      console.log("Inicializando estado del input");
-      updateInputState();
+      validatePaymentAmount();
     });
   });
 </script>

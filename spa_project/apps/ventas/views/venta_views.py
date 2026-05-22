@@ -1,5 +1,5 @@
 import csv
-from datetime import timedelta, datetime
+from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 from urllib.parse import urlencode
@@ -381,46 +381,13 @@ def _aplicar_filtros_ventas(queryset, filtros):
     return queryset.distinct()
 
 
-def _obtener_prioridad_devolucion(venta):
-    """Retorna una tupla para ordenamiento: (prioridad_numerica, fecha_solicitud_reciente)
-    Prioridad: 0 = pendiente (primero), 1 = aprobada/parcial, 2 = rechazada, 3 = sin devolucion
-    """
-    solicitudes = []
-    for detalle in venta.detalles.all():
-        solicitudes.extend(list(detalle.solicitudes_devolucion.all()))
-    
-    if not solicitudes:
-        return (3, datetime.min)
-    
-    pendientes = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_PENDIENTE]
-    aprobadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_APROBADA]
-    rechazadas = [s for s in solicitudes if s.estado == SolicitudDevolucionVenta.ESTADO_RECHAZADA]
-    
-    if pendientes:
-        fecha_mas_antigua = min(s.fecha_solicitud for s in pendientes)
-        return (0, fecha_mas_antigua)
-    
-    if aprobadas:
-        fecha_mas_antigua = min(s.fecha_solicitud for s in aprobadas)
-        return (1, fecha_mas_antigua)
-    
-    if rechazadas:
-        fecha_mas_antigua = min(s.fecha_solicitud for s in rechazadas)
-        return (2, fecha_mas_antigua)
-    
-    return (3, datetime.min)
-
-
 def _hidratar_ventas(ventas):
     for venta in ventas:
         validaciones = list(venta.validaciones.all())
         venta.validacion_reciente = validaciones[0] if validaciones else None
         venta.estado_pago_resumen = _resolver_estado_pago(venta.validacion_reciente)
         venta.devolucion_resumen = _resolver_resumen_devolucion_venta(venta)
-    
-    # Ordenar ventas priorizando las que tienen devoluciones pendientes
-    ventas_ordenadas = sorted(ventas, key=_obtener_prioridad_devolucion)
-    return ventas_ordenadas
+    return ventas
 
 
 def _querystring_ventas(filtros, **extras):
