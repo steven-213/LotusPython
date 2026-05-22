@@ -511,6 +511,42 @@ class CitasFlowTest(TestCase):
         self.assertContains(response, f"{pendiente.cliente_nombre_completo}")
         self.assertNotContains(response, f"{finalizada.cliente_nombre_completo}")
 
+    def test_dashboard_cancels_expired_pending_reservations(self):
+        ahora = timezone.now()
+        reservas = []
+        for estado in [
+            Reserva.ESTADO_PROGRAMADA,
+            Reserva.ESTADO_CONFIRMADA,
+            Reserva.ESTADO_EN_PROCESO,
+        ]:
+            reservas.append(
+                Reserva.objects.create(
+                    cliente=self.cliente,
+                    servicio=self.servicio,
+                    profesional=self.profesional,
+                    fecha_inicio=ahora - timedelta(hours=2),
+                    fecha_fin=ahora - timedelta(hours=1),
+                    estado=estado,
+                    origen_reserva=Reserva.ORIGEN_AUTENTICADO,
+                    notas="Vencida",
+                    creada_por=self.admin,
+                )
+            )
+        self._force_session(self.admin)
+
+        response = self.client.get(reverse("citas:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        for reserva in reservas:
+            reserva.refresh_from_db()
+            self.assertEqual(reserva.estado, Reserva.ESTADO_CANCELADA)
+            self.assertTrue(
+                reserva.historial_estados.filter(
+                    estado_nuevo=Reserva.ESTADO_CANCELADA,
+                    observacion__icontains="automaticamente",
+                ).exists()
+            )
+
     def test_dashboard_orders_in_process_before_pending_and_finished(self):
         pendiente = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=9))
         en_proceso = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=10, hour=8))

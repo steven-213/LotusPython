@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from django.core import signing
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Sum, Count, Avg, Q, OuterRef, Subquery, Case, When, DecimalField, Value, DateField
 from django.db.models.functions import TruncDate, Coalesce
 from django.utils import timezone
@@ -480,6 +481,45 @@ def cambiar_estado_reserva(*, reserva, nuevo_estado, actor=None, observacion="")
     return reserva
 
 
+def cancelar_reservas_vencidas(*, actor=None):
+    ahora = timezone.now()
+    estados_vencibles = [
+        Reserva.ESTADO_PROGRAMADA,
+        Reserva.ESTADO_CONFIRMADA,
+        Reserva.ESTADO_EN_PROCESO,
+    ]
+    observacion = "Cancelada automaticamente porque la fecha de la cita ya paso."
+    reservas_vencidas = list(
+        Reserva.objects.filter(
+            estado__in=estados_vencibles,
+            fecha_fin__lt=ahora,
+        ).values("id", "estado")
+    )
+    if not reservas_vencidas:
+        return 0
+
+    reserva_ids = [reserva["id"] for reserva in reservas_vencidas]
+    with transaction.atomic():
+        Reserva.objects.filter(id__in=reserva_ids).update(
+            estado=Reserva.ESTADO_CANCELADA,
+            motivo_cancelacion=observacion,
+            updated_at=ahora,
+        )
+        ReservaHistorialEstado.objects.bulk_create(
+            [
+                ReservaHistorialEstado(
+                    reserva_id=reserva["id"],
+                    estado_anterior=reserva["estado"],
+                    estado_nuevo=Reserva.ESTADO_CANCELADA,
+                    usuario_actor=actor,
+                    observacion=observacion,
+                )
+                for reserva in reservas_vencidas
+            ]
+        )
+    return len(reservas_vencidas)
+
+
 def construir_token_comprobante(pago):
     return signing.dumps({"pago_id": pago.id}, salt="citas-comprobante")
 
@@ -607,6 +647,7 @@ def _calcular_ingresos_citas_facturadas():
 
 
 def resumen_dashboard_admin():
+    cancelar_reservas_vencidas()
     hoy = timezone.localdate()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     inicio_mes = hoy.replace(day=1)
