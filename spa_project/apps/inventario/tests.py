@@ -252,14 +252,88 @@ class InventarioUrlsTest(TestCase):
             reverse("inventario:proveedor_nuevo"),
             {
                 "nombre": "proveedor DUPLICADO",
+                "telefono": "3101234567",
                 "nit": "900123",
                 "correo": "proveedor2@test.com",
+                "direccion": "Calle 10 #20-30",
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Ya existe un proveedor con ese nombre o NIT.")
+        self.assertContains(response, "Ya existe un proveedor con ese nombre, correo o NIT.")
         self.assertEqual(Proveedor.objects.filter(nombre__iexact="Proveedor duplicado").count(), 1)
+
+    def test_proveedor_nuevo_rechaza_correo_sin_arroba(self):
+        response = self.client.post(
+            reverse("inventario:proveedor_nuevo"),
+            {
+                "nombre": "Proveedor Correo",
+                "telefono": "3101234567",
+                "nit": "900456",
+                "correo": "proveedorcorreo.com",
+                "direccion": "Calle 11 #22-33",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El correo no es valido.")
+        self.assertFalse(Proveedor.objects.filter(nombre="Proveedor Correo").exists())
+
+    def test_compra_nueva_rechaza_impuesto_mayor_a_100(self):
+        producto = Producto.objects.create(
+            nombre="Producto impuesto alto",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+
+        response = self.client.post(
+            reverse("inventario:compra_nueva"),
+            {
+                "proveedor_id": str(self.proveedor.id),
+                "numero_factura": "FAC-300",
+                "productos_ids[]": [str(producto.id)],
+                "cantidades[]": ["1"],
+                "precios[]": ["10000"],
+                "impuestos[]": ["110"],
+                "margenes[]": ["20"],
+                "lotes[]": ["L-003"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El impuesto de la fila 1 no puede superar 100.")
+        self.assertEqual(Compra.objects.count(), 0)
+
+    def test_compra_nueva_rechaza_lote_mayor_a_8_caracteres(self):
+        producto = Producto.objects.create(
+            nombre="Producto lote largo",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=15000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+
+        response = self.client.post(
+            reverse("inventario:compra_nueva"),
+            {
+                "proveedor_id": str(self.proveedor.id),
+                "numero_factura": "FAC-301",
+                "productos_ids[]": [str(producto.id)],
+                "cantidades[]": ["1"],
+                "precios[]": ["10000"],
+                "impuestos[]": ["19"],
+                "margenes[]": ["20"],
+                "lotes[]": ["LOTE-0001"],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "El lote de la fila 1 no puede superar 8 caracteres.")
+        self.assertEqual(Compra.objects.count(), 0)
 
     def test_devolucion_nueva_incluye_productos_disponibles_de_la_compra(self):
         producto = Producto.objects.create(

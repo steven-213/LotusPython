@@ -1,0 +1,26 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Recuperar contrasena | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="contenedor-acceso">
+  <article class="tarjeta-acceso">
+    <h1>Recuperar contrasena</h1>
+    <p>Ingresa el correo registrado para recibir el enlace temporal.</p>
+
+    <form method="post" class="formulario-acceso">
+      {% csrf_token %}
+      <label for="correo">Correo</label>
+      <input id="correo" type="email" name="correo" value="{{ correo|default:'' }}" maxlength="100" autocomplete="email" required>
+
+      <button type="submit" class="boton boton-primario">Enviar enlace</button>
+    </form>
+
+    <a class="enlace-acceso" href="{% url 'sesiones:login' %}">Volver al login</a>
+  </article>
+</section>
+{% endblock %}

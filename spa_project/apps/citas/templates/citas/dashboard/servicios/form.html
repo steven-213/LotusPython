@@ -23,11 +23,11 @@
       <div class="form-grid two-up">
         <label class="field field-full">
           <span>Nombre</span>
-          <input class="form-control" type="text" name="nombre" value="{% if request.POST.nombre %}{{ request.POST.nombre }}{% elif servicio %}{{ servicio.nombre }}{% endif %}" required>
+          <input class="form-control" type="text" name="nombre" value="{% if request.POST.nombre %}{{ request.POST.nombre }}{% elif servicio %}{{ servicio.nombre }}{% endif %}" minlength="3" maxlength="50" required>
         </label>
         <label class="field field-full">
           <span>Descripcion</span>
-          <textarea class="form-control" name="descripcion" rows="4" placeholder="Describe el servicio.">{% if request.POST.descripcion %}{{ request.POST.descripcion }}{% elif servicio %}{{ servicio.descripcion }}{% endif %}</textarea>
+          <textarea class="form-control" name="descripcion" rows="4" minlength="5" maxlength="255" placeholder="Describe el servicio." required>{% if request.POST.descripcion %}{{ request.POST.descripcion }}{% elif servicio %}{{ servicio.descripcion }}{% endif %}</textarea>
         </label>
         <label class="field field-full">
           <span>Imagen del servicio</span>
@@ -37,7 +37,7 @@
           </div>
           <p class="tracking-note" style="margin-top: 0;">Si subes una nueva imagen, reemplazara la actual.</p>
           {% endif %}
-          <input class="form-control" type="file" name="imagen" accept="image/*">
+          <input class="form-control" type="file" name="imagen" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" {% if not servicio or not servicio.imagen %}required{% endif %}>
         </label>
         <label class="field">
           <span>Precio</span>
@@ -58,7 +58,7 @@
         </label>
         <label class="field">
           <span>O crear / reutilizar profesional</span>
-          <input class="form-control" type="text" name="profesional_nombre" value="{% if request.POST.profesional_nombre %}{{ request.POST.profesional_nombre }}{% endif %}" placeholder="Solo si no seleccionaste una existente">
+          <input class="form-control" type="text" name="profesional_nombre" value="{% if request.POST.profesional_nombre %}{{ request.POST.profesional_nombre }}{% endif %}" minlength="3" maxlength="50" placeholder="Solo si no seleccionaste una existente">
         </label>
       </div>
 

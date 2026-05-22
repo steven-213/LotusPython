@@ -30,5 +30,17 @@
             </nav>
         </section>
         {% endfor %}
+
+        {% if admin_sidebar_module == "sesiones" %}
+        <section class="admin-sidebar-group">
+            <p class="admin-sidebar-group-title">Gestion</p>
+            <nav class="admin-sidebar-links" aria-label="Gestion de usuarios">
+                <a href="/admin-panel/usuarios/" class="admin-sidebar-link">
+                    <i class="bi bi-people"></i>
+                    <span>Usuarios</span>
+                </a>
+            </nav>
+        </section>
+        {% endif %}
     </div>
 </aside>

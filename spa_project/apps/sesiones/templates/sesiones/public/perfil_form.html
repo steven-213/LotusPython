@@ -1,0 +1,61 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Editar perfil | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/perfil.css' %}?v=20260416a">
+{% endblock %}
+
+{% block content %}
+<section class="perfil-shell">
+  <header class="perfil-hero">
+    <div>
+      <p class="perfil-tag">Mi cuenta</p>
+      <h1>Editar perfil</h1>
+      <p class="perfil-copy">Actualiza tus datos personales y de contacto.</p>
+    </div>
+  </header>
+
+  <section class="panel-perfil" style="height:auto;">
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <div class="col-md-6">
+        <label class="form-label" for="nombre">Nombre</label>
+        <input class="form-control" id="nombre" name="nombre" minlength="3" maxlength="25" value="{% firstof request.POST.nombre usuario.nombre '' %}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="apellido">Apellido</label>
+        <input class="form-control" id="apellido" name="apellido" minlength="3" maxlength="25" value="{% firstof request.POST.apellido usuario.apellido '' %}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="correo">Correo</label>
+        <input class="form-control" id="correo" name="correo" type="email" value="{% firstof request.POST.correo usuario.correo '' %}" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento</label>
+        <input class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" type="date" value="{% if request.POST.fecha_nacimiento %}{{ request.POST.fecha_nacimiento }}{% else %}{{ usuario.fecha_nacimiento|date:'Y-m-d' }}{% endif %}" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="telefono">Telefono</label>
+        <input class="form-control" id="telefono" name="telefono" minlength="10" maxlength="10" inputmode="numeric" value="{% firstof request.POST.telefono usuario.telefono '' %}">
+      </div>
+      <div class="col-md-8">
+        <label class="form-label" for="direccion">Direccion</label>
+        <input class="form-control" id="direccion" name="direccion" minlength="5" maxlength="120" value="{% firstof request.POST.direccion usuario.direccion '' %}">
+      </div>
+      <div class="col-md-8">
+        <label class="form-label" for="imagen_perfil">Imagen de perfil URL</label>
+        <input class="form-control" id="imagen_perfil" name="imagen_perfil" type="url" value="{% firstof request.POST.imagen_perfil usuario.imagen_perfil '' %}">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="clave">Nueva contraseña</label>
+        <input class="form-control" id="clave" name="clave" type="password" minlength="8" maxlength="30">
+      </div>
+      <div class="col-12 d-flex justify-content-end gap-2">
+        <a class="btn btn-secondary" href="{% url 'sesiones:perfil' %}"><i class="bi bi-arrow-left"></i> Volver</a>
+        <button class="btn btn-success" type="submit"><i class="bi bi-check-circle"></i> Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+</section>
+{% endblock %}

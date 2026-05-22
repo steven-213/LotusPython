@@ -48,7 +48,7 @@
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Número de Factura</label>
-                                    <input type="text" class="form-control" name="numero_factura" value="{{ request.POST.numero_factura|default:'' }}" required>
+                                    <input type="text" class="form-control" name="numero_factura" value="{{ request.POST.numero_factura|default:'' }}" maxlength="20" required>
                                 </div>
                             </div>
                         </div>
@@ -106,20 +106,20 @@
 
                                             <td>
                                                 <div class="input-group">
-                                                    <input type="number" name="impuestos[]" class="form-control impuesto" step="0.01" min="0" value="19">
+                                                <input type="number" name="impuestos[]" class="form-control impuesto" step="0.01" min="0" max="100" value="19">
                                                     <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">%</span>
                                                 </div>                                             
                                             </td>
 
                                             <td>
                                                 <div class="input-group">
-                                                    <input type="number" name="margenes[]" class="form-control margen" step="0.01" min="0" value="20">
+                                                <input type="number" name="margenes[]" class="form-control margen" step="0.01" min="0" max="100" value="20">
                                                     <span class="input-group-text" style="background-color: #fbcdd9; border-color: #ca6b86;">%</span>
                                                 </div>
                                             </td>
 
                                             <td>
-                                                <input type="text" name="lotes[]" class="form-control lote" required>
+                                                <input type="text" name="lotes[]" class="form-control lote" maxlength="8" pattern="[A-Za-z0-9-]+" required>
                                             </td>
 
                                             <td>

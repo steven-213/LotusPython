@@ -2,10 +2,12 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
+from pathlib import Path
 from types import SimpleNamespace
 
 from apps.common.currency import parse_money
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
+from apps.common.validation import validate_basic_text, validate_name, validate_positive_int
 from apps.citas.models import Profesional, Servicio
 from apps.citas.storage import subir_imagen_servicio
 from apps.sesiones.decorators import admin_required_session
@@ -14,6 +16,9 @@ from apps.sesiones.decorators import admin_required_session
 PUBLIC_SERVICES_CACHE_KEY = "public:servicios:activos"
 PUBLIC_SERVICES_CACHE_TIMEOUT = getattr(settings, "PUBLIC_CATALOG_CACHE_TIMEOUT", 60)
 PUBLIC_SERVICES_CACHE_VERSION_KEY = "public:servicios:version"
+ALLOWED_SERVICE_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_SERVICE_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_SERVICE_IMAGE_BYTES = 500 * 1024
 
 
 def _servicios_publicos_cache_key():
@@ -120,6 +125,52 @@ def servicios_publicos(request):
     return apply_public_page_cache_headers(response)
 
 
+def _render_servicio_form(request, *, profesionales, servicio=None):
+    context = {"profesionales": profesionales}
+    if servicio is not None:
+        context["servicio"] = servicio
+    return render(request, "citas/dashboard/servicios/form.html", context)
+
+
+def _validar_imagen_servicio(archivo, *, required):
+    if not archivo:
+        if required:
+            raise ValueError("Debes cargar una imagen para el servicio.")
+        return
+
+    extension = Path(getattr(archivo, "name", "")).suffix.lower()
+    content_type = str(getattr(archivo, "content_type", "") or "").lower()
+    if extension not in ALLOWED_SERVICE_IMAGE_EXTENSIONS and content_type not in ALLOWED_SERVICE_IMAGE_TYPES:
+        raise ValueError("La imagen debe estar en formato JPG, PNG o WEBP.")
+    if getattr(archivo, "size", 0) > MAX_SERVICE_IMAGE_BYTES:
+        raise ValueError("La imagen no puede superar 500 KB.")
+
+
+def _resolver_profesional_form(request):
+    profesional_id = (request.POST.get("profesional_id") or "").strip()
+    profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
+
+    if profesional_id and profesional_nombre:
+        raise ValueError("Debes seleccionar una profesional existente o crear una nueva, no ambas opciones.")
+    if profesional_id:
+        profesional = Profesional.objects.filter(id=profesional_id).first()
+        if not profesional:
+            raise ValueError("La profesional seleccionada no existe.")
+        return profesional
+    if profesional_nombre:
+        profesional_nombre = validate_name(
+            profesional_nombre,
+            label="El nombre de la profesional",
+            min_length=3,
+            max_length=50,
+        )
+        profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
+        if profesional:
+            return profesional
+        return Profesional.objects.create(nombre=profesional_nombre)
+    raise ValueError("Debes seleccionar o crear una profesional.")
+
+
 @admin_required_session
 def servicio_lista(request):
     servicios = Servicio.objects.select_related("profesional").order_by("nombre")
@@ -130,59 +181,57 @@ def servicio_lista(request):
 def servicio_nuevo(request):
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
-        if not nombre:
-            messages.error(request, "Debes ingresar el nombre del servicio.")
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"profesionales": profesionales},
+        try:
+            nombre = validate_basic_text(
+                request.POST.get("nombre"),
+                label="El nombre del servicio",
+                min_length=3,
+                max_length=50,
             )
+            descripcion = validate_basic_text(
+                request.POST.get("descripcion"),
+                label="La descripcion del servicio",
+                min_length=5,
+                max_length=255,
+            )
+            profesional = _resolver_profesional_form(request)
+            try:
+                precio = parse_money(request.POST.get("precio"), default=None)
+            except Exception as exc:
+                raise ValueError("El precio del servicio debe ser un valor valido.") from exc
+            if precio <= 0:
+                raise ValueError("El precio del servicio debe ser mayor a cero.")
+            duracion_minutos = validate_positive_int(
+                request.POST.get("duracion_minutos"),
+                label="La duracion del servicio",
+                min_value=15,
+            )
+            if Servicio.objects.filter(nombre__iexact=nombre).exists():
+                raise ValueError("Ya existe un servicio con ese nombre.")
+            imagen = request.FILES.get("imagen")
+            _validar_imagen_servicio(imagen, required=True)
+        except Exception as exc:
+            messages.error(request, str(exc))
+            return _render_servicio_form(request, profesionales=profesionales)
 
-        profesional_id = request.POST.get("profesional_id")
-        profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
-        if profesional_id:
-            profesional = get_object_or_404(Profesional, id=profesional_id)
-        elif profesional_nombre:
-            profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
-            if not profesional:
-                profesional = Profesional.objects.create(nombre=profesional_nombre)
-        else:
-            messages.error(request, "Debes seleccionar o crear una profesional.")
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"profesionales": profesionales},
-            )
+        imagen_url = subir_imagen_servicio(imagen)
+        if not imagen_url:
+            messages.error(request, "No fue posible guardar la imagen del servicio.")
+            return _render_servicio_form(request, profesionales=profesionales)
 
-        if Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional).exists():
-            messages.error(
-                request,
-                "Ya existe un servicio con ese nombre para la profesional seleccionada.",
-            )
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"profesionales": profesionales},
-            )
-        imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
         Servicio.objects.create(
             nombre=nombre,
-            descripcion=request.POST.get("descripcion", ""),
+            descripcion=descripcion,
             imagen=imagen_url,
-            precio=parse_money(request.POST.get("precio")),
+            precio=precio,
             profesional=profesional,
-            duracion_minutos=request.POST.get("duracion_minutos") or 60,
+            duracion_minutos=duracion_minutos,
             activo=request.POST.get("activo") == "on",
         )
         _invalidar_cache_servicios_publicos()
         messages.success(request, "Servicio creado correctamente.")
         return redirect("citas:servicio_lista")
-    return render(
-        request,
-        "citas/dashboard/servicios/form.html",
-        {"profesionales": profesionales},
-    )
+    return _render_servicio_form(request, profesionales=profesionales)
 
 
 @admin_required_session
@@ -190,64 +239,53 @@ def servicio_editar(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
-        if not nombre:
-            messages.error(request, "Debes ingresar el nombre del servicio.")
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"servicio": servicio, "profesionales": profesionales},
+        try:
+            nombre = validate_basic_text(
+                request.POST.get("nombre"),
+                label="El nombre del servicio",
+                min_length=3,
+                max_length=50,
             )
-
-        profesional_id = request.POST.get("profesional_id")
-        profesional_nombre = (request.POST.get("profesional_nombre") or "").strip()
-        if profesional_id:
-            profesional = get_object_or_404(Profesional, id=profesional_id)
-        elif profesional_nombre:
-            profesional = Profesional.objects.filter(nombre__iexact=profesional_nombre).first()
-            if not profesional:
-                profesional = Profesional.objects.create(nombre=profesional_nombre)
-        else:
-            messages.error(request, "Debes seleccionar o crear una profesional.")
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"servicio": servicio, "profesionales": profesionales},
+            descripcion = validate_basic_text(
+                request.POST.get("descripcion"),
+                label="La descripcion del servicio",
+                min_length=5,
+                max_length=255,
             )
-
-        if (
-            Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional)
-            .exclude(id=servicio.id)
-            .exists()
-        ):
-            messages.error(
-                request,
-                "Ya existe otro servicio con ese nombre para la profesional seleccionada.",
+            profesional = _resolver_profesional_form(request)
+            try:
+                precio = parse_money(request.POST.get("precio"), default=None)
+            except Exception as exc:
+                raise ValueError("El precio del servicio debe ser un valor valido.") from exc
+            if precio <= 0:
+                raise ValueError("El precio del servicio debe ser mayor a cero.")
+            duracion_minutos = validate_positive_int(
+                request.POST.get("duracion_minutos"),
+                label="La duracion del servicio",
+                min_value=15,
             )
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"servicio": servicio, "profesionales": profesionales},
-            )
+            if Servicio.objects.filter(nombre__iexact=nombre).exclude(id=servicio.id).exists():
+                raise ValueError("Ya existe otro servicio con ese nombre.")
+            imagen = request.FILES.get("imagen")
+            _validar_imagen_servicio(imagen, required=not bool(servicio.imagen))
+        except Exception as exc:
+            messages.error(request, str(exc))
+            return _render_servicio_form(request, servicio=servicio, profesionales=profesionales)
 
         servicio.nombre = nombre
-        servicio.descripcion = request.POST.get("descripcion", "")
-        imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
+        servicio.descripcion = descripcion
+        imagen_url = subir_imagen_servicio(imagen)
         if imagen_url:
             servicio.imagen = imagen_url
-        servicio.precio = parse_money(request.POST.get("precio"))
-        servicio.duracion_minutos = request.POST.get("duracion_minutos") or 60
+        servicio.precio = precio
+        servicio.duracion_minutos = duracion_minutos
         servicio.activo = request.POST.get("activo") == "on"
         servicio.profesional = profesional
         servicio.save()
         _invalidar_cache_servicios_publicos()
         messages.success(request, "Servicio actualizado.")
         return redirect("citas:servicio_lista")
-    return render(
-        request,
-        "citas/dashboard/servicios/form.html",
-        {"servicio": servicio, "profesionales": profesionales},
-    )
+    return _render_servicio_form(request, servicio=servicio, profesionales=profesionales)
 
 
 @admin_required_session

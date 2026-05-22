@@ -308,6 +308,8 @@ def _leer_filtros_dashboard(request):
     atajo = (request.GET.get("atajo") or "").strip().lower()
     if atajo not in {"hoy", "semana", "mes", "todas", "pendientes"}:
         atajo = ""
+    if not request.GET:
+        atajo = "hoy"
     return {
         "atajo": atajo,
         "estado": (request.GET.get("estado") or "").strip(),
@@ -718,7 +720,7 @@ def reserva_cancelar(request, reserva_id):
     except ValidationError as exc:
         messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
     if usuario.rol == Usuario.ROL_ADMIN:
-        return redirect("citas:calendario")
+        return redirect("citas:dashboard")
     return redirect("citas:agenda")
 
 
@@ -760,7 +762,7 @@ def reserva_confirmar(request, reserva_id):
             messages.success(request, "La cita fue confirmada.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
+    return _redirect_admin_dashboard_target(request, default_view="citas:dashboard")
 
 
 @admin_required_session
@@ -776,9 +778,10 @@ def reserva_iniciar(request, reserva_id):
                 observacion="Atencion iniciada.",
             )
             messages.success(request, "La cita paso a estado en proceso.")
+            return redirect("citas:reserva_detalle", reserva_id=reserva.id)
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
+    return redirect("citas:reserva_detalle", reserva_id=reserva.id)
 
 
 @admin_required_session
@@ -796,7 +799,7 @@ def reserva_finalizar(request, reserva_id):
             messages.success(request, "La cita fue finalizada.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
+    return _redirect_admin_dashboard_target(request, default_view="citas:dashboard")
 
 
 @admin_required_session
@@ -814,7 +817,7 @@ def reserva_no_asistio(request, reserva_id):
             messages.success(request, "La cita fue marcada como no asistio.")
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
-    return _redirect_admin_dashboard_target(request, default_view="citas:almanaque")
+    return _redirect_admin_dashboard_target(request, default_view="citas:dashboard")
 
 
 @login_required_session
@@ -888,7 +891,7 @@ def reserva_registrar_pago(request, reserva_id):
         else:
             messages.success(request, "El pago fue registrado correctamente.")
         if usuario.rol == Usuario.ROL_ADMIN:
-            return redirect("citas:calendario")
+            return redirect("citas:reserva_detalle", reserva_id=reserva.id)
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
     except ValidationError as exc:
         messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])

@@ -136,7 +136,7 @@
         <div class="productos-scroll-shell">
             <div class="grid-productos">
                 {% for item in productos %}
-                {% with p=item.producto margen=item.margen %}
+                {% with p=item.producto margen=item.margen vencimiento=item.estado_vencimiento %}
                 <article class="card-producto">
                     {% if p.imagen %}
                     <img src="{{ p.imagen }}" class="imagen" alt="{{ p.nombre }}">
@@ -171,22 +171,21 @@
                                 <small>{{ p.proveedor.nombre }}</small>
                             </div>
                             {% endif %}
+                            <div>
+                                <span>Vencimiento</span>
+                                <strong class="{% if vencimiento.slug == 'vencido' %}text-danger{% elif vencimiento.slug == 'proximo' %}text-warning{% endif %}">
+                                    {% if p.fecha_vencimiento %}{{ p.fecha_vencimiento|date:"d/m/Y" }}{% else %}{{ vencimiento.label }}{% endif %}
+                                </strong>
+                            </div>
                         </div>
                     </div>
 
                     <div class="acciones">
                         <a href="{% url 'inventario:producto_detalle' p.id %}">Ver</a>
                         <a href="{% url 'inventario:producto_editar' p.id %}">Editar</a>
-                        <form method="POST" action="{% url 'inventario:producto_eliminar' p.id %}">
-                            {% csrf_token %}
-                            <button
-                                type="submit"
-                                class="btn btn-danger"
-                                onclick="return confirm('¿Seguro que deseas eliminar?');"
-                            >
-                                Eliminar
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarProducto{{ p.id }}">
+                            Eliminar
+                        </button>
                     </div>
                 </article>
                 {% endwith %}
@@ -203,4 +202,27 @@
         </a>
     </div>
 </div>
+
+{% for item in productos %}
+{% with p=item.producto %}
+<div class="modal fade" id="modalEliminarProducto{{ p.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar eliminacion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">¿Seguro que deseas eliminar <strong>{{ p.nombre }}</strong>?</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+                <form method="POST" action="{% url 'inventario:producto_eliminar' p.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+{% endfor %}
 {% endblock %}

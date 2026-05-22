@@ -24,6 +24,8 @@
           name="documento"
           value="{{ form_data.documento|default:'' }}"
           class="{% if duplicate_documento %}campo-invalido{% endif %}"
+          min="100"
+          max="999999999999999"
           required
         >
         {% if duplicate_documento %}
@@ -32,15 +34,15 @@
       </div>
       <div>
         <label for="nombre">Nombre</label>
-        <input id="nombre" type="text" name="nombre" value="{{ form_data.nombre|default:'' }}" required>
+        <input id="nombre" type="text" name="nombre" value="{{ form_data.nombre|default:'' }}" minlength="3" maxlength="25" autocomplete="given-name" required>
       </div>
       <div>
         <label for="apellido">Apellido</label>
-        <input id="apellido" type="text" name="apellido" value="{{ form_data.apellido|default:'' }}" required>
+        <input id="apellido" type="text" name="apellido" value="{{ form_data.apellido|default:'' }}" minlength="3" maxlength="25" autocomplete="family-name" required>
       </div>
       <div>
         <label for="correo">Correo</label>
-        <input id="correo" type="email" name="correo" value="{{ form_data.correo|default:'' }}" class="{% if duplicate_correo %}campo-invalido{% endif %}" required>
+        <input id="correo" type="email" name="correo" value="{{ form_data.correo|default:'' }}" class="{% if duplicate_correo %}campo-invalido{% endif %}" maxlength="100" autocomplete="email" required>
         {% if duplicate_correo %}
         <p class="campo-alerta" role="alert">Ese correo ya tiene una cuenta registrada.</p>
         {% endif %}
@@ -51,7 +53,11 @@
       </div>
       <div>
         <label for="clave">Contraseña</label>
-        <input id="clave" type="password" name="clave" required>
+        <input id="clave" type="password" name="clave" minlength="8" maxlength="30" autocomplete="new-password" required>
+      </div>
+      <div>
+        <label for="confirmacion_clave">Confirmar contraseña</label>
+        <input id="confirmacion_clave" type="password" name="confirmacion_clave" minlength="8" maxlength="30" autocomplete="new-password" required>
       </div>
 
       <button type="submit" class="boton boton-primario">Registrarme</button>

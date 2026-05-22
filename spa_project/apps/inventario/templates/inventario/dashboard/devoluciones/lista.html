@@ -5,6 +5,26 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'inventario/dashboard_style.css' %}?v=20260420b">
+{% for devolucion in devoluciones %}
+<div class="modal fade" id="modalEliminarDevolucion{{ devolucion.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar eliminacion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">¿Eliminar la devolucion #{{ devolucion.id }}?</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+                <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
 
 {% block content %}
@@ -173,12 +193,9 @@
                             <a href="{% url 'inventario:devolucion_detalle' devolucion.id %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <form method="post" action="{% url 'inventario:devolucion_eliminar' devolucion.id %}" style="display: inline;" onsubmit="return confirm('Eliminar esta devolucion?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarDevolucion{{ devolucion.id }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}

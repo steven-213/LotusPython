@@ -11,8 +11,11 @@ def _resolver_usuario_sesion(request):
     if not usuario_id:
         return None
 
-    usuario = Usuario.objects.filter(id=usuario_id).only("id", "rol").first()
+    usuario = Usuario.objects.filter(id=usuario_id).only("id", "rol", "activo").first()
     if not usuario:
+        request.session.flush()
+        return None
+    if not usuario.activo:
         request.session.flush()
         return None
 

@@ -25,11 +25,13 @@ class Proveedor(models.Model):
 class Producto(models.Model):
     nombre = models.CharField(max_length=255, unique=True)
     descripcion = models.TextField(blank=True)
+    especificaciones_tecnicas = models.TextField(blank=True)
     imagen = models.URLField(blank=True, null=True)
     precio_compra = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     impuesto = models.DecimalField(max_digits=5, decimal_places=2, default=19)
     precio_venta = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     margen_ganancia = models.DecimalField(max_digits=5, decimal_places=2, default=20)
+    fecha_vencimiento = models.DateField(null=True, blank=True)
     activo = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)

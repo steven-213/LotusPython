@@ -1,171 +1,114 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Listado de empleados</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base_public.html" %}
+{% load static %}
 
-    <!-- TU CSS -->
-    <style>
-        body {
-            font-family: "Helvetica Neue", sans-serif;
-            background-color: #fff;
-            margin: 0;
-            padding: 0;
-        }
+{% block title %}Usuarios | Administracion{% endblock %}
 
-        .navbar {
-            background: #fce4ec;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 18px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .navbar h3 {
-            color: rgb(231, 104, 125);
-            font-size: 24px;
-        }
-
-        .navbar ul {
-            display: flex;
-            gap: 15px;
-            list-style: none;
-        }
-
-        .navbar a {
-            text-decoration: none;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .container {
-            padding: 30px;
-        }
-
-        .card {
-            background-color: #f9f9f9;
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.12);
-        }
-
-        .card-header {
-            font-size: 24px;
-            color: rgb(231, 104, 125);
-            margin-bottom: 20px;
-        }
-
-        .acciones {
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: pink;
-            color: #333;
-            padding: 10px 20px;
-            border-radius: 8px;
-            text-decoration: none;
-            margin-right: 10px;
-            transition: 0.2s;
-        }
-
-        .btn:hover {
-            background-color: #ff6f91;
-            transform: scale(1.05);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        th, td {
-            border: 1px solid #e7e7e7;
-            padding: 12px;
-            text-align: center;
-        }
-
-        thead {
-            background-color: #fce4ec;
-            color: rgb(231, 104, 125);
-        }
-    </style>
-</head>
-
-<body>
-
-<!-- NAVBAR solo visual -->
-<div class="navbar">
-    <h3>Administrador</h3>
-    <ul>
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="/listar">Empleados</a></li>
-        <li><a href="/logout">Cerrar sesión</a></li>
-    </ul>
-</div>
-
-<div class="container">
-    <div class="card">
-
-        <div class="card-header" th:text="${titulo}">Listado de empleados</div>
-
-        <div class="acciones">
-            <a th:href="@{/form}" class="btn">Agregar Empleado</a>
-            <a th:href="@{/exportarExcel}" class="btn">Exportar Excel</a>
-        </div>
-
-        <!-- ✅ Thymeleaf solo para datos -->
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Apellido</th>
-                    <th>Email</th>
-                    <th>Fecha</th>
-                    <th>Telefono</th>
-                    <th>Sexo</th>
-                    <th>Salario</th>
-                    <th>Detalles</th>
-                    <th>Editar</th>
-                    <th>Eliminar</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <tr th:each="empleado : ${empleados}">
-                    <td th:text="${empleado.id}">1</td>
-                    <td th:text="${empleado.nombre}">Nombre</td>
-                    <td th:text="${empleado.apellido}">Apellido</td>
-                    <td th:text="${empleado.email}">email@email.com</td>
-                    <td th:text="${empleado.fecha}">2025-01-01</td>
-                    <td th:text="${empleado.telefono}">123</td>
-                    <td th:text="${empleado.sexo}">M</td>
-                    <td th:text="${empleado.salario}">1000</td>
-
-                    <td>
-                        <a th:href="@{/ver/{id}(id=${empleado.id})}" class="btn">Ver</a>
-                    </td>
-                    <td>
-                        <a th:href="@{/form/{id}(id=${empleado.id})}" class="btn">Editar</a>
-                    </td>
-                    <td>
-                        <a th:href="@{/eliminar/{id}(id=${empleado.id})}"
-                           class="btn"
-                           onclick="return confirm('¿Seguro de eliminar?')">
-                            Eliminar
-                        </a>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
+{% block content %}
+<section class="admin-page-hero">
+  <div class="admin-page-copy">
+    <div class="admin-page-breadcrumbs">
+      <a href="{% url 'sesiones:admin_dashboard' %}">Panel</a><span>/</span><span>Usuarios</span>
     </div>
-</div>
+    <h1 class="admin-page-title">Usuarios</h1>
+    <p class="admin-page-description">Consulta, filtra y administra clientes y administradores del sistema.</p>
+  </div>
+  <div class="admin-page-actions">
+    <a class="admin-action-button" href="{% url 'sesiones:usuario_nuevo' %}">
+      <i class="bi bi-person-plus"></i> Nuevo usuario
+    </a>
+  </div>
+</section>
 
-</body>
-</html>
+<section class="admin-surface-card">
+  <div class="admin-surface-head">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label">Buscar</label>
+        <input class="form-control" type="text" name="q" value="{{ query }}" minlength="3" placeholder="Nombre, documento o correo">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Rol</label>
+        <select class="form-select" name="rol">
+          <option value="">Todos</option>
+          {% for value,label in roles %}
+          <option value="{{ value }}" {% if rol_filtro == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Estado</label>
+        <select class="form-select" name="estado">
+          <option value="">Todos</option>
+          <option value="activo" {% if estado_filtro == "activo" %}selected{% endif %}>Activo</option>
+          <option value="inactivo" {% if estado_filtro == "inactivo" %}selected{% endif %}>Inactivo</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-grid">
+        <button class="btn btn-success" type="submit"><i class="bi bi-search"></i> Buscar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Documento</th>
+          <th>Correo</th>
+          <th>Telefono</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for usuario in usuarios %}
+        <tr>
+          <td><strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong></td>
+          <td>{{ usuario.documento }}</td>
+          <td>{{ usuario.correo }}</td>
+          <td>{{ usuario.telefono|default:"--" }}</td>
+          <td><span class="badge bg-info text-dark">{{ usuario.get_rol_display }}</span></td>
+          <td>
+            {% if usuario.activo %}
+            <span class="badge bg-success">Activo</span>
+            {% else %}
+            <span class="badge bg-secondary">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'sesiones:usuario_detalle' usuario.id %}"><i class="bi bi-eye"></i></a>
+            <a class="btn btn-sm btn-warning" href="{% url 'sesiones:usuario_editar' usuario.id %}"><i class="bi bi-pencil"></i></a>
+            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarUsuario{{ usuario.id }}"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center py-4">No hay usuarios para mostrar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% for usuario in usuarios %}
+<div class="modal fade" id="modalEliminarUsuario{{ usuario.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar eliminacion</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">¿Eliminar o desactivar a <strong>{{ usuario.nombre }} {{ usuario.apellido }}</strong>?</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+        <form method="post" action="{% url 'sesiones:usuario_eliminar' usuario.id %}">
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit"><i class="bi bi-trash"></i> Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -3,12 +3,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor, Inventario, MovimientoInventario
 from apps.sesiones.decorators import admin_required_session
 
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models import Sum
 from datetime import datetime, timedelta
 from django.db import transaction
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
+from apps.common.validation import validate_lote, validate_percentage
 from apps.ventas.models import SolicitudDevolucionVenta
 
 
@@ -50,6 +51,27 @@ def _compra_factura_duplicada(*, proveedor, numero_factura, exclude_id=None):
     return compras.exists()
 
 
+def _parse_date_filter(value, *, label):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d")
+    except ValueError as exc:
+        raise ValueError(f"{label} no es valida.") from exc
+
+
+def _aplicar_rango_fechas(queryset, *, fecha_inicio, fecha_fin, field_name):
+    inicio = _parse_date_filter(fecha_inicio, label="La fecha de inicio")
+    fin = _parse_date_filter(fecha_fin, label="La fecha de fin")
+    if inicio and fin and inicio > fin:
+        raise ValueError("La fecha de inicio no puede ser posterior a la fecha de fin.")
+    if inicio:
+        queryset = queryset.filter(**{f"{field_name}__gte": inicio})
+    if fin:
+        queryset = queryset.filter(**{f"{field_name}__lte": fin + timedelta(days=1)})
+    return queryset
+
+
 def _obtener_detalles_compra(request):
     productos_ids = request.POST.getlist("productos_ids[]")
     cantidades = request.POST.getlist("cantidades[]")
@@ -85,25 +107,21 @@ def _obtener_detalles_compra(request):
         fila = index + 1
         if not producto_id:
             raise ValueError(f"Debes seleccionar un producto en la fila {fila}.")
-        if not lote:
-            raise ValueError(f"Debes ingresar un lote en la fila {fila}.")
-
         producto = Producto.objects.filter(id=producto_id, activo=True).first()
         if not producto:
             raise ValueError(f"El producto de la fila {fila} no es valido.")
 
         cantidad = _parse_positive_int(cantidad_raw, label=f"La cantidad de la fila {fila}")
         precio_compra = _parse_decimal(precio_raw, label=f"El precio de la fila {fila}")
-        impuesto = _parse_decimal(
+        impuesto = validate_percentage(
             impuesto_raw or "0",
             label=f"El impuesto de la fila {fila}",
-            allow_zero=True,
         )
-        margen_ganancia = _parse_decimal(
+        margen_ganancia = validate_percentage(
             margen_raw or "0",
             label=f"El margen de la fila {fila}",
-            allow_zero=True,
         )
+        lote = validate_lote(lote, label=f"El lote de la fila {fila}")
 
         duplicate_key = (producto.id, lote.casefold())
         if duplicate_key in filas_duplicadas:
@@ -199,20 +217,17 @@ def compra_lista(request):
     if proveedor_id:
         compras = compras.filter(proveedor_id=proveedor_id)
     
-    filtro_fecha = Q()
-    if fecha_inicio:
-        try:
-            filtro_fecha &= Q(fecha__gte=datetime.strptime(fecha_inicio, "%Y-%m-%d"))
-        except ValueError:
-            fecha_inicio = ""
-    if fecha_fin:
-        try:
-            filtro_fecha &= Q(fecha__lte=datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1))
-        except ValueError:
-            fecha_fin = ""
-    
-    if filtro_fecha:
-        compras = compras.filter(filtro_fecha)
+    try:
+        compras = _aplicar_rango_fechas(
+            compras,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            field_name="fecha",
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        fecha_inicio = ""
+        fecha_fin = ""
     
     
     proveedores = Proveedor.objects.all()
@@ -234,6 +249,18 @@ def compra_lista(request):
 def compra_nueva(request):
     if request.method == "POST":
         proveedor_id = request.POST.get("proveedor_id")
+        if not proveedor_id:
+            messages.error(request, "Debes seleccionar un proveedor.")
+            proveedores = Proveedor.objects.all()
+            productos = Producto.objects.filter(activo=True)
+            return render(
+                request,
+                "inventario/dashboard/compras/nueva.html",
+                {
+                    "proveedores": proveedores,
+                    "productos": productos,
+                }
+            )
         proveedor = get_object_or_404(Proveedor, id=proveedor_id)
 
         numero_factura = request.POST.get("numero_factura", "").strip()
@@ -389,25 +416,34 @@ def devolucion_lista(request):
     fecha_inicio = request.GET.get("fecha_inicio", "")
     fecha_fin = request.GET.get("fecha_fin", "")
     
-    devoluciones = DevolucionCompra.objects.select_related("compra", "producto").order_by("-fecha")
+    prioridad_estado = Case(
+        When(estado="pendiente", then=Value(0)),
+        When(estado="en_proceso", then=Value(1)),
+        When(estado="aprobada", then=Value(2)),
+        When(estado="rechazada", then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField(),
+    )
+    devoluciones = (
+        DevolucionCompra.objects
+        .select_related("compra", "producto")
+        .order_by(prioridad_estado, "-fecha")
+    )
     
     if estado_filtro:
         devoluciones = devoluciones.filter(estado=estado_filtro)
     
-    filtro_fecha = Q()
-    if fecha_inicio:
-        try:
-            filtro_fecha &= Q(fecha__gte=datetime.strptime(fecha_inicio, "%Y-%m-%d"))
-        except ValueError:
-            fecha_inicio = ""
-    if fecha_fin:
-        try:
-            filtro_fecha &= Q(fecha__lte=datetime.strptime(fecha_fin, "%Y-%m-%d") + timedelta(days=1))
-        except ValueError:
-            fecha_fin = ""
-    
-    if filtro_fecha:
-        devoluciones = devoluciones.filter(filtro_fecha)
+    try:
+        devoluciones = _aplicar_rango_fechas(
+            devoluciones,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            field_name="fecha",
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        fecha_inicio = ""
+        fecha_fin = ""
     
     devoluciones_pendientes = DevolucionCompra.objects.filter(estado="pendiente").count()
     devoluciones_aprobadas = DevolucionCompra.objects.filter(estado="aprobada").count()
@@ -415,7 +451,17 @@ def devolucion_lista(request):
     solicitudes_cliente = (
         SolicitudDevolucionVenta.objects
         .select_related("cliente", "detalle_venta__venta", "detalle_venta__producto")
-        .order_by("-fecha_solicitud", "-id")
+        .order_by(
+            Case(
+                When(estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE, then=Value(0)),
+                When(estado=SolicitudDevolucionVenta.ESTADO_APROBADA, then=Value(2)),
+                When(estado=SolicitudDevolucionVenta.ESTADO_RECHAZADA, then=Value(3)),
+                default=Value(4),
+                output_field=IntegerField(),
+            ),
+            "-fecha_solicitud",
+            "-id",
+        )
     )
     solicitudes_cliente_pendientes = solicitudes_cliente.filter(
         estado=SolicitudDevolucionVenta.ESTADO_PENDIENTE

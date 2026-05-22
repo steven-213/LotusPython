@@ -1,10 +1,72 @@
 from decimal import Decimal
-from django.shortcuts import render
+from django.contrib import messages
+from django.db.models import Q
+from django.db.models.deletion import ProtectedError
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from apps.common.validation import (
+    validate_basic_text,
+    validate_birth_date,
+    validate_digits_string,
+    validate_email,
+    validate_name,
+    validate_password,
+)
 from apps.citas.models import Reserva
 from apps.sesiones.decorators import login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import SolicitudDevolucionVenta, ValidacionVenta
+
+
+def _usuario_actual(request):
+    return get_object_or_404(Usuario, id=request.session.get("usuario_id"))
+
+
+def _leer_perfil_form(request, usuario):
+    nombre = validate_name(request.POST.get("nombre"), label="El nombre")
+    apellido = validate_name(request.POST.get("apellido"), label="El apellido")
+    correo = validate_email(request.POST.get("correo"))
+    fecha_nacimiento = validate_birth_date(request.POST.get("fecha_nacimiento"))
+    telefono = validate_digits_string(
+        request.POST.get("telefono"),
+        label="El telefono",
+        min_length=10,
+        max_length=10,
+        required=False,
+    )
+    direccion = validate_basic_text(
+        request.POST.get("direccion"),
+        label="La direccion",
+        min_length=5,
+        max_length=120,
+        required=False,
+    )
+    imagen_perfil = (request.POST.get("imagen_perfil") or "").strip()
+    if len(imagen_perfil) > 200:
+        raise ValueError("La URL de imagen no puede superar 200 caracteres.")
+
+    clave = (request.POST.get("clave") or "").strip()
+    if clave:
+        clave = validate_password(clave)
+    else:
+        clave = usuario.clave
+
+    duplicado = Usuario.objects.filter(
+        Q(correo__iexact=correo) | Q(documento=usuario.documento)
+    ).exclude(id=usuario.id)
+    if duplicado.filter(correo__iexact=correo).exists():
+        raise ValueError("Ya existe otra cuenta con ese correo.")
+
+    return {
+        "nombre": nombre,
+        "apellido": apellido,
+        "correo": correo,
+        "fecha_nacimiento": fecha_nacimiento,
+        "telefono": telefono,
+        "direccion": direccion,
+        "imagen_perfil": imagen_perfil or None,
+        "clave": clave,
+    }
 
 
 def _resumir_productos(nombres):
@@ -282,3 +344,41 @@ def perfil(request):
             "total_items_comprados": items_comprados_total,
         },
     )
+
+
+@login_required_session
+def perfil_editar(request):
+    usuario = _usuario_actual(request)
+    if request.method == "POST":
+        try:
+            datos = _leer_perfil_form(request, usuario)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return render(request, "sesiones/public/perfil_form.html", {"usuario": usuario})
+
+        for campo, valor in datos.items():
+            setattr(usuario, campo, valor)
+        usuario.save()
+        request.session["usuario_nombre"] = f"{usuario.nombre} {usuario.apellido}".strip()
+        request.session.modified = True
+        messages.success(request, "Perfil actualizado correctamente.")
+        return redirect("sesiones:perfil")
+    return render(request, "sesiones/public/perfil_form.html", {"usuario": usuario})
+
+
+@login_required_session
+def perfil_eliminar(request):
+    usuario = _usuario_actual(request)
+    if request.method == "POST":
+        try:
+            usuario.delete()
+            request.session.flush()
+            messages.success(request, "Tu cuenta fue eliminada correctamente.")
+            return redirect("sesiones:login")
+        except ProtectedError:
+            usuario.activo = False
+            usuario.save(update_fields=["activo"])
+            request.session.flush()
+            messages.success(request, "Tu cuenta fue desactivada. Conservamos el historial asociado por seguridad.")
+            return redirect("sesiones:login")
+    return redirect("sesiones:perfil")

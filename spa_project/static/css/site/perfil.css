@@ -73,6 +73,27 @@
   font-weight: 600;
 }
 
+.perfil-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  margin-top: 0.8rem;
+  object-fit: cover;
+  background: #fff;
+  border: 2px solid rgba(180, 42, 185, 0.18);
+  color: var(--perfil-accent-dark);
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+
+.boton-peligro {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;

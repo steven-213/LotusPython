@@ -1,0 +1,27 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Nueva contrasena | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="contenedor-acceso">
+  <article class="tarjeta-acceso">
+    <h1>Nueva contrasena</h1>
+    <p>Define una clave de al menos 8 caracteres con letras y numeros.</p>
+
+    <form method="post" class="formulario-acceso">
+      {% csrf_token %}
+      <label for="clave">Contraseña</label>
+      <input id="clave" type="password" name="clave" minlength="8" maxlength="30" autocomplete="new-password" required>
+
+      <label for="confirmacion_clave">Confirmar contraseña</label>
+      <input id="confirmacion_clave" type="password" name="confirmacion_clave" minlength="8" maxlength="30" autocomplete="new-password" required>
+
+      <button type="submit" class="boton boton-primario">Actualizar contrasena</button>
+    </form>
+  </article>
+</section>
+{% endblock %}

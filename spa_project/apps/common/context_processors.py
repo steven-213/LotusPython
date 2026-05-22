@@ -5,6 +5,11 @@ from django.urls import NoReverseMatch, reverse
 ADMIN_VIEW_NAMES = {
     "sesiones": {
         "admin_dashboard",
+        "usuario_lista",
+        "usuario_nuevo",
+        "usuario_detalle",
+        "usuario_editar",
+        "usuario_eliminar",
     },
     "inventario": {
         "dashboard",
@@ -247,13 +252,19 @@ def _build_dashboard_sections():
         {
             "label": "Citas",
             "icon": "bi-calendar-event",
-            "url": _safe_reverse("citas:calendario"),
+            "url": _safe_reverse("citas:dashboard"),
             "is_active": False,
         },
         {
             "label": "Devoluciones",
             "icon": "bi-arrow-return-left",
             "url": _safe_reverse("inventario:devolucion_lista"),
+            "is_active": False,
+        },
+        {
+            "label": "Usuarios",
+            "icon": "bi-people",
+            "url": _safe_reverse("sesiones:usuario_lista"),
             "is_active": False,
         },
     ]
@@ -277,6 +288,40 @@ def _build_sidebar_state(namespace: str, url_name: str):
             "admin_sidebar_copy": "Ingresa a cada modulo desde un panel mas limpio y directo.",
             "admin_sidebar_back_url": "",
             "admin_sidebar_back_label": "",
+            "admin_sidebar_module": "sesiones",
+        }
+
+    if namespace == "sesiones" and url_name.startswith("usuario_"):
+        return {
+            "admin_sidebar_sections": [
+                {
+                    "title": "Atajos de Usuarios",
+                    "is_active": True,
+                    "items": [
+                        _build_item(
+                            namespace,
+                            url_name,
+                            label="Usuarios",
+                            icon="bi-people",
+                            view_name="sesiones:usuario_lista",
+                            active_urls={"usuario_lista", "usuario_detalle", "usuario_editar", "usuario_eliminar"},
+                        ),
+                        _build_item(
+                            namespace,
+                            url_name,
+                            label="Nuevo usuario",
+                            icon="bi-person-plus",
+                            view_name="sesiones:usuario_nuevo",
+                            active_urls={"usuario_nuevo"},
+                        ),
+                    ],
+                }
+            ],
+            "admin_sidebar_title": "Usuarios",
+            "admin_sidebar_eyebrow": "Modulo activo",
+            "admin_sidebar_copy": "Gestiona clientes y administradores del sistema.",
+            "admin_sidebar_back_url": _safe_reverse("sesiones:admin_dashboard"),
+            "admin_sidebar_back_label": "Volver al panel",
             "admin_sidebar_module": "sesiones",
         }
 

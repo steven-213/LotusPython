@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from hashlib import md5
 from types import SimpleNamespace
@@ -18,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone  # CORRECCIÓN: Importación necesaria para MovimientoInventario
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
+from apps.common.validation import validate_basic_text, validate_decimal_range
 from apps.inventario.models import Producto, Proveedor, Inventario, MovimientoInventario
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
 from apps.inventario.storage import subir_imagen_producto
@@ -40,6 +42,86 @@ CSV_PRODUCT_COLUMN_ALIASES = {
     "margen_ganancia": {"margen_ganancia", "margen", "margin"},
     "imagen": {"imagen", "image", "imagen_url"},
 }
+
+
+def _parse_optional_date(value, *, label):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw).date()
+    except ValueError as exc:
+        raise ValueError(f"{label} no es valida.") from exc
+
+
+def _estado_vencimiento(producto):
+    if not producto.fecha_vencimiento:
+        return {"slug": "sin_vencimiento", "label": "No vence"}
+    hoy = timezone.localdate()
+    if producto.fecha_vencimiento < hoy:
+        return {"slug": "vencido", "label": "Vencido"}
+    if producto.fecha_vencimiento <= hoy + timedelta(days=30):
+        return {"slug": "proximo", "label": "Proximo a vencer"}
+    return {"slug": "vigente", "label": "Vigente"}
+
+
+def _leer_producto_form(request):
+    nombre = validate_basic_text(
+        request.POST.get("nombre"),
+        label="El nombre del producto",
+        min_length=3,
+        max_length=80,
+    )
+    descripcion = validate_basic_text(
+        request.POST.get("descripcion"),
+        label="La descripcion del producto",
+        min_length=5,
+        max_length=500,
+    )
+    especificaciones_tecnicas = validate_basic_text(
+        request.POST.get("especificaciones_tecnicas"),
+        label="Las especificaciones tecnicas",
+        min_length=10,
+        max_length=500,
+        required=False,
+    )
+    precio_compra = validate_decimal_range(
+        request.POST.get("precio_compra") or "0",
+        label="El precio de compra",
+        min_value=0,
+    )
+    impuesto = validate_decimal_range(
+        request.POST.get("impuesto") or "19",
+        label="El impuesto",
+        min_value=0,
+        max_value=100,
+        allow_zero=True,
+    )
+    margen_ganancia = validate_decimal_range(
+        request.POST.get("margen_ganancia") or "20",
+        label="El margen de ganancia",
+        min_value=0,
+        max_value=100,
+        allow_zero=True,
+    )
+    proveedor_id = (request.POST.get("proveedor_id") or "").strip()
+    if not proveedor_id:
+        raise ValueError("Debes seleccionar un proveedor.")
+    if not Proveedor.objects.filter(id=proveedor_id).exists():
+        raise ValueError("El proveedor seleccionado no existe.")
+    return {
+        "nombre": nombre,
+        "descripcion": descripcion,
+        "especificaciones_tecnicas": especificaciones_tecnicas,
+        "precio_compra": precio_compra,
+        "impuesto": impuesto,
+        "margen_ganancia": margen_ganancia,
+        "proveedor_id": proveedor_id,
+        "fecha_vencimiento": _parse_optional_date(
+            request.POST.get("fecha_vencimiento"),
+            label="La fecha de vencimiento",
+        ),
+    }
 
 
 def _parse_decimal_csv(valor, etiqueta):
@@ -504,6 +586,7 @@ def producto_lista(request):
         productos_list.append({
             "producto": producto,
             "margen": round(producto.margen_ganancia, 2),
+            "estado_vencimiento": _estado_vencimiento(producto),
         })
 
     return render(request, "inventario/dashboard/productos/lista.html", {
@@ -611,16 +694,19 @@ def producto_importar_csv(request):
 @admin_required_session
 def producto_nuevo(request):
     if request.method == "POST":
-        nombre = request.POST.get("nombre", "").strip()
-        descripcion = request.POST.get("descripcion", "")
-        precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        impuesto = Decimal(request.POST.get("impuesto") or 19)
-        margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
-        proveedor_id = request.POST.get("proveedor_id")
-
-        if not nombre or not proveedor_id:
-            messages.error(request, "Nombre y Proveedor son obligatorios")
+        try:
+            datos = _leer_producto_form(request)
+        except ValueError as exc:
+            messages.error(request, str(exc))
             return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+        nombre = datos["nombre"]
+        descripcion = datos["descripcion"]
+        precio_compra = datos["precio_compra"]
+        impuesto = datos["impuesto"]
+        margen_ganancia = datos["margen_ganancia"]
+        proveedor_id = datos["proveedor_id"]
+        fecha_vencimiento = datos["fecha_vencimiento"]
+        especificaciones_tecnicas = datos["especificaciones_tecnicas"]
 
         if Producto.objects.filter(nombre__iexact=nombre).exists():
             messages.error(request, "Ya existe un producto con ese nombre")
@@ -629,11 +715,13 @@ def producto_nuevo(request):
         Producto.objects.create(
             nombre=nombre,
             descripcion=descripcion,
+            especificaciones_tecnicas=especificaciones_tecnicas,
             imagen=subir_imagen_producto(request.FILES.get("imagen")),
             proveedor_id=proveedor_id,
             precio_compra=precio_compra,
             impuesto=impuesto,
             margen_ganancia=margen_ganancia,
+            fecha_vencimiento=fecha_vencimiento,
             precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia) # CORRECCIÓN: Cálculo de precio
         )
 
@@ -649,24 +737,30 @@ def producto_editar(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
 
     if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
+        try:
+            datos = _leer_producto_form(request)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+        nombre = datos["nombre"]
         if Producto.objects.filter(nombre__iexact=nombre).exclude(id=producto.id).exists():
             messages.error(request, "Ya existe otro producto con ese nombre")
             return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
 
         producto.nombre = nombre
-        producto.descripcion = request.POST.get("descripcion", "")
-        producto.precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        producto.impuesto = Decimal(request.POST.get("impuesto") or 19)
-        producto.margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        producto.descripcion = datos["descripcion"]
+        producto.especificaciones_tecnicas = datos["especificaciones_tecnicas"]
+        producto.precio_compra = datos["precio_compra"]
+        producto.impuesto = datos["impuesto"]
+        producto.margen_ganancia = datos["margen_ganancia"]
+        producto.fecha_vencimiento = datos["fecha_vencimiento"]
         producto.precio_venta = _calcular_precio_venta(producto.precio_compra, producto.impuesto, producto.margen_ganancia)
 
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
         if imagen_url:
             producto.imagen = imagen_url
 
-        proveedor_id = request.POST.get("proveedor_id")
-        producto.proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
+        producto.proveedor_id = datos["proveedor_id"]
         producto.save()
 
         _invalidar_cache_productos_publicos()
@@ -681,7 +775,15 @@ def producto_detalle(request, producto_id):
         anotar_stock_disponible(Producto.objects.select_related("proveedor")),
         id=producto_id,
     )
-    return render(request, "inventario/dashboard/productos/detalle.html", {"producto": producto, "margen": producto.margen_ganancia})
+    return render(
+        request,
+        "inventario/dashboard/productos/detalle.html",
+        {
+            "producto": producto,
+            "margen": producto.margen_ganancia,
+            "estado_vencimiento": _estado_vencimiento(producto),
+        },
+    )
 
 
 @admin_required_session

@@ -16,6 +16,10 @@ class Usuario(models.Model):
     fecha_nacimiento = models.DateField()
     clave = models.CharField(max_length=128)
     rol = models.CharField(max_length=20, choices=ROLES, default=ROL_CLIENTE)
+    telefono = models.CharField(max_length=10, blank=True)
+    direccion = models.CharField(max_length=120, blank=True)
+    imagen_perfil = models.URLField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

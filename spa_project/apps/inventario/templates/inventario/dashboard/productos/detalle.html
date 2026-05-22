@@ -67,6 +67,22 @@
                                 {% endif %}
                             </p>
                         </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Fecha de vencimiento</p>
+                            <p class="fw-bold {% if estado_vencimiento.slug == 'vencido' %}text-danger{% elif estado_vencimiento.slug == 'proximo' %}text-warning{% endif %}">
+                                {% if producto.fecha_vencimiento %}
+                                    {{ producto.fecha_vencimiento|date:"d/m/Y" }} - {{ estado_vencimiento.label }}
+                                {% else %}
+                                    {{ estado_vencimiento.label }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="text-muted mb-1">Especificaciones tecnicas</p>
+                            <p class="fw-bold" style="color: #3b2b32;">
+                                {{ producto.especificaciones_tecnicas|default:"Sin especificaciones" }}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

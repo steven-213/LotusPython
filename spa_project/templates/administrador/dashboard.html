@@ -37,18 +37,53 @@
             </div>
             <div class="admin-module-copy">
                 <h2 class="module-title admin-module-title">{{ module.title }}</h2>
+                {% if module.title == "Citas" %}
+                <p class="module-subtitle admin-module-subtitle">Consulta el dashboard y entra rapido a reservas y servicios.</p>
+                {% else %}
                 <p class="module-subtitle admin-module-subtitle">{{ module.copy }}</p>
+                {% endif %}
             </div>
             <div class="admin-module-links">
+                {% if module.title == "Citas" %}
+                <a href="/citas/" class="admin-module-link">Dashboard</a>
+                <a href="/citas/almanaque/" class="admin-module-link">Almanaque</a>
+                <a href="/citas/servicios/" class="admin-module-link">Servicios</a>
+                {% else %}
                 {% for link in module.links %}
                 <a href="{{ link.url }}" class="admin-module-link">{{ link.label }}</a>
                 {% endfor %}
+                {% endif %}
             </div>
+            {% if module.title == "Citas" %}
+            <a href="/citas/" class="admin-action-button">
+                <i class="bi bi-arrow-right-circle"></i> Abrir módulo
+            </a>
+            {% else %}
             <a href="{{ module.url }}" class="admin-action-button">
                 <i class="bi bi-arrow-right-circle"></i> Abrir módulo
             </a>
+            {% endif %}
         </article>
         {% endfor %}
+
+        <article class="module-card admin-module-card">
+            <div class="admin-module-card-top">
+                <span class="badge module-badge admin-module-icon">
+                    <i class="bi bi-people"></i>
+                </span>
+            </div>
+            <div class="admin-module-copy">
+                <h2 class="module-title admin-module-title">Usuarios</h2>
+                <p class="module-subtitle admin-module-subtitle">Administra clientes, administradores, estado de cuenta y datos de contacto.</p>
+            </div>
+            <div class="admin-module-links">
+                <a href="/admin-panel/usuarios/" class="admin-module-link">Listado</a>
+                <a href="/admin-panel/usuarios/nuevo/" class="admin-module-link">Nuevo usuario</a>
+            </div>
+            <a href="/admin-panel/usuarios/" class="admin-action-button">
+                <i class="bi bi-arrow-right-circle"></i> Abrir módulo
+            </a>
+        </article>
     </section>
 </div>
 {% endblock %}

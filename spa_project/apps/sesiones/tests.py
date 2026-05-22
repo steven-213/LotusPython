@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from apps.inventario.models import Producto, Proveedor
 from apps.sesiones.models import Usuario
 from apps.ventas.models import (
@@ -70,7 +73,8 @@ class SesionesAuthFlowTest(TestCase):
                 "apellido": "Usuario",
                 "correo": "nuevo@test.com",
                 "fechaNacimiento": "1995-05-10",
-                "clave": "abcd",
+                "clave": "abcd1234",
+                "confirmacion_clave": "abcd1234",
             },
         )
 
@@ -94,7 +98,8 @@ class SesionesAuthFlowTest(TestCase):
                 "apellido": "Correo",
                 "correo": "ADMIN@test.com",
                 "fechaNacimiento": "1995-05-10",
-                "clave": "abcd",
+                "clave": "abcd1234",
+                "confirmacion_clave": "abcd1234",
             },
         )
 
@@ -108,6 +113,62 @@ class SesionesAuthFlowTest(TestCase):
             "Ese correo ya tiene una cuenta registrada.",
         )
         self.assertEqual(Usuario.objects.filter(correo__iexact="admin@test.com").count(), 1)
+
+    def test_registro_rechaza_menor_de_edad(self):
+        fecha_menor = (timezone.localdate() - timedelta(days=365 * 17)).isoformat()
+
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "54321",
+                "nombre": "Laura",
+                "apellido": "Menor",
+                "correo": "laura.menor@test.com",
+                "fechaNacimiento": fecha_menor,
+                "clave": "abcd1234",
+                "confirmacion_clave": "abcd1234",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Debes ser mayor de edad para continuar.")
+        self.assertEqual(Usuario.objects.filter(documento=54321).count(), 0)
+
+    def test_registro_rechaza_contrasena_sin_numero(self):
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "67890",
+                "nombre": "Laura",
+                "apellido": "Clave",
+                "correo": "laura.clave@test.com",
+                "fechaNacimiento": "1995-05-10",
+                "clave": "abcdefgh",
+                "confirmacion_clave": "abcdefgh",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La contrasena debe incluir al menos una letra y un numero.")
+        self.assertFalse(Usuario.objects.filter(documento=67890).exists())
+
+    def test_registro_rechaza_confirmacion_vacia(self):
+        response = self.client.post(
+            reverse("sesiones:registro"),
+            {
+                "documento": "67891",
+                "nombre": "Laura",
+                "apellido": "Confirma",
+                "correo": "laura.confirma@test.com",
+                "fechaNacimiento": "1995-05-10",
+                "clave": "abcd1234",
+                "confirmacion_clave": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Debes confirmar la contrasena.")
+        self.assertFalse(Usuario.objects.filter(documento=67891).exists())
 
 
 class PerfilClienteTest(TestCase):
@@ -173,3 +234,11 @@ class PerfilClienteTest(TestCase):
             response.context["validaciones_recientes"][0]["estado_devolucion"]["label"],
             "Devuelta parcial",
         )
+
+    def test_perfil_muestra_datos_basicos_del_usuario(self):
+        response = self.client.get(reverse("sesiones:perfil"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Documento: 54321")
+        self.assertContains(response, "Fecha de nacimiento: 12/04/1996")
+        self.assertContains(response, "Cuenta activa")

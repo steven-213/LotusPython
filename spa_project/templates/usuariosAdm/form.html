@@ -1,183 +1,75 @@
-<!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Formulario Empleado</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% extends "base_public.html" %}
 
-    <link rel="stylesheet" href="/css/global_style.css"> <!-- CSS global -->
-    <style>
-        body {
-            font-family: "Helvetica Neue", sans-serif;
-            background-color: #fff;
-            margin: 0;
-            padding: 0;
-        }
+{% block title %}{% if usuario_obj %}Editar{% else %}Nuevo{% endif %} usuario{% endblock %}
 
-        /* ===== NAVBAR MODERNA ===== */
-        .nav-container {
-            background: #fce4ec;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .nav-container .logo img {
-            height: 40px;
-            transition: transform 0.2s ease, filter 0.2s ease;
-            cursor: pointer;
-        }
-
-        .nav-container .logo img:hover {
-            transform: scale(1.08);
-            filter: brightness(1.1);
-        }
-
-        .nav-container ul {
-            display: flex;
-            gap: 20px;
-            list-style: none;
-            margin: 0;
-        }
-
-        .nav-container ul li a {
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-            transition: color 0.2s ease;
-        }
-
-        .nav-container ul li a:hover {
-            color: rgb(231, 104, 125);
-        }
-
-        /* ===== CARD FORM ===== */
-        .container {
-            padding: 30px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .card {
-            background-color: #f9f9f9;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.12);
-            max-width: 500px;
-            width: 100%;
-        }
-
-        .card-header {
-            font-size: 24px;
-            color: rgb(231, 104, 125);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        label {
-            font-size: 14px;
-            font-weight: bold;
-            display: block;
-            margin-top: 12px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 10px;
-            margin-top: 6px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-        }
-
-        .btn {
-            width: 100%;
-            background-color: pink;
-            color: #333;
-            border: none;
-            padding: 12px;
-            border-radius: 12px;
-            margin-top: 20px;
-            font-size: 15px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-        }
-
-        .btn:hover {
-            background-color: #ff6f91;
-            color: #fff;
-            transform: scale(1.02);
-        }
-
-        .volver {
-            display: block;
-            margin-top: 15px;
-            text-align: center;
-            text-decoration: none;
-            color: #666;
-            font-size: 14px;
-        }
-    </style>
-</head>
-
-<body>
-
-<!-- NAVBAR MODERNA -->
-<div class="nav-container">
-    <div class="logo">
-        <img src="/img/logo.png" alt="Logo SPA"> <!-- Cambia por tu logo -->
+{% block content %}
+<section class="admin-page-hero">
+  <div class="admin-page-copy">
+    <div class="admin-page-breadcrumbs">
+      <a href="{% url 'sesiones:usuario_lista' %}">Usuarios</a><span>/</span><span>{% if usuario_obj %}Editar{% else %}Nuevo{% endif %}</span>
     </div>
-    <ul>
-        <li><a href="/dashboard">Dashboard</a></li>
-        <li><a href="/listar">Empleados</a></li>
-        <li><a href="/logout">Cerrar sesión</a></li>
-    </ul>
-</div>
+    <h1 class="admin-page-title">{% if usuario_obj %}Editar usuario{% else %}Nuevo usuario{% endif %}</h1>
+    <p class="admin-page-description">Todos los campos obligatorios se validan antes de guardar.</p>
+  </div>
+</section>
 
-<!-- FORMULARIO -->
-<div class="container">
-    <div class="card">
-
-        <div class="card-header" th:text="${titulo}">Formulario Empleado</div>
-
-        <form th:action="@{/form}" th:object="${empleado}" method="post">
-
-            <input type="hidden" th:field="*{id}"/>
-
-            <label>Nombre</label>
-            <input type="text" th:field="*{nombre}" required/>
-
-            <label>Apellido</label>
-            <input type="text" th:field="*{apellido}" required/>
-
-            <label>Email</label>
-            <input type="email" th:field="*{email}" required/>
-
-            <label>Fecha</label>
-            <input type="date" th:field="*{fecha}" required/>
-
-            <label>Teléfono</label>
-            <input type="text" th:field="*{telefono}"/>
-
-            <label>Sexo</label>
-            <select th:field="*{sexo}">
-                <option value="M">Masculino</option>
-                <option value="F">Femenino</option>
-            </select>
-
-            <label>Salario</label>
-            <input type="number" step="0.01" th:field="*{salario}" required/>
-
-            <button type="submit" class="btn">Guardar Empleado</button>
-
-        </form>
-
-        <a href="/listar" class="volver">← Volver al listado</a>
-
+<section class="admin-surface-card p-4">
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-md-4">
+      <label class="form-label" for="documento">Documento</label>
+      <input class="form-control" id="documento" name="documento" type="number" min="100" value="{% firstof request.POST.documento usuario_obj.documento '' %}" required>
     </div>
-</div>
-
-</body>
-</html>
+    <div class="col-md-4">
+      <label class="form-label" for="nombre">Nombre</label>
+      <input class="form-control" id="nombre" name="nombre" minlength="3" maxlength="25" value="{% firstof request.POST.nombre usuario_obj.nombre '' %}" required>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="apellido">Apellido</label>
+      <input class="form-control" id="apellido" name="apellido" minlength="3" maxlength="25" value="{% firstof request.POST.apellido usuario_obj.apellido '' %}" required>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="correo">Correo</label>
+      <input class="form-control" id="correo" name="correo" type="email" maxlength="100" value="{% firstof request.POST.correo usuario_obj.correo '' %}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento</label>
+      <input class="form-control" id="fecha_nacimiento" name="fecha_nacimiento" type="date" value="{% if request.POST.fecha_nacimiento %}{{ request.POST.fecha_nacimiento }}{% elif usuario_obj %}{{ usuario_obj.fecha_nacimiento|date:'Y-m-d' }}{% endif %}" required>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="rol">Rol</label>
+      <select class="form-select" id="rol" name="rol" required>
+        {% for value,label in roles %}
+        <option value="{{ value }}" {% if request.POST.rol == value or usuario_obj.rol == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="telefono">Telefono</label>
+      <input class="form-control" id="telefono" name="telefono" inputmode="numeric" minlength="10" maxlength="10" value="{% firstof request.POST.telefono usuario_obj.telefono '' %}">
+    </div>
+    <div class="col-md-8">
+      <label class="form-label" for="direccion">Direccion</label>
+      <input class="form-control" id="direccion" name="direccion" minlength="5" maxlength="120" value="{% firstof request.POST.direccion usuario_obj.direccion '' %}">
+    </div>
+    <div class="col-md-8">
+      <label class="form-label" for="imagen_perfil">Imagen de perfil URL</label>
+      <input class="form-control" id="imagen_perfil" name="imagen_perfil" type="url" value="{% firstof request.POST.imagen_perfil usuario_obj.imagen_perfil '' %}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="clave">Contraseña{% if usuario_obj %} nueva{% endif %}</label>
+      <input class="form-control" id="clave" name="clave" type="password" minlength="8" maxlength="30" {% if not usuario_obj %}required{% endif %}>
+    </div>
+    <div class="col-12">
+      <div class="form-check form-switch">
+        <input class="form-check-input" id="activo" name="activo" type="checkbox" {% if request.POST.activo or usuario_obj.activo or not usuario_obj %}checked{% endif %}>
+        <label class="form-check-label" for="activo">Cuenta activa</label>
+      </div>
+    </div>
+    <div class="col-12 d-flex justify-content-end gap-2">
+      <a class="btn btn-secondary" href="{% url 'sesiones:usuario_lista' %}"><i class="bi bi-arrow-left"></i> Volver</a>
+      <button class="btn btn-success" type="submit"><i class="bi bi-check-circle"></i> Guardar</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

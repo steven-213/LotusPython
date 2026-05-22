@@ -14,15 +14,32 @@
       <p class="perfil-tag">Mi cuenta</p>
       <h1>{{ usuario.nombre }} {{ usuario.apellido }}</h1>
       <p class="perfil-copy">Revisa tu agenda y tus compras en un solo lugar.</p>
+      {% if usuario.imagen_perfil %}
+      <img class="perfil-avatar" src="{{ usuario.imagen_perfil }}" alt="Imagen de perfil de {{ usuario.nombre }}">
+      {% else %}
+      <div class="perfil-avatar" aria-hidden="true">{{ usuario.nombre|slice:":1"|upper }}</div>
+      {% endif %}
       <div class="perfil-meta">
         <span>{{ usuario.correo }}</span>
         <span class="chip chip-rol">{{ usuario.rol|capfirst }}</span>
-
+      </div>
+      <div class="perfil-meta">
+        <span>Documento: {{ usuario.documento }}</span>
+        <span>Fecha de nacimiento: {{ usuario.fecha_nacimiento|date:"d/m/Y" }}</span>
+        <span>Telefono: {{ usuario.telefono|default:"No registrado" }}</span>
+        <span>Direccion: {{ usuario.direccion|default:"No registrada" }}</span>
+        {% if usuario.activo %}
+        <span class="chip chip-comprado">Cuenta activa</span>
+        {% else %}
+        <span class="chip chip-rechazado">Cuenta inactiva</span>
+        {% endif %}
       </div>
     </div>
     <div class="hero-actions">
       <a class="boton boton-suave" href="{% url 'citas:agenda' %}">Ver agenda completa</a>
       <a class="boton boton-primario" href="{% url 'inventario:productos_publicos' %}">Comprar productos</a>
+      <a class="boton boton-suave" href="{% url 'sesiones:perfil_editar' %}">Editar perfil</a>
+      <button class="boton boton-peligro" type="button" data-bs-toggle="modal" data-bs-target="#modalEliminarCuenta">Eliminar cuenta</button>
     </div>
     {% else %}
     <div>
@@ -301,4 +318,25 @@
     {% endif %}
   </section>
 </section>
+
+<div class="modal fade" id="modalEliminarCuenta" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar eliminacion de cuenta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Esta accion cerrara tu sesion. Si tienes historial asociado, la cuenta se desactivara para conservar los registros.
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+        <form method="post" action="{% url 'sesiones:perfil_eliminar' %}">
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit">Eliminar cuenta</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

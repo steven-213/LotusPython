@@ -91,12 +91,13 @@ def validar_horario_reserva(*, fecha_inicio, fecha_fin):
     apertura, cierre = horario
     horario_legible = _formatear_horario(apertura, cierre)
     if (
-        fecha_inicio_local.minute != 0
+        fecha_inicio_local.minute % INTERVALO_RESERVA_MINUTOS != 0
         or fecha_inicio_local.second != 0
         or fecha_inicio_local.microsecond != 0
     ):
         raise ValidationError(
-            f"Las citas solo se pueden reservar en horas exactas. Horario permitido: {horario_legible}."
+            "Las citas solo se pueden reservar en intervalos de "
+            f"{INTERVALO_RESERVA_MINUTOS} minutos. Horario permitido: {horario_legible}."
         )
     if fecha_inicio_local.time() < apertura or fecha_inicio_local.time() >= cierre:
         raise ValidationError(

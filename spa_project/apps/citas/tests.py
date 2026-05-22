@@ -185,7 +185,7 @@ class CitasFlowTest(TestCase):
                 "apellido": "Real",
                 "correo": "cuenta.real@spa.com",
                 "fecha_nacimiento": "1993-03-03",
-                "clave": "secreta",
+                "clave": "secreta8",
                 "rol": Usuario.ROL_CLIENTE,
             },
         )
@@ -347,10 +347,10 @@ class CitasFlowTest(TestCase):
                 pago_data=None,
             )
 
-    def test_rejects_appointment_with_minutes_not_on_the_hour(self):
-        fecha = self._future_weekday_start(0, 10, 30)
+    def test_rejects_appointment_with_minutes_outside_15_minute_interval(self):
+        fecha = self._future_weekday_start(0, 10, 7)
 
-        with self.assertRaisesMessage(ValidationError, "horas exactas"):
+        with self.assertRaisesMessage(ValidationError, "15 minutos"):
             crear_reserva(
                 cliente=self.cliente,
                 servicio=self.servicio,
@@ -399,6 +399,19 @@ class CitasFlowTest(TestCase):
         self.assertNotIn("10:30", horas)
         self.assertNotIn("10:45", horas)
         self.assertIn("11:00", horas)
+
+    def test_available_hours_include_quarter_hour_slots(self):
+        fecha = self._future_weekday_start(0, 10)
+
+        horas = obtener_horas_disponibles_reserva(
+            servicio=self.servicio,
+            fecha_reserva=fecha.date(),
+        )
+
+        self.assertIn("10:00", horas)
+        self.assertIn("10:15", horas)
+        self.assertIn("10:30", horas)
+        self.assertIn("10:45", horas)
 
     def test_public_availability_api_can_exclude_current_reservation(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(1, 10))
@@ -455,13 +468,13 @@ class CitasFlowTest(TestCase):
         reserva = Reserva.objects.get()
         self.assertEqual(reserva.cliente_id, self.cliente.id)
 
-    def test_authenticated_booking_with_minutes_is_rejected(self):
+    def test_authenticated_booking_with_minutes_outside_15_minute_interval_is_rejected(self):
         self._force_session(self.cliente)
         response = self.client.post(
             reverse("citas:reserva_nueva"),
             {
                 "servicio_id": self.servicio.id,
-                "fecha_inicio": self._future_input(days=5, hour=10, minute=30),
+                "fecha_inicio": self._future_input(days=5, hour=10, minute=17),
                 "notas": "Horario con minutos",
             },
         )
@@ -469,11 +482,10 @@ class CitasFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Reserva.objects.count(), 0)
 
-    def test_booking_form_limits_input_to_hours(self):
+    def test_booking_form_mentions_quarter_hour_availability(self):
         response = self.client.get(reverse("citas:reserva_nueva"))
 
-        self.assertContains(response, 'step="3600"', html=False)
-        self.assertContains(response, "Solo se aceptan horas exactas dentro del horario del spa.")
+        self.assertContains(response, "mostramos intervalos de 15 minutos")
 
     def test_dashboard_admin_root_is_available(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=6, hour=11))
@@ -490,7 +502,11 @@ class CitasFlowTest(TestCase):
 
     def test_dashboard_atajo_pendientes_filtra_reservas(self):
         pendiente = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=7, hour=10))
-        finalizada = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=8, hour=11))
+        finalizada = self._crear_reserva(
+            cliente=self.otro_cliente,
+            fecha_inicio=self._future_start(days=8, hour=11),
+            pago=True,
+        )
         cambiar_estado_reserva(
             reserva=finalizada,
             nuevo_estado=Reserva.ESTADO_EN_PROCESO,
@@ -512,9 +528,20 @@ class CitasFlowTest(TestCase):
         self.assertNotContains(response, f"{finalizada.cliente_nombre_completo}")
 
     def test_dashboard_orders_in_process_before_pending_and_finished(self):
-        pendiente = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_start(days=9, hour=9))
-        en_proceso = self._crear_reserva(cliente=self.otro_cliente, fecha_inicio=self._future_start(days=10, hour=8))
-        finalizada = self._crear_reserva(cliente=self.cliente, servicio=self.servicio_2, fecha_inicio=self._future_start(days=11, hour=7))
+        pendiente = self._crear_reserva(
+            cliente=self.cliente,
+            fecha_inicio=self._future_weekday_start(1, 10),
+        )
+        en_proceso = self._crear_reserva(
+            cliente=self.otro_cliente,
+            fecha_inicio=self._future_weekday_start(2, 11),
+        )
+        finalizada = self._crear_reserva(
+            cliente=self.cliente,
+            servicio=self.servicio_2,
+            fecha_inicio=self._future_weekday_start(3, 12),
+            pago=True,
+        )
         cambiar_estado_reserva(
             reserva=en_proceso,
             nuevo_estado=Reserva.ESTADO_EN_PROCESO,
@@ -577,7 +604,7 @@ class CitasFlowTest(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("citas:almanaque"))
+        self.assertRedirects(response, reverse("citas:calendario"))
         reserva.refresh_from_db()
         self.assertEqual(reserva.pagos.count(), 1)
         self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
@@ -673,7 +700,7 @@ class CitasFlowTest(TestCase):
         registrar_ingreso(producto, 4, lote="TEST-VISUAL")
 
         self._force_session(self.admin)
-        response = self.client.get(reverse("citas:calendario"))
+        response = self.client.get(reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Precio unitario")
@@ -681,7 +708,7 @@ class CitasFlowTest(TestCase):
         self.assertContains(response, 'data-price="32000')
 
     def test_dashboard_uses_inventory_price_when_product_price_is_zero(self):
-        self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(3, 11))
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(3, 11))
         proveedor = Proveedor.objects.create(nombre="Proveedor Precio", nit="900100102")
         producto = Producto.objects.create(
             nombre="Crema Precio Inventario",
@@ -700,7 +727,7 @@ class CitasFlowTest(TestCase):
         )
 
         self._force_session(self.admin)
-        response = self.client.get(reverse("citas:calendario"))
+        response = self.client.get(reverse("citas:reserva_detalle", kwargs={"reserva_id": reserva.id}))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-name="Crema Precio Inventario"')
@@ -954,9 +981,47 @@ class CitasFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            "Ya existe un servicio con ese nombre para la profesional seleccionada.",
+            "Ya existe un servicio con ese nombre.",
         )
         self.assertEqual(Servicio.objects.filter(nombre__iexact="Facial", profesional=self.profesional).count(), 1)
+
+    def test_servicio_nuevo_rechaza_duplicado_aunque_sea_otra_profesional(self):
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:servicio_nuevo"),
+            {
+                "nombre": "Facial",
+                "descripcion": "Duplicado global",
+                "precio": "55.000",
+                "duracion_minutos": "60",
+                "profesional_id": str(self.profesional_2.id),
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ya existe un servicio con ese nombre.")
+        self.assertEqual(Servicio.objects.filter(nombre__iexact="Facial").count(), 1)
+
+    def test_servicio_nuevo_rechaza_duracion_menor_a_15_minutos(self):
+        self._force_session(self.admin)
+
+        response = self.client.post(
+            reverse("citas:servicio_nuevo"),
+            {
+                "nombre": "Masaje corto",
+                "descripcion": "Servicio invalido",
+                "precio": "35.000",
+                "duracion_minutos": "10",
+                "profesional_id": str(self.profesional.id),
+                "activo": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "La duracion del servicio debe ser mayor o igual a 15.")
+        self.assertFalse(Servicio.objects.filter(nombre="Masaje corto").exists())
 
     def test_calendario_admin_redirige_a_login_sin_sesion(self):
         response = self.client.get(reverse("citas:calendario"))
