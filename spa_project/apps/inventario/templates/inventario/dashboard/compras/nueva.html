@@ -58,7 +58,7 @@
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between">
                             <h5 class="mb-0">Productos</h5>
-                            <button type="button" class="btn btn-sm btn-success" onclick="agregarProducto()">
+                            <button type="button" class="btn btn-sm btn-success" onclick="abrirSelectorProducto()">
                                 + Agregar
                             </button>
                         </div>
@@ -74,26 +74,29 @@
                                             <th>Impuesto (%)</th>
                                             <th>Margen (%)</th>
                                             <th>Lote</th>
+                                            <th>Vencimiento</th>
+                                            <th>PAO</th>
                                             <th>Subtotal</th>
                                             <th></th>
                                         </tr>
                                     </thead>
 
                                     <tbody id="productos-lista">
+                                    </tbody>
+
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <template id="producto-row-template">
                                         <tr class="producto-row">
                                             <td>
-                                                <select name="productos_ids[]" class="form-control producto-select">
-                                                    <option value="">-- Seleccionar --</option>
-                                                    {% for producto in productos %}
-                                                        <option value="{{ producto.id }}"
-                                                                data-proveedor="{{ producto.proveedor_id }}"
-                                                                data-precio="{{ producto.precio_compra }}"
-                                                                data-impuesto="{{ producto.impuesto }}"
-                                                                data-margen="{{ producto.margen_ganancia }}">
-                                                            {{ producto.nombre }}
-                                                        </option>
-                                                    {% endfor %}
-                                                </select>
+                                                <input type="hidden" name="productos_ids[]" class="producto-id">
+                                                <strong class="producto-nombre">--</strong>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="abrirSelectorProducto(this.closest('tr'))">
+                                                    Cambiar
+                                                </button>
                                             </td>
 
                                             <td>
@@ -123,6 +126,14 @@
                                             </td>
 
                                             <td>
+                                                <input type="date" name="fechas_vencimiento[]" class="form-control fecha-vencimiento">
+                                            </td>
+
+                                            <td>
+                                                <input type="text" name="paos[]" class="form-control pao" maxlength="50" placeholder="Ej: 12M">
+                                            </td>
+
+                                            <td>
                                                 <span class="subtotal">$0.00</span>
                                             </td>
 
@@ -130,12 +141,7 @@
                                                 <button type="button" class="btn btn-danger btn-sm" onclick="eliminarProducto(this)">X</button>
                                             </td>
                                         </tr>
-                                    </tbody>
-
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                    </template>
 
                     <!-- Total -->
                     <div class="text-end mb-4">
@@ -159,62 +165,215 @@
 
 </div>
 
+<div class="modal fade" id="modalSeleccionProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #fbcdd9;">
+                <h5 class="modal-title">Agregar producto a la compra</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="modal-producto-select" class="form-label fw-bold">Producto</label>
+                        <select id="modal-producto-select" class="form-select">
+                            <option value="">-- Seleccionar --</option>
+                            {% for producto in productos %}
+                            <option
+                                value="{{ producto.id }}"
+                                data-nombre="{{ producto.nombre }}"
+                                data-descripcion="{{ producto.descripcion|default:'Sin descripcion' }}"
+                                data-proveedor="{{ producto.proveedor_id }}"
+                                data-proveedor-nombre="{% if producto.proveedor %}{{ producto.proveedor.nombre }}{% else %}Sin proveedor{% endif %}"
+                                data-precio="{{ producto.precio_compra }}"
+                                data-precio-venta="{{ producto.precio_venta }}"
+                                data-impuesto="{{ producto.impuesto }}"
+                                data-margen="{{ producto.margen_ganancia }}"
+                                data-requiere-vencimiento="{% if producto.requiere_vencimiento %}1{% else %}0{% endif %}"
+                                data-requiere-pao="{% if producto.requiere_pao %}1{% else %}0{% endif %}"
+                            >
+                                {{ producto.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Proveedor</div>
+                            <div id="modal-producto-proveedor" class="fw-bold">--</div>
+                            <div class="text-muted small mt-2">Descripcion</div>
+                            <div id="modal-producto-descripcion">Selecciona un producto para ver su informacion.</div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="text-muted small">Compra</div>
+                                    <div id="modal-producto-precio" class="fw-bold">$0.00</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="text-muted small">Venta actual</div>
+                                    <div id="modal-producto-venta" class="fw-bold">$0.00</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="text-muted small">Impuesto</div>
+                                    <div id="modal-producto-impuesto" class="fw-bold">0%</div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3">
+                                    <div class="text-muted small">Margen</div>
+                                    <div id="modal-producto-margen" class="fw-bold">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="border rounded p-3">
+                            <div class="text-muted small">Campos requeridos para el lote</div>
+                            <div id="modal-producto-especificaciones" class="fw-bold">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmarProductoSeleccionado()">Agregar producto</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 
-function agregarProducto() {
-    const container = document.getElementById('productos-lista');
-    const row = container.querySelector('.producto-row').cloneNode(true);
+let productoRowEnEdicion = null;
+let modalSeleccionProducto = null;
 
-    row.querySelectorAll('input, select').forEach(el => {
+function formatoMoneda(valor) {
+    const numero = parseFloat(valor) || 0;
+    return '$' + numero.toFixed(2);
+}
+
+function abrirSelectorProducto(row = null) {
+    productoRowEnEdicion = row;
+    const select = document.getElementById('modal-producto-select');
+    const proveedorId = document.getElementById('proveedor-select').value;
+
+    select.value = row ? row.querySelector('.producto-id').value : '';
+    filtrarProductosModal();
+    actualizarInfoProductoModal();
+
+    if (!proveedorId) {
+        document.getElementById('proveedor-select').focus();
+    }
+
+    modalSeleccionProducto.show();
+}
+
+function filtrarProductosModal() {
+    const proveedorId = document.getElementById('proveedor-select').value;
+    const select = document.getElementById('modal-producto-select');
+
+    select.querySelectorAll('option').forEach(option => {
+        if (!option.value) return;
+        option.hidden = proveedorId && option.dataset.proveedor !== proveedorId;
+    });
+
+    const selected = select.selectedOptions[0];
+    if (selected && selected.hidden) {
+        select.value = '';
+    }
+}
+
+function especificacionesDesdeOption(option) {
+    const especificaciones = [];
+    if (option.dataset.requiereVencimiento === '1') especificaciones.push('Fecha de vencimiento');
+    if (option.dataset.requierePao === '1') especificaciones.push('PAO');
+    return especificaciones.length ? especificaciones.join(', ') : 'Sin campos extra';
+}
+
+function actualizarInfoProductoModal() {
+    const option = document.getElementById('modal-producto-select').selectedOptions[0];
+    const tieneProducto = option && option.value;
+
+    document.getElementById('modal-producto-proveedor').textContent = tieneProducto ? option.dataset.proveedorNombre : '--';
+    document.getElementById('modal-producto-descripcion').textContent = tieneProducto ? option.dataset.descripcion : 'Selecciona un producto para ver su informacion.';
+    document.getElementById('modal-producto-precio').textContent = tieneProducto ? formatoMoneda(option.dataset.precio) : '$0.00';
+    document.getElementById('modal-producto-venta').textContent = tieneProducto ? formatoMoneda(option.dataset.precioVenta) : '$0.00';
+    document.getElementById('modal-producto-impuesto').textContent = tieneProducto ? `${option.dataset.impuesto || 0}%` : '0%';
+    document.getElementById('modal-producto-margen').textContent = tieneProducto ? `${option.dataset.margen || 0}%` : '0%';
+    document.getElementById('modal-producto-especificaciones').textContent = tieneProducto ? especificacionesDesdeOption(option) : '--';
+}
+
+function crearFilaProducto() {
+    const container = document.getElementById('productos-lista');
+    const template = document.getElementById('producto-row-template');
+    const row = template.content.querySelector('.producto-row').cloneNode(true);
+
+    row.querySelectorAll('input').forEach(el => {
         el.value = '';
     });
 
     row.querySelector('.cantidad').value = 1;
     row.querySelector('.subtotal').textContent = '$0.00';
-
     container.appendChild(row);
 
     agregarEventosProducto(row);
+    actualizarCamposLote(row);
+    return row;
+}
 
-    const proveedorId = document.getElementById('proveedor-select').value;
+function confirmarProductoSeleccionado() {
+    const option = document.getElementById('modal-producto-select').selectedOptions[0];
+    if (!option || !option.value) return;
 
-    if (proveedorId) {
-        row.querySelectorAll('option').forEach(option => {
-            if (!option.value) return;
+    const row = productoRowEnEdicion || crearFilaProducto();
+    row.querySelector('.producto-id').value = option.value;
+    row.querySelector('.producto-nombre').textContent = option.dataset.nombre;
+    row.querySelector('.precio').value = option.dataset.precio || 0;
+    row.querySelector('.impuesto').value = option.dataset.impuesto || 0;
+    row.querySelector('.margen').value = option.dataset.margen || 0;
+    row.dataset.requiereVencimiento = option.dataset.requiereVencimiento || '0';
+    row.dataset.requierePao = option.dataset.requierePao || '0';
 
-            option.style.display = option.dataset.proveedor === proveedorId ? 'block' : 'none';
-        });
-    }
+    actualizarCamposLote(row);
+    actualizarSubtotal(row);
+    modalSeleccionProducto.hide();
 }
 
 function eliminarProducto(btn) {
     const filas = document.querySelectorAll('.producto-row');
-    if (filas.length > 1) {
-        btn.closest('tr').remove();
-        actualizarTotal();
-    }
+    btn.closest('tr').remove();
+    actualizarTotal();
 }
 
 function agregarEventosProducto(row) {
-    const producto = row.querySelector('.producto-select');
     const cantidad = row.querySelector('.cantidad');
     const precio = row.querySelector('.precio');
-    const impuesto = row.querySelector('.impuesto');
-    const margen = row.querySelector('.margen');
-
-    producto.addEventListener('change', function() {
-        const option = this.selectedOptions[0];
-
-        precio.value = option.dataset.precio || 0;
-        impuesto.value = option.dataset.impuesto || 0;
-        margen.value = option.dataset.margen || 0;
-
-        actualizarSubtotal(row);
-    });
 
     [cantidad, precio].forEach(el => {
         el.addEventListener('input', () => actualizarSubtotal(row));
     });
+}
+
+function actualizarCamposLote(row) {
+    const fecha = row.querySelector('.fecha-vencimiento');
+    const pao = row.querySelector('.pao');
+    const requiereVencimiento = row.dataset.requiereVencimiento === '1';
+    const requierePao = row.dataset.requierePao === '1';
+
+    fecha.closest('td').style.display = requiereVencimiento ? '' : 'none';
+    fecha.required = requiereVencimiento;
+    if (!requiereVencimiento) fecha.value = '';
+
+    pao.closest('td').style.display = requierePao ? '' : 'none';
+    pao.required = requierePao;
+    if (!requierePao) pao.value = '';
 }
 
 function actualizarSubtotal(row) {
@@ -238,28 +397,13 @@ function actualizarTotal() {
 }
 
 document.getElementById('proveedor-select').addEventListener('change', function () {
-    const proveedorId = this.value;
-
-    document.querySelectorAll('.producto-select').forEach(select => {
-
-        const opciones = select.querySelectorAll('option');
-
-        opciones.forEach(option => {
-            if (!option.value) return;
-
-            if (option.dataset.proveedor === proveedorId) {
-                option.style.display = 'block';
-            } else {
-                option.style.display = 'none';
-            }
-        });
-
-        select.value = "";
-    });
+    filtrarProductosModal();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    agregarEventosProducto(document.querySelector('.producto-row'));
+    modalSeleccionProducto = new bootstrap.Modal(document.getElementById('modalSeleccionProducto'));
+    document.getElementById('modal-producto-select').addEventListener('change', actualizarInfoProductoModal);
+    filtrarProductosModal();
 });
 
 </script>

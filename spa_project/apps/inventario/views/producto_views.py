@@ -1,7 +1,7 @@
 import csv
 import io
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from hashlib import md5
 from types import SimpleNamespace
@@ -20,7 +20,7 @@ from django.utils import timezone  # CORRECCIÓN: Importación necesaria para Mo
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.common.validation import validate_basic_text, validate_decimal_range
-from apps.inventario.models import Producto, Proveedor, Inventario, MovimientoInventario
+from apps.inventario.models import Especificaciones, Producto, Proveedor, Inventario, MovimientoInventario
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
 from apps.inventario.storage import subir_imagen_producto
 
@@ -42,25 +42,40 @@ CSV_PRODUCT_COLUMN_ALIASES = {
     "margen_ganancia": {"margen_ganancia", "margen", "margin"},
     "imagen": {"imagen", "image", "imagen_url"},
 }
+ESPECIFICACIONES_LOTE = {
+    "fecha_vencimiento": "Fecha de vencimiento",
+    "pao": "PAO",
+}
 
 
-def _parse_optional_date(value, *, label):
-    raw = str(value or "").strip()
-    if not raw:
-        return None
-    try:
-        return datetime.fromisoformat(raw).date()
-    except ValueError as exc:
-        raise ValueError(f"{label} no es valida.") from exc
+def _obtener_especificaciones_lote():
+    specs = []
+    for nombre, etiqueta in ESPECIFICACIONES_LOTE.items():
+        spec, _ = Especificaciones.objects.get_or_create(nombre=nombre)
+        spec.etiqueta = etiqueta
+        specs.append(spec)
+    return specs
 
 
-def _estado_vencimiento(producto):
-    if not producto.fecha_vencimiento:
+def _especificaciones_seleccionadas(request):
+    nombres = set(request.POST.getlist("especificaciones[]"))
+    return Especificaciones.objects.filter(nombre__in=nombres)
+
+
+def _etiquetas_especificaciones(producto):
+    return [
+        ESPECIFICACIONES_LOTE.get(spec.nombre, spec.nombre)
+        for spec in producto.especificaciones.all()
+    ]
+
+
+def _estado_vencimiento_lote(fecha_vencimiento):
+    if not fecha_vencimiento:
         return {"slug": "sin_vencimiento", "label": "No vence"}
     hoy = timezone.localdate()
-    if producto.fecha_vencimiento < hoy:
+    if fecha_vencimiento < hoy:
         return {"slug": "vencido", "label": "Vencido"}
-    if producto.fecha_vencimiento <= hoy + timedelta(days=30):
+    if fecha_vencimiento <= hoy + timedelta(days=30):
         return {"slug": "proximo", "label": "Proximo a vencer"}
     return {"slug": "vigente", "label": "Vigente"}
 
@@ -77,13 +92,6 @@ def _leer_producto_form(request):
         label="La descripcion del producto",
         min_length=5,
         max_length=500,
-    )
-    especificaciones_tecnicas = validate_basic_text(
-        request.POST.get("especificaciones_tecnicas"),
-        label="Las especificaciones tecnicas",
-        min_length=10,
-        max_length=500,
-        required=False,
     )
     precio_compra = validate_decimal_range(
         request.POST.get("precio_compra") or "0",
@@ -112,15 +120,11 @@ def _leer_producto_form(request):
     return {
         "nombre": nombre,
         "descripcion": descripcion,
-        "especificaciones_tecnicas": especificaciones_tecnicas,
         "precio_compra": precio_compra,
         "impuesto": impuesto,
         "margen_ganancia": margen_ganancia,
         "proveedor_id": proveedor_id,
-        "fecha_vencimiento": _parse_optional_date(
-            request.POST.get("fecha_vencimiento"),
-            label="La fecha de vencimiento",
-        ),
+        "especificaciones": _especificaciones_seleccionadas(request),
     }
 
 
@@ -567,7 +571,9 @@ def producto_lista(request):
     proveedor_id = request.GET.get("proveedor_id", "")
 
     productos = anotar_stock_disponible(
-        Producto.objects.filter(activo=True).select_related("proveedor")
+        Producto.objects.filter(activo=True)
+        .select_related("proveedor")
+        .prefetch_related("especificaciones")
     )
 
     if query:
@@ -586,7 +592,7 @@ def producto_lista(request):
         productos_list.append({
             "producto": producto,
             "margen": round(producto.margen_ganancia, 2),
-            "estado_vencimiento": _estado_vencimiento(producto),
+            "especificaciones": _etiquetas_especificaciones(producto),
         })
 
     return render(request, "inventario/dashboard/productos/lista.html", {
@@ -662,7 +668,7 @@ def producto_importar_csv(request):
             )
             continue
 
-        Producto.objects.create(
+        producto = Producto.objects.create(
             nombre=nombre,
             descripcion=fila["descripcion"],
             imagen=fila["imagen"] or None,
@@ -693,67 +699,91 @@ def producto_importar_csv(request):
 
 @admin_required_session
 def producto_nuevo(request):
+    especificaciones_lote = _obtener_especificaciones_lote()
+    especificaciones_seleccionadas = []
+
     if request.method == "POST":
+        especificaciones_seleccionadas = request.POST.getlist("especificaciones[]")
         try:
             datos = _leer_producto_form(request)
         except ValueError as exc:
             messages.error(request, str(exc))
-            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+            return render(request, "inventario/dashboard/productos/form.html", {
+                "proveedores": Proveedor.objects.all(),
+                "especificaciones_lote": especificaciones_lote,
+                "especificaciones_seleccionadas": especificaciones_seleccionadas,
+            })
         nombre = datos["nombre"]
         descripcion = datos["descripcion"]
         precio_compra = datos["precio_compra"]
         impuesto = datos["impuesto"]
         margen_ganancia = datos["margen_ganancia"]
         proveedor_id = datos["proveedor_id"]
-        fecha_vencimiento = datos["fecha_vencimiento"]
-        especificaciones_tecnicas = datos["especificaciones_tecnicas"]
 
         if Producto.objects.filter(nombre__iexact=nombre).exists():
             messages.error(request, "Ya existe un producto con ese nombre")
-            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+            return render(request, "inventario/dashboard/productos/form.html", {
+                "proveedores": Proveedor.objects.all(),
+                "especificaciones_lote": especificaciones_lote,
+                "especificaciones_seleccionadas": especificaciones_seleccionadas,
+            })
 
         Producto.objects.create(
             nombre=nombre,
             descripcion=descripcion,
-            especificaciones_tecnicas=especificaciones_tecnicas,
             imagen=subir_imagen_producto(request.FILES.get("imagen")),
             proveedor_id=proveedor_id,
             precio_compra=precio_compra,
             impuesto=impuesto,
             margen_ganancia=margen_ganancia,
-            fecha_vencimiento=fecha_vencimiento,
             precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia) # CORRECCIÓN: Cálculo de precio
         )
+        producto.especificaciones.set(datos["especificaciones"])
 
         messages.success(request, "Producto creado correctamente")
         _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
-    return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+    return render(request, "inventario/dashboard/productos/form.html", {
+        "proveedores": Proveedor.objects.all(),
+        "especificaciones_lote": especificaciones_lote,
+        "especificaciones_seleccionadas": especificaciones_seleccionadas,
+    })
 
 
 @admin_required_session
 def producto_editar(request, producto_id):
-    producto = get_object_or_404(Producto, id=producto_id)
+    producto = get_object_or_404(Producto.objects.prefetch_related("especificaciones"), id=producto_id)
+    especificaciones_lote = _obtener_especificaciones_lote()
+    especificaciones_seleccionadas = list(producto.especificaciones.values_list("nombre", flat=True))
 
     if request.method == "POST":
+        especificaciones_seleccionadas = request.POST.getlist("especificaciones[]")
         try:
             datos = _leer_producto_form(request)
         except ValueError as exc:
             messages.error(request, str(exc))
-            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+            return render(request, "inventario/dashboard/productos/form.html", {
+                "producto": producto,
+                "proveedores": Proveedor.objects.all(),
+                "especificaciones_lote": especificaciones_lote,
+                "especificaciones_seleccionadas": especificaciones_seleccionadas,
+            })
         nombre = datos["nombre"]
         if Producto.objects.filter(nombre__iexact=nombre).exclude(id=producto.id).exists():
             messages.error(request, "Ya existe otro producto con ese nombre")
-            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+            return render(request, "inventario/dashboard/productos/form.html", {
+                "producto": producto,
+                "proveedores": Proveedor.objects.all(),
+                "especificaciones_lote": especificaciones_lote,
+                "especificaciones_seleccionadas": especificaciones_seleccionadas,
+            })
 
         producto.nombre = nombre
         producto.descripcion = datos["descripcion"]
-        producto.especificaciones_tecnicas = datos["especificaciones_tecnicas"]
         producto.precio_compra = datos["precio_compra"]
         producto.impuesto = datos["impuesto"]
         producto.margen_ganancia = datos["margen_ganancia"]
-        producto.fecha_vencimiento = datos["fecha_vencimiento"]
         producto.precio_venta = _calcular_precio_venta(producto.precio_compra, producto.impuesto, producto.margen_ganancia)
 
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
@@ -762,26 +792,42 @@ def producto_editar(request, producto_id):
 
         producto.proveedor_id = datos["proveedor_id"]
         producto.save()
+        producto.especificaciones.set(datos["especificaciones"])
 
         _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
-    return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+    return render(request, "inventario/dashboard/productos/form.html", {
+        "producto": producto,
+        "proveedores": Proveedor.objects.all(),
+        "especificaciones_lote": especificaciones_lote,
+        "especificaciones_seleccionadas": especificaciones_seleccionadas,
+    })
 
 
 @admin_required_session
 def producto_detalle(request, producto_id):
     producto = get_object_or_404(
-        anotar_stock_disponible(Producto.objects.select_related("proveedor")),
+        anotar_stock_disponible(
+            Producto.objects.select_related("proveedor").prefetch_related("especificaciones")
+        ),
         id=producto_id,
     )
+    lotes = Inventario.objects.filter(producto=producto).order_by("lote")
     return render(
         request,
         "inventario/dashboard/productos/detalle.html",
         {
             "producto": producto,
             "margen": producto.margen_ganancia,
-            "estado_vencimiento": _estado_vencimiento(producto),
+            "especificaciones": _etiquetas_especificaciones(producto),
+            "lotes": [
+                {
+                    "inventario": lote,
+                    "estado_vencimiento": _estado_vencimiento_lote(lote.fecha_vencimiento),
+                }
+                for lote in lotes
+            ],
         },
     )
 

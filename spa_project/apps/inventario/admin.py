@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
+from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Especificaciones, Producto, Proveedor
 
 
 @admin.register(Proveedor)
@@ -15,6 +15,11 @@ class ProveedorAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(Especificaciones)
+class EspecificacionesAdmin(admin.ModelAdmin):
+    search_fields = ("nombre",)
+
+
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
     list_display = ("nombre", "proveedor", "precio_compra", "precio_venta", "impuesto", "activo")
@@ -24,6 +29,7 @@ class ProductoAdmin(admin.ModelAdmin):
         ("Información del Producto", {"fields": ("nombre", "descripcion", "imagen")}),
         ("Proveedor", {"fields": ("proveedor",)}),
         ("Precios", {"fields": ("precio_compra", "precio_venta", "impuesto", "margen_ganancia")}),
+        ("Especificaciones por lote", {"fields": ("especificaciones",)}),
         ("Estado", {"fields": ("activo",)}),
     )
     readonly_fields = ("precio_venta",)

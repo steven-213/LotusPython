@@ -66,6 +66,9 @@
                 <th>Precio</th>
                 <th>Impuesto</th>
                 <th>Margen</th>
+                <th>Lote</th>
+                <th>Vencimiento</th>
+                <th>PAO</th>
                 <th>Subtotal</th>
             </tr>
         </thead>
@@ -83,6 +86,8 @@
                         data-precio="{{ producto.precio_compra }}"
                         data-impuesto="{{ producto.impuesto }}"
                         data-margen="{{ producto.margen_ganancia }}"
+                        data-requiere-vencimiento="{% if producto.requiere_vencimiento %}1{% else %}0{% endif %}"
+                        data-requiere-pao="{% if producto.requiere_pao %}1{% else %}0{% endif %}"
                         {% if producto.id == d.producto.id %}selected{% endif %}>
                         {{ producto.nombre }}
                     </option>
@@ -108,6 +113,21 @@
             <td>
                 <input type="text" name="margenes[]" class="form-control margen"
                        value="{{ d.margen_ganancia }}" step="0.01">
+            </td>
+
+            <td>
+                <input type="text" name="lotes[]" class="form-control lote"
+                       value="{{ d.lote }}" maxlength="8" pattern="[A-Za-z0-9-]+" required>
+            </td>
+
+            <td>
+                <input type="date" name="fechas_vencimiento[]" class="form-control fecha-vencimiento"
+                       value="{% if d.fecha_vencimiento %}{{ d.fecha_vencimiento|date:'Y-m-d' }}{% endif %}">
+            </td>
+
+            <td>
+                <input type="text" name="paos[]" class="form-control pao"
+                       value="{{ d.pao|default:'' }}" maxlength="50">
             </td>
 
             <td>
@@ -171,12 +191,29 @@ function agregarEventos(row) {
         row.querySelector('.impuesto').value = op.dataset.impuesto || 0;
         row.querySelector('.margen').value = op.dataset.margen || 0;
 
+        actualizarCamposLote(row);
         actualizarSubtotal(row);
     });
 
     [cantidad, precio].forEach(el => {
         el.addEventListener('input', () => actualizarSubtotal(row));
     });
+}
+
+function actualizarCamposLote(row) {
+    const option = row.querySelector('.producto-select').selectedOptions[0];
+    const fecha = row.querySelector('.fecha-vencimiento');
+    const pao = row.querySelector('.pao');
+    const requiereVencimiento = option && option.dataset.requiereVencimiento === '1';
+    const requierePao = option && option.dataset.requierePao === '1';
+
+    fecha.closest('td').style.display = requiereVencimiento ? '' : 'none';
+    fecha.required = requiereVencimiento;
+    if (!requiereVencimiento) fecha.value = '';
+
+    pao.closest('td').style.display = requierePao ? '' : 'none';
+    pao.required = requierePao;
+    if (!requierePao) pao.value = '';
 }
 
 // SUBTOTAL
@@ -208,6 +245,7 @@ function actualizarTotal() {
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.producto-row').forEach(row => {
         agregarEventos(row);
+        actualizarCamposLote(row);
         actualizarSubtotal(row);
     });
 });

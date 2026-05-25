@@ -104,6 +104,9 @@
                     <th>Producto</th>
                     <th>Cantidad</th>
                     <th>Precio</th>
+                    <th>Lote</th>
+                    <th>Vencimiento</th>
+                    <th>PAO</th>
                     <th>Subtotal</th>
                 </tr>
             </thead>
@@ -124,6 +127,18 @@
                     <td>
                         ${{ detalle.precio_compra }}
                     </td>
+
+                    <td>{{ detalle.lote }}</td>
+
+                    <td>
+                        {% if detalle.fecha_vencimiento %}
+                            {{ detalle.fecha_vencimiento|date:"d/m/Y" }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+
+                    <td>{{ detalle.pao|default:"N/A" }}</td>
 
                     <td style="color:#ca6b86; font-weight:700;">
                         ${{ detalle.cantidad|multiply:detalle.precio_compra }}
