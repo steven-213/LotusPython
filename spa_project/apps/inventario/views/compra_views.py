@@ -37,6 +37,13 @@ def _parse_decimal(value, *, label, allow_zero=False):
     return parsed
 
 
+def _parse_percentage(value, *, label):
+    parsed = _parse_decimal(value, label=label, allow_zero=True)
+    if parsed > 100:
+        raise ValueError(f"{label} debe estar entre 0 y 100.")
+    return parsed
+
+
 def _compra_factura_duplicada(*, proveedor, numero_factura, exclude_id=None):
     if not numero_factura:
         return False
@@ -87,6 +94,8 @@ def _obtener_detalles_compra(request):
             raise ValueError(f"Debes seleccionar un producto en la fila {fila}.")
         if not lote:
             raise ValueError(f"Debes ingresar un lote en la fila {fila}.")
+        if len(lote) > 8:
+            raise ValueError(f"El lote de la fila {fila} debe tener maximo 8 caracteres.")
 
         producto = Producto.objects.filter(id=producto_id, activo=True).first()
         if not producto:
@@ -94,15 +103,13 @@ def _obtener_detalles_compra(request):
 
         cantidad = _parse_positive_int(cantidad_raw, label=f"La cantidad de la fila {fila}")
         precio_compra = _parse_decimal(precio_raw, label=f"El precio de la fila {fila}")
-        impuesto = _parse_decimal(
+        impuesto = _parse_percentage(
             impuesto_raw or "0",
             label=f"El impuesto de la fila {fila}",
-            allow_zero=True,
         )
-        margen_ganancia = _parse_decimal(
+        margen_ganancia = _parse_percentage(
             margen_raw or "0",
             label=f"El margen de la fila {fila}",
-            allow_zero=True,
         )
 
         duplicate_key = (producto.id, lote.casefold())
@@ -376,9 +383,26 @@ def compra_eliminar(request, compra_id):
     compra = get_object_or_404(Compra, id=compra_id)
     if request.method == "POST":
         for detalle in compra.detalles.all():
-            producto = detalle.producto
-            producto.stock -= detalle.cantidad
-            producto.save()
+            cantidad_restante = detalle.cantidad
+            inventarios = Inventario.objects.filter(
+                producto=detalle.producto,
+                lote=detalle.lote,
+                stock__gt=0,
+            ).order_by("-fecha_ingreso")
+            for inventario in inventarios:
+                if cantidad_restante <= 0:
+                    break
+                descuento = min(inventario.stock, cantidad_restante)
+                inventario.stock -= descuento
+                inventario.save(update_fields=["stock"])
+                MovimientoInventario.objects.create(
+                    inventario=inventario,
+                    producto=detalle.producto,
+                    lote=detalle.lote,
+                    cantidad=descuento,
+                    tipo="SALIDA",
+                )
+                cantidad_restante -= descuento
         compra.delete()
     return redirect("inventario:compra_lista")
 
@@ -450,7 +474,10 @@ def devolucion_nueva(request):
             messages.error(request, str(exc))
             return _render_devolucion_nueva(request, compras=compras)
 
-        motivo = request.POST.get("motivo", "")
+        motivo = (request.POST.get("motivo") or "").strip()
+        if not (5 <= len(motivo) <= 150):
+            messages.error(request, "El motivo debe tener entre 5 y 150 caracteres.")
+            return _render_devolucion_nueva(request, compras=compras)
 
         compra = get_object_or_404(
             Compra.objects.select_related("proveedor").prefetch_related("detalles__producto", "devoluciones"),

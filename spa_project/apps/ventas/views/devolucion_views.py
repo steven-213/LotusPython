@@ -53,8 +53,8 @@ def solicitar_devolucion(request, detalle_id):
         messages.error(request, "La cantidad a devolver debe ser mayor a cero.")
         return _redirect_perfil_devoluciones()
 
-    if not motivo:
-        messages.error(request, "Debes indicar el motivo de la devolucion.")
+    if not (15 <= len(motivo) <= 200):
+        messages.error(request, "El motivo de la devolucion debe tener entre 15 y 200 caracteres.")
         return _redirect_perfil_devoluciones()
 
     cantidad_disponible = cantidad_disponible_para_devolucion(detalle)

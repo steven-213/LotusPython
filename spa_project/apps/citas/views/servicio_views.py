@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
+from decimal import InvalidOperation
 from types import SimpleNamespace
 
 from apps.common.currency import parse_money
@@ -100,6 +102,52 @@ def _obtener_payload_servicios_publicos():
     return payload
 
 
+def _validar_imagen_servicio(archivo, *, requerida=False):
+    if not archivo:
+        if requerida:
+            raise ValidationError("Debes cargar una imagen del servicio.")
+        return
+    extension = archivo.name.rsplit(".", 1)[-1].lower() if "." in archivo.name else ""
+    if extension not in {"jpg", "jpeg", "png", "webp"}:
+        raise ValidationError("La imagen debe estar en formato JPG, PNG o WEBP.")
+    if getattr(archivo, "size", 0) > 500 * 1024:
+        raise ValidationError("La imagen no puede pesar mas de 500 KB.")
+
+
+def _validar_datos_servicio(request, *, servicio=None, requiere_imagen=False):
+    nombre = (request.POST.get("nombre") or "").strip()
+    descripcion = (request.POST.get("descripcion") or "").strip()
+    try:
+        precio = parse_money(request.POST.get("precio"), default=None)
+    except (InvalidOperation, TypeError, ValueError):
+        precio = None
+    duracion_raw = (request.POST.get("duracion_minutos") or "").strip()
+
+    if not (3 <= len(nombre) <= 50):
+        raise ValidationError("El nombre del servicio debe tener entre 3 y 50 caracteres.")
+    if not (5 <= len(descripcion) <= 255):
+        raise ValidationError("La descripcion debe tener entre 5 y 255 caracteres.")
+    if precio is None or precio <= 0:
+        raise ValidationError("El precio del servicio debe ser mayor a cero.")
+    try:
+        duracion = int(duracion_raw)
+    except (TypeError, ValueError) as exc:
+        raise ValidationError("La duracion debe ser un numero entero valido.") from exc
+    if duracion <= 0:
+        raise ValidationError("La duracion debe ser mayor a cero minutos.")
+
+    imagen = request.FILES.get("imagen")
+    _validar_imagen_servicio(imagen, requerida=requiere_imagen)
+
+    duplicado = Servicio.objects.filter(nombre__iexact=nombre)
+    if servicio:
+        duplicado = duplicado.exclude(id=servicio.id)
+    if duplicado.exists():
+        raise ValidationError("Ya existe un servicio con ese nombre.")
+
+    return nombre, descripcion, precio, duracion, imagen
+
+
 def servicios_publicos(request):
     payload = _obtener_payload_servicios_publicos()
     servicios = payload["servicios"]
@@ -130,9 +178,13 @@ def servicio_lista(request):
 def servicio_nuevo(request):
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
-        if not nombre:
-            messages.error(request, "Debes ingresar el nombre del servicio.")
+        try:
+            nombre, descripcion, precio, duracion, imagen = _validar_datos_servicio(
+                request,
+                requiere_imagen=True,
+            )
+        except ValidationError as exc:
+            messages.error(request, exc.message)
             return render(
                 request,
                 "citas/dashboard/servicios/form.html",
@@ -155,24 +207,14 @@ def servicio_nuevo(request):
                 {"profesionales": profesionales},
             )
 
-        if Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional).exists():
-            messages.error(
-                request,
-                "Ya existe un servicio con ese nombre para la profesional seleccionada.",
-            )
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"profesionales": profesionales},
-            )
-        imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
+        imagen_url = subir_imagen_servicio(imagen)
         Servicio.objects.create(
             nombre=nombre,
-            descripcion=request.POST.get("descripcion", ""),
+            descripcion=descripcion,
             imagen=imagen_url,
-            precio=parse_money(request.POST.get("precio")),
+            precio=precio,
             profesional=profesional,
-            duracion_minutos=request.POST.get("duracion_minutos") or 60,
+            duracion_minutos=duracion,
             activo=request.POST.get("activo") == "on",
         )
         _invalidar_cache_servicios_publicos()
@@ -190,9 +232,14 @@ def servicio_editar(request, servicio_id):
     servicio = get_object_or_404(Servicio, id=servicio_id)
     profesionales = Profesional.objects.filter(activo=True).order_by("nombre")
     if request.method == "POST":
-        nombre = (request.POST.get("nombre") or "").strip()
-        if not nombre:
-            messages.error(request, "Debes ingresar el nombre del servicio.")
+        try:
+            nombre, descripcion, precio, duracion, imagen = _validar_datos_servicio(
+                request,
+                servicio=servicio,
+                requiere_imagen=not bool(servicio.imagen),
+            )
+        except ValidationError as exc:
+            messages.error(request, exc.message)
             return render(
                 request,
                 "citas/dashboard/servicios/form.html",
@@ -215,28 +262,13 @@ def servicio_editar(request, servicio_id):
                 {"servicio": servicio, "profesionales": profesionales},
             )
 
-        if (
-            Servicio.objects.filter(nombre__iexact=nombre, profesional=profesional)
-            .exclude(id=servicio.id)
-            .exists()
-        ):
-            messages.error(
-                request,
-                "Ya existe otro servicio con ese nombre para la profesional seleccionada.",
-            )
-            return render(
-                request,
-                "citas/dashboard/servicios/form.html",
-                {"servicio": servicio, "profesionales": profesionales},
-            )
-
         servicio.nombre = nombre
-        servicio.descripcion = request.POST.get("descripcion", "")
-        imagen_url = subir_imagen_servicio(request.FILES.get("imagen"))
+        servicio.descripcion = descripcion
+        imagen_url = subir_imagen_servicio(imagen)
         if imagen_url:
             servicio.imagen = imagen_url
-        servicio.precio = parse_money(request.POST.get("precio"))
-        servicio.duracion_minutos = request.POST.get("duracion_minutos") or 60
+        servicio.precio = precio
+        servicio.duracion_minutos = duracion
         servicio.activo = request.POST.get("activo") == "on"
         servicio.profesional = profesional
         servicio.save()

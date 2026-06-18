@@ -3,6 +3,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
+from datetime import date
+import re
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.sesiones.decorators import admin_required_session
@@ -181,6 +183,12 @@ def password_reset_request(request):
         if not documento or not correo:
             messages.error(request, "Completa el documento y el correo para continuar.")
             return render(request, "password_reset_request.html", {"form_data": form_data})
+        if not documento.isdigit():
+            messages.error(request, "El documento debe contener solo numeros.")
+            return render(request, "password_reset_request.html", {"form_data": form_data})
+        if not _email_valido(correo):
+            messages.error(request, "Ingresa un correo valido.")
+            return render(request, "password_reset_request.html", {"form_data": form_data})
 
         usuario = Usuario.objects.filter(documento=documento, correo__iexact=correo).first()
         if not usuario:
@@ -233,8 +241,8 @@ def password_reset_confirm(request, token):
             messages.error(request, "Completa el codigo y la nueva contrasena.")
         elif new_password != confirm_password:
             messages.error(request, "La confirmacion de la contrasena no coincide.")
-        elif len(new_password) < 4:
-            messages.error(request, "La nueva contrasena debe tener al menos 4 caracteres.")
+        elif not _password_valida(new_password):
+            messages.error(request, "La nueva contrasena debe tener entre 8 y 30 caracteres e incluir letras y numeros.")
         elif password_reset.codigo_expira_en <= timezone.now():
             messages.error(request, "El codigo ya vencio. Solicita uno nuevo para continuar.")
         elif not secret_matches(verification_code, password_reset.codigo):
@@ -290,10 +298,33 @@ def _validate_registration_request(form_data, raw_password):
             form_data,
             "El documento debe contener solo numeros.",
         )
-    if len(raw_password) < 4:
+    if not (5 <= len(str(form_data["documento"])) <= 15):
         return _registration_error_context(
             form_data,
-            "La contrasena debe tener al menos 4 caracteres.",
+            "El documento debe tener entre 5 y 15 digitos.",
+        )
+    for campo in ("nombre", "apellido"):
+        valor = (form_data[campo] or "").strip()
+        if not _nombre_valido(valor):
+            return _registration_error_context(
+                form_data,
+                f"El {campo} debe tener entre 3 y 25 caracteres y solo letras.",
+            )
+        form_data[campo] = valor.title()
+    if not _email_valido(form_data["correo"]) or len(form_data["correo"]) > 100:
+        return _registration_error_context(
+            form_data,
+            "Ingresa un correo valido de maximo 100 caracteres.",
+        )
+    if not _mayor_de_edad(form_data["fecha_nacimiento"]):
+        return _registration_error_context(
+            form_data,
+            "Debes ser mayor de edad y la fecha de nacimiento no puede ser futura.",
+        )
+    if not _password_valida(raw_password, max_length=20):
+        return _registration_error_context(
+            form_data,
+            "La contrasena debe tener entre 8 y 20 caracteres e incluir letras y numeros.",
         )
     if Usuario.objects.filter(documento=form_data["documento"]).exists():
         return _registration_error_context(
@@ -308,6 +339,35 @@ def _validate_registration_request(form_data, raw_password):
             duplicate_correo=True,
         )
     return None
+
+
+def _nombre_valido(valor):
+    return bool(re.fullmatch(r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{3,25}", valor or ""))
+
+
+def _email_valido(valor):
+    return bool(re.fullmatch(r"[^@\s]{1,64}@[^@\s]+\.[^@\s]+", valor or ""))
+
+
+def _password_valida(valor, max_length=30):
+    valor = valor or ""
+    return (
+        8 <= len(valor) <= max_length
+        and any(char.isalpha() for char in valor)
+        and any(char.isdigit() for char in valor)
+    )
+
+
+def _mayor_de_edad(fecha_raw):
+    try:
+        nacimiento = date.fromisoformat(fecha_raw)
+    except (TypeError, ValueError):
+        return False
+    hoy = timezone.localdate()
+    if nacimiento > hoy:
+        return False
+    edad = hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
+    return edad >= 18
 
 
 def _registration_error_context(form_data, message, **extra_context):

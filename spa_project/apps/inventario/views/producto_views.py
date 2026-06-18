@@ -69,6 +69,24 @@ def _calcular_precio_venta(precio_compra, impuesto, margen_ganancia):
     return (precio_compra + impuesto_valor + margen_valor).quantize(Decimal("0.01"))
 
 
+def _validar_porcentaje(valor, etiqueta):
+    if valor < 0 or valor > 100:
+        raise ValueError(f"{etiqueta} debe estar entre 0 y 100.")
+
+
+def _validar_datos_producto(*, nombre, descripcion, precio_compra, impuesto, margen_ganancia, proveedor_id):
+    if not (3 <= len(nombre) <= 50):
+        raise ValueError("El nombre del producto debe tener entre 3 y 50 caracteres.")
+    if not (5 <= len((descripcion or "").strip()) <= 50):
+        raise ValueError("La descripcion debe tener entre 5 y 50 caracteres.")
+    if precio_compra <= 0:
+        raise ValueError("El precio de compra debe ser mayor a cero.")
+    _validar_porcentaje(impuesto, "El impuesto")
+    _validar_porcentaje(margen_ganancia, "El margen de ganancia")
+    if not proveedor_id:
+        raise ValueError("Debes seleccionar un proveedor.")
+
+
 def _detectar_delimitador_csv(contenido):
     muestra = contenido[:1024]
 
@@ -451,6 +469,10 @@ def procesar_pago(request):
     metodo_pago = (payload.get("metodo_pago") or "").strip() or "por_confirmar"
     telefono = (payload.get("telefono") or "").strip()
     direccion = (payload.get("direccion") or "").strip()
+    if not (telefono.isdigit() and len(telefono) == 10):
+        return JsonResponse({"status": "error", "message": "El telefono debe tener exactamente 10 digitos."}, status=400)
+    if not (15 <= len(direccion) <= 25):
+        return JsonResponse({"status": "error", "message": "La direccion de entrega debe tener entre 15 y 25 caracteres."}, status=400)
 
     observaciones = ["Compra creada desde catalogo web."]
     if telefono: observaciones.append(f"Telefono: {telefono}")
@@ -706,14 +728,27 @@ def producto_importar_csv(request):
 def producto_nuevo(request):
     if request.method == "POST":
         nombre = request.POST.get("nombre", "").strip()
-        descripcion = request.POST.get("descripcion", "")
-        precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        impuesto = Decimal(request.POST.get("impuesto") or 19)
-        margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        descripcion = request.POST.get("descripcion", "").strip()
+        try:
+            precio_compra = Decimal(request.POST.get("precio_compra") or 0)
+            impuesto = Decimal(request.POST.get("impuesto") or 19)
+            margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        except InvalidOperation:
+            messages.error(request, "Los valores numericos del producto no son validos.")
+            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
         proveedor_id = request.POST.get("proveedor_id")
 
-        if not nombre or not proveedor_id:
-            messages.error(request, "Nombre y Proveedor son obligatorios")
+        try:
+            _validar_datos_producto(
+                nombre=nombre,
+                descripcion=descripcion,
+                precio_compra=precio_compra,
+                impuesto=impuesto,
+                margen_ganancia=margen_ganancia,
+                proveedor_id=proveedor_id,
+            )
+        except ValueError as exc:
+            messages.error(request, str(exc))
             return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
 
         if Producto.objects.filter(nombre__iexact=nombre).exists():
@@ -744,15 +779,32 @@ def producto_editar(request, producto_id):
 
     if request.method == "POST":
         nombre = (request.POST.get("nombre") or "").strip()
+        descripcion = (request.POST.get("descripcion") or "").strip()
         if Producto.objects.filter(nombre__iexact=nombre).exclude(id=producto.id).exists():
             messages.error(request, "Ya existe otro producto con ese nombre")
             return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
 
+        try:
+            precio_compra = Decimal(request.POST.get("precio_compra") or 0)
+            impuesto = Decimal(request.POST.get("impuesto") or 19)
+            margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+            _validar_datos_producto(
+                nombre=nombre,
+                descripcion=descripcion,
+                precio_compra=precio_compra,
+                impuesto=impuesto,
+                margen_ganancia=margen_ganancia,
+                proveedor_id=request.POST.get("proveedor_id"),
+            )
+        except (InvalidOperation, ValueError) as exc:
+            messages.error(request, str(exc) if str(exc) else "Los datos ingresados no son validos.")
+            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+
         producto.nombre = nombre
-        producto.descripcion = request.POST.get("descripcion", "")
-        producto.precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        producto.impuesto = Decimal(request.POST.get("impuesto") or 19)
-        producto.margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        producto.descripcion = descripcion
+        producto.precio_compra = precio_compra
+        producto.impuesto = impuesto
+        producto.margen_ganancia = margen_ganancia
         producto.precio_venta = _calcular_precio_venta(producto.precio_compra, producto.impuesto, producto.margen_ganancia)
 
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))

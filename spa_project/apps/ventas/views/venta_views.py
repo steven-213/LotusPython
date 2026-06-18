@@ -968,6 +968,10 @@ def confirmar_compra_telegram(request, validacion_id):
     validacion = get_object_or_404(ValidacionVenta, id=validacion_id)
     if validacion.estado == "comprado":
         return HttpResponse("La compra ya esta confirmada.")
+    if validacion.estado == "rechazado":
+        return HttpResponse("La compra ya fue rechazada y no se puede confirmar.")
+    if validacion.estado != "pendiente":
+        return HttpResponse("La compra ya fue procesada.")
 
     detalles = list(validacion.venta.detalles.select_related("producto").all())
     cantidades_por_producto = {}
@@ -978,16 +982,19 @@ def confirmar_compra_telegram(request, validacion_id):
         )
         productos[detalle.producto_id] = detalle.producto
 
-    for producto_id, cantidad_total in cantidades_por_producto.items():
-        producto = productos[producto_id]
-        if obtener_stock_disponible(producto) < cantidad_total:
-            return HttpResponse(
-                f"No se pudo confirmar: stock insuficiente para {producto.nombre}."
-            )
+    stock_descontado_previamente = "Compra creada desde catalogo web." in (validacion.observaciones or "")
+    if not stock_descontado_previamente:
+        for producto_id, cantidad_total in cantidades_por_producto.items():
+            producto = productos[producto_id]
+            if obtener_stock_disponible(producto) < cantidad_total:
+                return HttpResponse(
+                    f"No se pudo confirmar: stock insuficiente para {producto.nombre}."
+                )
 
     with transaction.atomic():
-        for producto_id, cantidad_total in cantidades_por_producto.items():
-            descontar_stock(productos[producto_id], cantidad_total)
+        if not stock_descontado_previamente:
+            for producto_id, cantidad_total in cantidades_por_producto.items():
+                descontar_stock(productos[producto_id], cantidad_total)
 
         validacion.estado = "comprado"
         validacion.observaciones = "Confirmado"
@@ -1002,6 +1009,12 @@ def rechazar_compra_telegram(request, validacion_id):
         return HttpResponseForbidden("Token invalido.")
 
     validacion = get_object_or_404(ValidacionVenta, id=validacion_id)
+    if validacion.estado == "rechazado":
+        return HttpResponse("La compra ya esta rechazada.")
+    if validacion.estado == "comprado":
+        return HttpResponse("La compra ya fue confirmada y no se puede rechazar.")
+    if validacion.estado != "pendiente":
+        return HttpResponse("La compra ya fue procesada.")
     validacion.estado = "rechazado"
     validacion.observaciones = "Rechazado"
     validacion.save(update_fields=["estado", "observaciones"])
