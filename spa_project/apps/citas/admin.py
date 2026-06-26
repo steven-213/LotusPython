@@ -1,12 +1,6 @@
 from django.contrib import admin
 
-from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, ReservaHistorialEstado, Servicio
-
-
-@admin.register(ClienteInvitado)
-class ClienteInvitadoAdmin(admin.ModelAdmin):
-    list_display = ("documento", "nombre", "apellido", "correo", "created_at")
-    search_fields = ("documento", "nombre", "apellido", "correo")
+from apps.citas.models import PagoReserva, Profesional, Reserva, ReservaHistorialEstado, Servicio
 
 
 @admin.register(Profesional)
@@ -29,8 +23,6 @@ class ReservaAdmin(admin.ModelAdmin):
     search_fields = (
         "cliente__nombre",
         "cliente__apellido",
-        "cliente_invitado__nombre",
-        "cliente_invitado__apellido",
         "servicio__nombre",
         "profesional__nombre",
     )
@@ -43,7 +35,6 @@ class ReservaHistorialEstadoAdmin(admin.ModelAdmin):
     list_filter = ("estado_nuevo",)
     search_fields = (
         "reserva__cliente__nombre",
-        "reserva__cliente_invitado__nombre",
         "reserva__servicio__nombre",
     )
 
@@ -55,6 +46,5 @@ class PagoReservaAdmin(admin.ModelAdmin):
     search_fields = (
         "numero_comprobante",
         "reserva__cliente__nombre",
-        "reserva__cliente_invitado__nombre",
         "referencia",
     )

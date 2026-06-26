@@ -16,18 +16,12 @@
       <h1>{% if reserva %}Editar cita{% else %}Agenda tu cita{% endif %}</h1>
       {% if reserva %}
       <p>Actualiza el servicio, la fecha o las notas de la reserva sin perder el seguimiento del proceso.</p>
-      {% elif usuario %}
-      <p>Reserva tu espacio y decide si quieres pagar ahora o hacerlo de manera presencial el dia de la atencion.</p>
       {% else %}
-      <p>Puedes reservar sin cuenta. En ese caso el pago se registra en este mismo paso para dejar tu cita confirmada.</p>
+      <p>Reserva tu espacio y decide si quieres pagar ahora o hacerlo de manera presencial el dia de la atencion.</p>
       {% endif %}
     </div>
     <div class="hero-actions hero-actions-stacked">
-      {% if usuario %}
       <span class="mode-pill mode-pill-auth"><i class="bi bi-person-check"></i> Cliente autenticado</span>
-      {% else %}
-      <span class="mode-pill mode-pill-guest"><i class="bi bi-person-bounding-box"></i> Reserva sin iniciar sesion</span>
-      {% endif %}
       <a class="btn-secondary-soft" href="{% url 'citas:servicios_publicos' %}">Ver catalogo de servicios</a>
     </div>
   </header>
@@ -37,37 +31,6 @@
     <article class="form-surface">
       <form method="post" class="citas-form" novalidate>
         {% csrf_token %}
-
-        {% if not reserva and not usuario %}
-        <section class="form-section">
-          <div class="section-heading">
-            <h2>Datos del cliente</h2>
-            <p>Usaremos esta informacion para crear o reutilizar tu registro como cliente y asociar la reserva.</p>
-          </div>
-          <div class="form-grid two-up">
-            <label class="field">
-              <span>Documento</span>
-              <input class="form-control" type="number" name="documento" min="1" value="{{ request.POST.documento|default:'' }}" required>
-            </label>
-            <label class="field">
-              <span>Fecha de nacimiento</span>
-              <input class="form-control" type="date" name="fecha_nacimiento" value="{{ request.POST.fecha_nacimiento|default:'' }}" required>
-            </label>
-            <label class="field">
-              <span>Nombre</span>
-              <input class="form-control" type="text" name="nombre" value="{{ request.POST.nombre|default:'' }}" required>
-            </label>
-            <label class="field">
-              <span>Apellido</span>
-              <input class="form-control" type="text" name="apellido" value="{{ request.POST.apellido|default:'' }}" required>
-            </label>
-            <label class="field field-full">
-              <span>Correo</span>
-              <input class="form-control" type="email" name="correo" value="{{ request.POST.correo|default:'' }}" required>
-            </label>
-          </div>
-        </section>
-        {% endif %}
 
         <section class="form-section">
           <div class="section-heading">
@@ -144,27 +107,13 @@
         <section class="form-section payment-section" id="payment-section">
           <div class="section-heading">
             <h2>Pago</h2>
-            {% if usuario %}
             <p>Si prefieres, puedes dejar esta cita programada y pagarla mas tarde de forma presencial.</p>
-            {% else %}
-            <p>Para reservar sin iniciar sesion necesitamos registrar el pago en este mismo flujo.</p>
-            {% endif %}
           </div>
 
-          {% if usuario %}
           <label class="toggle-payment">
             <input type="checkbox" id="pagar_ahora" name="pagar_ahora" value="1" {% if request.POST.pagar_ahora == '1' %}checked{% endif %}>
             <span>Registrar el pago ahora para dejar la cita confirmada</span>
           </label>
-          {% else %}
-          <div class="payment-callout required">
-            <i class="bi bi-exclamation-circle"></i>
-            <div>
-              <strong>Pago obligatorio en reserva publica</strong>
-              <p>Tu cita quedara confirmada apenas registremos el pago en este paso.</p>
-            </div>
-          </div>
-          {% endif %}
 
           <div class="form-grid two-up" id="payment-fields">
             <label class="field">
@@ -200,13 +149,8 @@
         <h2>Como funcionara esta reserva</h2>
         <ol class="flow-list">
           <li>Seleccionas el servicio y la fecha de inicio.</li>
-          {% if usuario %}
           <li>Decides si pagas ahora o si la dejas para pago presencial.</li>
           <li>La cita quedara programada o confirmada segun esa decision.</li>
-          {% else %}
-          <li>Se registra tu pago y la cita queda confirmada de inmediato.</li>
-          <li>Al final veras el resumen y podras descargar el comprobante.</li>
-          {% endif %}
         </ol>
       </div>
       <div class="side-panel subtle">

@@ -1,0 +1,36 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Recuperar contraseña | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="contenedor-acceso">
+  <article class="tarjeta-acceso">
+    <h1>Recuperar contraseña</h1>
+    <p>Ingresa tu correo electrónico para recibir un enlace de recuperación.</p>
+
+    {% if messages %}
+      <div class="mensajes">
+        {% for message in messages %}
+          <div class="alerta alerta-{{ message.tags }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="formulario-acceso">
+      {% csrf_token %}
+      <label for="correo">Correo electrónico</label>
+      <input id="correo" type="email" name="correo" required placeholder="ejemplo@correo.com">
+
+      <button type="submit" class="boton boton-primario">Enviar enlace de recuperación</button>
+    </form>
+
+    <a class="enlace-acceso" href="{% url 'sesiones:login' %}">Volver al inicio de sesión</a>
+  </article>
+</section>
+{% endblock %}

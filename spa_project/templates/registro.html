@@ -25,6 +25,8 @@
           value="{{ form_data.documento|default:'' }}"
           class="{% if duplicate_documento %}campo-invalido{% endif %}"
           required
+          minlength="8"
+          title="El documento debe tener al menos 8 dígitos"
         >
         {% if duplicate_documento %}
         <p class="campo-alerta" role="alert">Ese documento ya tiene una cuenta registrada.</p>
@@ -51,7 +53,7 @@
       </div>
       <div>
         <label for="clave">Contraseña</label>
-        <input id="clave" type="password" name="clave" required>
+        <input id="clave" type="password" name="clave" required minlength="8" title="La contraseña debe tener al menos 8 caracteres">
       </div>
 
       <button type="submit" class="boton boton-primario">Registrarme</button>

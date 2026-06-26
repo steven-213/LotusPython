@@ -218,3 +218,15 @@ TELEGRAM_VERIFY_SSL = _env_bool("TELEGRAM_VERIFY_SSL", True)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "")
+
+# Email Configuration (Gmail)
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")  # Tu correo de Gmail
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")  # Contraseña de aplicación
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+
+# Password reset token expiration time (in hours)
+PASSWORD_RESET_TIMEOUT_HOURS = _env_int("PASSWORD_RESET_TIMEOUT_HOURS", 24)

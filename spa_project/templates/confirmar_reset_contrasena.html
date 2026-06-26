@@ -1,0 +1,41 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Establecer nueva contraseña | Lotus Dream Spa{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/site/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="contenedor-acceso">
+  <article class="tarjeta-acceso">
+    <h1>Establecer nueva contraseña</h1>
+    <p>Ingresa tu nueva contraseña para acceder a tu cuenta.</p>
+
+    {% if messages %}
+      <div class="mensajes">
+        {% for message in messages %}
+          <div class="alerta alerta-{{ message.tags }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" class="formulario-acceso">
+      {% csrf_token %}
+      <label for="nueva_contrasena">Nueva contraseña</label>
+      <input id="nueva_contrasena" type="password" name="nueva_contrasena" required 
+             placeholder="Mínimo 6 caracteres" minlength="6">
+
+      <label for="confirmar_contrasena">Confirmar contraseña</label>
+      <input id="confirmar_contrasena" type="password" name="confirmar_contrasena" required 
+             placeholder="Confirma tu contraseña" minlength="6">
+
+      <button type="submit" class="boton boton-primario">Actualizar contraseña</button>
+    </form>
+
+    <a class="enlace-acceso" href="{% url 'sesiones:login' %}">Volver al inicio de sesión</a>
+  </article>
+</section>
+{% endblock %}

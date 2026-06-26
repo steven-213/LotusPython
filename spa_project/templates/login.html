@@ -18,15 +18,17 @@
       <input type="hidden" name="next" value="{{ next }}">
       {% endif %}
       <label for="documento">Documento</label>
-      <input id="documento" type="number" name="documento" required>
+      <input id="documento" type="number" name="documento" required minlength="8" title="El documento debe tener al menos 8 dígitos">
 
       <label for="clave">Contraseña</label>
-      <input id="clave" type="password" name="clave" required>
+      <input id="clave" type="password" name="clave" required minlength="8" title="La contraseña debe tener al menos 8 caracteres">
 
       <button type="submit" class="boton boton-primario">Entrar</button>
     </form>
 
     <a class="enlace-acceso" href="{% url 'sesiones:registro' %}">Crear cuenta nueva</a>
+    <br>
+    <a class="enlace-acceso" href="{% url 'sesiones:solicitar_reset_contrasena' %}">¿Olvidaste tu contraseña?</a>
   </article>
 </section>
 {% endblock %}

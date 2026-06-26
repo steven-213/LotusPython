@@ -25,7 +25,7 @@ def api_ventas(request):
     if denied:
         return denied
     if request.method == "GET":
-        ventas = Venta.objects.select_related("cliente", "cliente_invitado").all()
+        ventas = Venta.objects.select_related("cliente").all()
         data = [
             {
                 "id": venta.id,

@@ -170,9 +170,11 @@ class InventarioUrlsTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         productos = list(response.context["productos"])
-        self.assertEqual(len(productos), 1)
-        self.assertEqual(productos[0].nombre, "Serum publico")
-        self.assertEqual(productos[0].stock_disponible, 5)
+        self.assertEqual(len(productos), 2)
+        stocks_por_nombre = {producto.nombre: producto.stock_disponible for producto in productos}
+        self.assertEqual(stocks_por_nombre["Serum publico"], 5)
+        self.assertEqual(stocks_por_nombre["Producto agotado"], 0)
+        self.assertContains(response, "Producto agotado")
 
     def test_compra_nueva_rechaza_valores_negativos_o_en_cero(self):
         producto = Producto.objects.create(

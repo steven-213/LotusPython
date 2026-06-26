@@ -6,13 +6,6 @@ from django.db import models
 
 class Venta(models.Model):
     cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT, null=True, blank=True)
-    cliente_invitado = models.ForeignKey(
-        "citas.ClienteInvitado",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="ventas",
-    )
     reserva = models.OneToOneField(
         "citas.Reserva",
         on_delete=models.SET_NULL,
@@ -29,7 +22,7 @@ class Venta(models.Model):
 
     @property
     def cliente_facturacion(self):
-        return self.cliente or self.cliente_invitado
+        return self.cliente
 
     @property
     def cliente_nombre_completo(self):
@@ -63,13 +56,6 @@ class DetalleVenta(models.Model):
 class ValidacionVenta(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name="validaciones")
     cliente = models.ForeignKey("sesiones.Usuario", on_delete=models.PROTECT, null=True, blank=True)
-    cliente_invitado = models.ForeignKey(
-        "citas.ClienteInvitado",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name="validaciones_venta",
-    )
     metodo_pago = models.CharField(max_length=50, blank=True)
     referencia_pago = models.CharField(max_length=100, blank=True)
     monto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -80,7 +66,7 @@ class ValidacionVenta(models.Model):
 
     @property
     def cliente_facturacion(self):
-        return self.cliente or self.cliente_invitado
+        return self.cliente
 
 
 class SolicitudDevolucionVenta(models.Model):

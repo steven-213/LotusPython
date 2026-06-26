@@ -25,7 +25,7 @@
       <h1>Nuestros servicios</h1>
       <p class="services-copy">
         Vive una experiencia pensada para relajarte, cuidarte y salir con una energia renovada.
-        Agenda con cuenta o como invitado y confirma tu espacio de la forma que prefieras.
+        Inicia sesion para agendar y hacer seguimiento de tus citas.
       </p>
 
       <div class="services-chip-row">
@@ -43,8 +43,8 @@
           <i class="bi bi-journal-check"></i> Ver mis citas
         </a>
         {% else %}
-        <a class="catalog-btn catalog-btn-secondary" href="{% url 'citas:reserva_nueva' %}">
-          <i class="bi bi-calendar-plus"></i> Reservar ahora
+        <a class="catalog-btn catalog-btn-secondary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}">
+          <i class="bi bi-person-circle"></i> Iniciar sesion para reservar
         </a>
         {% endif %}
       </div>
@@ -64,7 +64,7 @@
           <span>2</span>
           <div>
             <strong>Agenda en minutos</strong>
-            <p>Reserva con cuenta o como invitado según prefieras.</p>
+            <p>Reserva desde tu cuenta para mantener tu historial actualizado.</p>
           </div>
         </article>
         <article class="services-step">
@@ -129,10 +129,7 @@
           </div>
           {% else %}
           <div class="service-actions">
-            <a class="catalog-btn catalog-btn-primary" href="{% url 'citas:reserva_nueva' %}?servicio={{ s.id }}">
-              <i class="bi bi-calendar-heart"></i> Agendar sin cuenta
-            </a>
-            <a class="catalog-btn catalog-btn-secondary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}%3Fservicio%3D{{ s.id }}">
+            <a class="catalog-btn catalog-btn-primary" href="{% url 'sesiones:login' %}?next={% url 'citas:reserva_nueva' %}%3Fservicio%3D{{ s.id }}">
               <i class="bi bi-person-circle"></i> Iniciar sesion y agendar
             </a>
           </div>

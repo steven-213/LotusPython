@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.common.currency import format_money
-from apps.citas.models import ClienteInvitado, PagoReserva, Profesional, Reserva, Servicio
+from apps.citas.models import PagoReserva, Profesional, Reserva, Servicio
 from apps.citas.services import (
     cambiar_estado_reserva,
     configuracion_horario_reserva,
@@ -116,7 +116,7 @@ class CitasFlowTest(TestCase):
         )
         return reserva
 
-    def test_guest_booking_requires_payment(self):
+    def test_booking_requires_login(self):
         response = self.client.post(
             reverse("citas:reserva_nueva"),
             {
@@ -130,69 +130,28 @@ class CitasFlowTest(TestCase):
                 "notas": "Sin pago",
             },
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(
+            response,
+            f"{reverse('sesiones:login')}?next={reverse('citas:reserva_nueva')}",
+            fetch_redirect_response=False,
+        )
         self.assertEqual(Reserva.objects.count(), 0)
         self.assertFalse(Usuario.objects.filter(documento=888).exists())
 
-    def test_guest_booking_with_payment_creates_confirmed_reservation(self):
-        response = self.client.post(
-            reverse("citas:reserva_nueva"),
-            {
-                "documento": "889",
-                "nombre": "Invitada",
-                "apellido": "Pago",
-                "correo": "invitada.pago@spa.com",
-                "fecha_nacimiento": "1994-04-04",
-                "servicio_id": self.servicio.id,
-                "fecha_inicio": self._future_input(),
-                "metodo_pago": PagoReserva.METODO_NEQUI,
-                "referencia_pago": "TX-INV-1",
-            },
-        )
-        self.assertRedirects(response, reverse("citas:reserva_confirmada"))
-        reserva = Reserva.objects.get()
-        self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
-        self.assertEqual(reserva.origen_reserva, Reserva.ORIGEN_INVITADO)
-        self.assertIsNone(reserva.cliente)
-        self.assertIsNotNone(reserva.cliente_invitado)
-        self.assertEqual(reserva.cliente_invitado.documento, 889)
-        self.assertEqual(reserva.pagos.count(), 1)
-        self.assertTrue(self.client.session.get("reserva_confirmada_token"))
-        self.assertTrue(ClienteInvitado.objects.filter(documento=889).exists())
-        self.assertFalse(Usuario.objects.filter(documento=889).exists())
-
-    def test_guest_booking_does_not_block_future_registration(self):
-        self.client.post(
-            reverse("citas:reserva_nueva"),
-            {
-                "documento": "890",
-                "nombre": "Invitada",
-                "apellido": "Registro",
-                "correo": "invitada.registro@spa.com",
-                "fecha_nacimiento": "1993-03-03",
-                "servicio_id": self.servicio.id,
-                "fecha_inicio": self._future_input(days=3, hour=13),
-                "metodo_pago": PagoReserva.METODO_TRANSFERENCIA,
-                "referencia_pago": "TX-INV-REG",
-            },
-        )
-
-        response = self.client.post(
-            reverse("sesiones:registro"),
-            {
-                "documento": "890",
-                "nombre": "Cuenta",
-                "apellido": "Real",
-                "correo": "cuenta.real@spa.com",
-                "fecha_nacimiento": "1993-03-03",
-                "clave": "secreta",
-                "rol": Usuario.ROL_CLIENTE,
-            },
-        )
-
-        self.assertRedirects(response, reverse("sesiones:login"))
-        self.assertTrue(ClienteInvitado.objects.filter(documento=890).exists())
-        self.assertTrue(Usuario.objects.filter(documento=890).exists())
+    def test_crear_reserva_requires_registered_customer(self):
+        with self.assertRaisesMessage(
+            ValidationError,
+            "La reserva debe quedar asociada a un cliente registrado.",
+        ):
+            crear_reserva(
+                cliente=None,
+                servicio=self.servicio,
+                fecha_inicio=self._future_start(days=3, hour=13),
+                notas="Sin cliente",
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=None,
+                pago_data=None,
+            )
 
     def test_authenticated_booking_without_payment_is_programada(self):
         self._force_session(self.cliente)
@@ -210,6 +169,7 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.pagos.count(), 0)
 
     def test_booking_form_uses_custom_datepicker_with_sundays_disabled_and_blocks_past_dates(self):
+        self._force_session(self.cliente)
         response = self.client.get(reverse("citas:reserva_nueva"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "flatpickr@4.6.13/dist/flatpickr.min.js")
@@ -470,6 +430,7 @@ class CitasFlowTest(TestCase):
         self.assertEqual(Reserva.objects.count(), 0)
 
     def test_booking_form_limits_input_to_hours(self):
+        self._force_session(self.cliente)
         response = self.client.get(reverse("citas:reserva_nueva"))
 
         self.assertContains(response, 'step="3600"', html=False)

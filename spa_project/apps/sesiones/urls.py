@@ -7,6 +7,8 @@ from apps.sesiones.views.auth_views import (
     login_view,
     logout_view,
     registro,
+    solicitar_reset_contrasena,
+    confirmar_reset_contrasena,
 )
 from apps.sesiones.views.profile_views import perfil
 
@@ -20,4 +22,6 @@ urlpatterns = [
     path("registro/", registro, name="registro"),
     path("perfil/", perfil, name="perfil"),
     path("admin-panel/", admin_dashboard, name="admin_dashboard"),
+    path("olvide-contrasena/", solicitar_reset_contrasena, name="solicitar_reset_contrasena"),
+    path("resetear-contrasena/<str:token>/", confirmar_reset_contrasena, name="confirmar_reset_contrasena"),
 ]

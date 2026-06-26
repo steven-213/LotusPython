@@ -193,7 +193,7 @@ def _ventas_queryset():
         "-id",
     )
     return (
-        Venta.objects.select_related("cliente", "cliente_invitado", "reserva", "reserva__servicio")
+        Venta.objects.select_related("cliente", "reserva", "reserva__servicio")
         .annotate(ultimo_estado_pago=Subquery(ultima_validacion.values("estado")[:1]))
         .prefetch_related(
             Prefetch(
@@ -351,8 +351,6 @@ def _aplicar_filtros_ventas(queryset, filtros):
         queryset = queryset.filter(
             Q(cliente__nombre__icontains=filtros["q"])
             | Q(cliente__apellido__icontains=filtros["q"])
-            | Q(cliente_invitado__nombre__icontains=filtros["q"])
-            | Q(cliente_invitado__apellido__icontains=filtros["q"])
         )
 
     if filtros["cliente_id"]:
@@ -903,7 +901,7 @@ def venta_nueva(request):
 @admin_required_session
 def venta_detalle(request, venta_id):
     venta = get_object_or_404(
-        Venta.objects.select_related("cliente", "cliente_invitado", "reserva", "reserva__servicio").prefetch_related(
+        Venta.objects.select_related("cliente", "reserva", "reserva__servicio").prefetch_related(
             "detalles__producto",
             "detalles__solicitudes_devolucion",
         ),
@@ -944,7 +942,6 @@ def venta_detalle(request, venta_id):
 def venta_validaciones(request, venta_id):
     venta = get_object_or_404(Venta, id=venta_id)
     cliente = venta.cliente
-    cliente_invitado = venta.cliente_invitado
     if request.method == "POST":
         validacion = venta.validaciones.order_by("-fecha_validacion").first()
 
@@ -955,7 +952,6 @@ def venta_validaciones(request, venta_id):
             nuevo_estado = request.POST.get("estado", "pendiente")
             validacion.estado = nuevo_estado
             validacion.cliente = cliente
-            validacion.cliente_invitado = cliente_invitado
             validacion.validado_por = request.session.get("usuario_id")
             validacion.observaciones = request.POST.get("observaciones", "")
             validacion.save()
@@ -971,7 +967,6 @@ def venta_validaciones(request, venta_id):
             ValidacionVenta.objects.create(
                 venta=venta,
                 cliente=cliente,
-                cliente_invitado=cliente_invitado,
                 metodo_pago=request.POST.get("metodo_pago", ""),
                 referencia_pago=request.POST.get("referencia_pago", ""),
                 monto=parse_money(request.POST.get("monto")),

@@ -8,7 +8,7 @@ from django.db.models.functions import TruncDate, Coalesce
 from django.utils import timezone
 
 from apps.common.currency import parse_money, format_money
-from apps.citas.models import ClienteInvitado, PagoReserva, Reserva, ReservaHistorialEstado, Servicio
+from apps.citas.models import PagoReserva, Reserva, ReservaHistorialEstado, Servicio
 from apps.sesiones.models import Usuario
 
 
@@ -132,52 +132,9 @@ def _filtro_profesional_reserva(profesional):
     return Q(profesional=profesional) | Q(profesional__isnull=True, servicio__profesional=profesional)
 
 
-def crear_o_reutilizar_cliente_invitado(*, documento, nombre, apellido, correo, fecha_nacimiento):
-    documento_raw = str(documento or "").strip()
-    nombre = (nombre or "").strip()
-    apellido = (apellido or "").strip()
-    correo = (correo or "").strip().lower()
-    fecha_nacimiento_raw = str(fecha_nacimiento or "").strip()
-
-    if not documento_raw or not nombre or not apellido or not correo or not fecha_nacimiento_raw:
-        raise ValidationError("Debes completar todos los datos del cliente para reservar sin iniciar sesion.")
-
-    try:
-        documento = int(documento_raw)
-    except (TypeError, ValueError) as exc:
-        raise ValidationError("El documento ingresado no es valido.") from exc
-
-    try:
-        fecha_nacimiento_valor = date.fromisoformat(fecha_nacimiento_raw)
-    except ValueError as exc:
-        raise ValidationError("La fecha de nacimiento no es valida.") from exc
-    if fecha_nacimiento_valor > timezone.localdate():
-        raise ValidationError("La fecha de nacimiento no puede estar en el futuro.")
-
-    invitado = ClienteInvitado.objects.filter(documento=documento).first()
-    if invitado:
-        invitado.nombre = nombre
-        invitado.apellido = apellido
-        invitado.correo = correo
-        invitado.fecha_nacimiento = fecha_nacimiento_valor
-        invitado.save(update_fields=["nombre", "apellido", "correo", "fecha_nacimiento", "updated_at"])
-        return invitado
-
-    invitado = ClienteInvitado(
-        documento=documento,
-        nombre=nombre,
-        apellido=apellido,
-        correo=correo,
-        fecha_nacimiento=fecha_nacimiento_valor,
-    )
-    invitado.full_clean()
-    invitado.save()
-    return invitado
-
-
 def _reservas_conflictivas_profesional(*, profesional, fecha_inicio, fecha_fin, exclude_reserva_id=None):
     conflictos = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"
+        "cliente", "servicio", "servicio__profesional", "profesional"
     ).filter(
         _filtro_profesional_reserva(profesional),
         estado__in=ESTADOS_CONFLICTIVOS,
@@ -338,8 +295,7 @@ def registrar_pago(*, reserva, monto, metodo_pago, referencia="", tipo=PagoReser
 
 def crear_reserva(
     *,
-    cliente=None,
-    cliente_invitado=None,
+    cliente,
     servicio,
     fecha_inicio,
     notas="",
@@ -347,21 +303,17 @@ def crear_reserva(
     actor=None,
     pago_data=None,
 ):
-    if bool(cliente) == bool(cliente_invitado):
-        raise ValidationError("La reserva debe quedar asociada a un cliente registrado o a un invitado.")
+    if not cliente:
+        raise ValidationError("La reserva debe quedar asociada a un cliente registrado.")
 
     fecha_fin = calcular_fecha_fin(servicio, fecha_inicio)
     profesional = servicio.profesional
     validar_reserva(servicio=servicio, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, profesional=profesional)
 
     hay_pago = bool(pago_data)
-    if origen == Reserva.ORIGEN_INVITADO and not hay_pago:
-        raise ValidationError("Las reservas sin autenticacion deben registrar el pago en el mismo paso.")
-
-    estado_inicial = Reserva.ESTADO_CONFIRMADA if hay_pago or origen == Reserva.ORIGEN_INVITADO else Reserva.ESTADO_PROGRAMADA
+    estado_inicial = Reserva.ESTADO_CONFIRMADA if hay_pago else Reserva.ESTADO_PROGRAMADA
     reserva = Reserva.objects.create(
         cliente=cliente,
-        cliente_invitado=cliente_invitado,
         servicio=servicio,
         profesional=profesional,
         fecha_inicio=fecha_inicio,
@@ -529,7 +481,6 @@ def resolver_token_comprobante(token, max_age=60 * 60 * 24):
     return PagoReserva.objects.select_related(
         "reserva",
         "reserva__cliente",
-        "reserva__cliente_invitado",
         "reserva__servicio",
         "reserva__profesional",
     ).get(
@@ -539,7 +490,7 @@ def resolver_token_comprobante(token, max_age=60 * 60 * 24):
 
 def reservas_visibles_para_usuario(usuario):
     reservas = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por"
+        "cliente", "servicio", "servicio__profesional", "profesional", "creada_por"
     ).prefetch_related("pagos", "historial_estados")
     if usuario.rol != Usuario.ROL_ADMIN:
         reservas = reservas.filter(cliente=usuario)
@@ -560,7 +511,7 @@ def puede_editar_reserva(reserva):
 
 def reservas_para_calendario(usuario):
     qs = Reserva.objects.select_related(
-        "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"
+        "cliente", "servicio", "servicio__profesional", "profesional"
     ).prefetch_related("pagos")
     if usuario.rol != Usuario.ROL_ADMIN:
         qs = qs.filter(cliente=usuario)

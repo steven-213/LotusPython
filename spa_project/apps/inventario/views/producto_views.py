@@ -218,7 +218,11 @@ def _build_productos_structured_data(productos):
                             "@type": "Offer",
                             "price": producto.precio_venta,
                             "priceCurrency": "COP",
-                            "availability": "https://schema.org/InStock",
+                            "availability": (
+                                "https://schema.org/InStock"
+                                if producto.stock_disponible > 0
+                                else "https://schema.org/OutOfStock"
+                            ),
                         },
                     },
                 }
@@ -238,7 +242,6 @@ def _cargar_productos_publicos(query):
                 output_field=IntegerField(),
             )
         )
-        .filter(stock_disponible__gt=0)
         .values("id", "nombre", "descripcion", "imagen", "precio_venta", "stock_disponible")
         .order_by("nombre")
     )

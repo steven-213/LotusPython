@@ -32,14 +32,12 @@ def registrar_venta_desde_reserva(
         productos.append((producto, cantidad))
 
     cliente = reserva.cliente
-    cliente_invitado = reserva.cliente_invitado
 
     with transaction.atomic():
         venta, creada = Venta.objects.select_for_update().get_or_create(
             reserva=reserva,
             defaults={
                 "cliente": cliente,
-                "cliente_invitado": cliente_invitado,
                 "subtotal_servicios": reserva.servicio.precio,
                 "total": Decimal("0"),
             },
@@ -47,7 +45,6 @@ def registrar_venta_desde_reserva(
 
         if not creada:
             venta.cliente = cliente
-            venta.cliente_invitado = cliente_invitado
             if not venta.subtotal_servicios:
                 venta.subtotal_servicios = reserva.servicio.precio
 
@@ -77,12 +74,11 @@ def registrar_venta_desde_reserva(
             Decimal("0"),
         )
         venta.total = total_productos
-        venta.save(update_fields=["cliente", "cliente_invitado", "subtotal_servicios", "total"])
+        venta.save(update_fields=["cliente", "subtotal_servicios", "total"])
 
         validacion = venta.validaciones.order_by("-fecha_validacion", "-id").first()
         if validacion:
             validacion.cliente = cliente
-            validacion.cliente_invitado = cliente_invitado
             validacion.metodo_pago = metodo_pago
             validacion.referencia_pago = referencia_pago
             validacion.monto = total_productos
@@ -94,7 +90,6 @@ def registrar_venta_desde_reserva(
             ValidacionVenta.objects.create(
                 venta=venta,
                 cliente=cliente,
-                cliente_invitado=cliente_invitado,
                 metodo_pago=metodo_pago,
                 referencia_pago=referencia_pago,
                 monto=total_productos,

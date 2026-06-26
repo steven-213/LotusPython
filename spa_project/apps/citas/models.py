@@ -55,28 +55,10 @@ class Servicio(models.Model):
         return self.nombre
 
 
-class ClienteInvitado(models.Model):
-    documento = models.BigIntegerField(unique=True)
-    nombre = models.CharField(max_length=50)
-    apellido = models.CharField(max_length=50)
-    correo = models.EmailField()
-    fecha_nacimiento = models.DateField()
-    created_at = models.DateTimeField(default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["nombre", "apellido"]
-
-    def __str__(self):
-        return f"{self.nombre} {self.apellido}"
-
-
 class Reserva(models.Model):
-    ORIGEN_INVITADO = "invitado"
     ORIGEN_AUTENTICADO = "autenticado"
     ORIGEN_ADMIN = "admin"
     ORIGENES = [
-        (ORIGEN_INVITADO, "Invitado"),
         (ORIGEN_AUTENTICADO, "Autenticado"),
         (ORIGEN_ADMIN, "Administrador"),
     ]
@@ -98,13 +80,6 @@ class Reserva(models.Model):
 
     cliente = models.ForeignKey(
         "sesiones.Usuario",
-        on_delete=models.PROTECT,
-        related_name="reservas",
-        null=True,
-        blank=True,
-    )
-    cliente_invitado = models.ForeignKey(
-        ClienteInvitado,
         on_delete=models.PROTECT,
         related_name="reservas",
         null=True,
@@ -140,24 +115,19 @@ class Reserva(models.Model):
         return f"{self.cliente_nombre_completo} - {self.servicio.nombre}"
 
     @property
-    def cliente_reserva(self):
-        return self.cliente or self.cliente_invitado
-
-    @property
     def cliente_nombre_completo(self) -> str:
-        cliente = self.cliente_reserva
-        if not cliente:
-            return "Cliente sin asignar"
-        return f"{cliente.nombre} {cliente.apellido}".strip()
+        if not self.cliente:
+            return "Cliente no disponible"
+        return f"{self.cliente.nombre} {self.cliente.apellido}".strip()
 
     @property
     def cliente_correo(self) -> str:
-        cliente = self.cliente_reserva
+        cliente = self.cliente
         return cliente.correo if cliente else ""
 
     @property
     def cliente_documento(self):
-        cliente = self.cliente_reserva
+        cliente = self.cliente
         return cliente.documento if cliente else ""
 
     @property

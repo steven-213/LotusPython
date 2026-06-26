@@ -23,13 +23,10 @@ from apps.citas.services import (
     cambiar_estado_reserva,
     cancelar_reservas_vencidas,
     configuracion_horario_reserva,
-    construir_token_comprobante,
-    crear_o_reutilizar_cliente_invitado,
     crear_reserva,
     pagos_reserva_por_validos,
     puede_editar_reserva,
     reservas_visibles_para_usuario,
-    resolver_token_comprobante,
     resumen_horario_atencion,
     resumen_dashboard_admin,
 )
@@ -297,7 +294,6 @@ def _estado_puede_pasar_a(reserva, nuevo_estado):
 def _reservas_admin_queryset():
     return Reserva.objects.select_related(
         "cliente",
-        "cliente_invitado",
         "profesional",
         "servicio",
         "servicio__profesional",
@@ -383,12 +379,10 @@ def _aplicar_filtros_dashboard(queryset, filtros):
         consulta = (
             Q(cliente__nombre__icontains=q)
             | Q(cliente__apellido__icontains=q)
-            | Q(cliente_invitado__nombre__icontains=q)
-            | Q(cliente_invitado__apellido__icontains=q)
             | Q(servicio__nombre__icontains=q)
         )
         if q.isdigit():
-            consulta |= Q(cliente__documento=int(q)) | Q(cliente_invitado__documento=int(q))
+            consulta |= Q(cliente__documento=int(q))
         queryset = queryset.filter(consulta)
     return queryset
 
@@ -529,6 +523,7 @@ def agenda(request):
     )
 
 
+@login_required_session
 def reserva_nueva(request):
     usuario = _usuario_actual(request)
     servicios = Servicio.objects.select_related("profesional").filter(activo=True).order_by("nombre")
@@ -540,43 +535,20 @@ def reserva_nueva(request):
             fecha_inicio = _extraer_fecha_inicio_reserva(request)
             notas = request.POST.get("notas", "")
 
-            if usuario:
-                pago_data = _extraer_pago_publico(request, servicio, requerido=False)
-                reserva, pago = crear_reserva(
-                    cliente=usuario,
-                    servicio=servicio,
-                    fecha_inicio=fecha_inicio,
-                    notas=notas,
-                    origen=Reserva.ORIGEN_AUTENTICADO,
-                    actor=usuario,
-                    pago_data=pago_data,
-                )
-                messages.success(request, "La cita fue registrada correctamente.")
-                if pago:
-                    messages.info(request, "El pago quedo registrado y la cita fue confirmada.")
-                return redirect("citas:reserva_detalle", reserva_id=reserva.id)
-
-            pago_data = _extraer_pago_publico(request, servicio, requerido=True)
-            cliente_invitado = crear_o_reutilizar_cliente_invitado(
-                documento=request.POST.get("documento"),
-                nombre=(request.POST.get("nombre") or "").strip(),
-                apellido=(request.POST.get("apellido") or "").strip(),
-                correo=(request.POST.get("correo") or "").strip(),
-                fecha_nacimiento=request.POST.get("fecha_nacimiento"),
-            )
+            pago_data = _extraer_pago_publico(request, servicio, requerido=False)
             reserva, pago = crear_reserva(
-                cliente_invitado=cliente_invitado,
+                cliente=usuario,
                 servicio=servicio,
                 fecha_inicio=fecha_inicio,
                 notas=notas,
-                origen=Reserva.ORIGEN_INVITADO,
-                actor=None,
+                origen=Reserva.ORIGEN_AUTENTICADO,
+                actor=usuario,
                 pago_data=pago_data,
             )
-            request.session["reserva_confirmada_id"] = reserva.id
-            request.session["reserva_confirmada_token"] = construir_token_comprobante(pago) if pago else ""
-            messages.success(request, "La reserva fue creada y el pago quedo registrado.")
-            return redirect("citas:reserva_confirmada")
+            messages.success(request, "La cita fue registrada correctamente.")
+            if pago:
+                messages.info(request, "El pago quedo registrado y la cita fue confirmada.")
+            return redirect("citas:reserva_detalle", reserva_id=reserva.id)
         except ValidationError as exc:
             messages.error(request, exc.message if hasattr(exc, "message") else exc.messages[0])
 
@@ -596,7 +568,7 @@ def reserva_nueva(request):
 @login_required_session
 def reserva_editar(request, reserva_id):
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
+        Reserva.objects.select_related("cliente", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
@@ -638,7 +610,7 @@ def reserva_editar(request, reserva_id):
 def reserva_detalle(request, reserva_id):
     reserva = get_object_or_404(
         Reserva.objects.select_related(
-            "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
+            "cliente", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
         )
         .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
         id=reserva_id,
@@ -690,27 +662,9 @@ def _construir_contexto_detalle_reserva(reserva, usuario):
     }
 
 
-def reserva_confirmada(request):
-    reserva_id = request.session.get("reserva_confirmada_id")
-    token = request.session.get("reserva_confirmada_token")
-    if not reserva_id:
-        messages.warning(request, "No hay una reserva publica reciente para mostrar.")
-        return redirect("citas:servicios_publicos")
-
-    reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
-        id=reserva_id,
-    )
-    return render(
-        request,
-        "citas/public/reserva_confirmada.html",
-        {"reserva": reserva, "comprobante_token": token},
-    )
-
-
 @login_required_session
 def reserva_cancelar(request, reserva_id):
-    reserva = get_object_or_404(Reserva.objects.select_related("cliente", "cliente_invitado"), id=reserva_id)
+    reserva = get_object_or_404(Reserva.objects.select_related("cliente"), id=reserva_id)
     usuario = _asegurar_propiedad_reserva(request, reserva)
     if request.method != "POST":
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
@@ -734,7 +688,7 @@ def reserva_cancelar(request, reserva_id):
 @admin_required_session
 def reserva_actualizar_profesional(request, reserva_id):
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
+        Reserva.objects.select_related("cliente", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     usuario = _usuario_admin(request)
@@ -829,7 +783,7 @@ def reserva_no_asistio(request, reserva_id):
 @login_required_session
 def reserva_registrar_pago(request, reserva_id):
     reserva = get_object_or_404(
-        Reserva.objects.select_related("cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional"),
+        Reserva.objects.select_related("cliente", "servicio", "servicio__profesional", "profesional"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
@@ -904,7 +858,7 @@ def reserva_registrar_pago(request, reserva_id):
         # Mantener en la misma vista de detalle cuando hay error
         reserva = get_object_or_404(
             Reserva.objects.select_related(
-                "cliente", "cliente_invitado", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
+                "cliente", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
             )
             .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
             id=reserva_id,
@@ -921,6 +875,8 @@ def comprobante_pago_pdf(request, pago_id):
     token = (request.GET.get("token") or "").strip()
     if token:
         try:
+            from apps.citas.services import resolver_token_comprobante
+
             pago = resolver_token_comprobante(token)
         except Exception:
             return HttpResponseForbidden("Token de comprobante invalido.")
@@ -934,7 +890,6 @@ def comprobante_pago_pdf(request, pago_id):
             PagoReserva.objects.select_related(
                 "reserva",
                 "reserva__cliente",
-                "reserva__cliente_invitado",
                 "reserva__servicio",
                 "reserva__profesional",
             ),

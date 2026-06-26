@@ -21,7 +21,6 @@ NOINDEX_VIEWS = {
     ("inventario", "resultado"),
     ("citas", "agenda"),
     ("citas", "reserva_nueva"),
-    ("citas", "reserva_confirmada"),
     ("citas", "reserva_detalle"),
     ("citas", "reserva_editar"),
 }
