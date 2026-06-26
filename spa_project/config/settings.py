@@ -155,7 +155,7 @@ def _database_from_url(url: str):
 # === CONTROL INTELIGENTE DE CONEXIÓN LOCAL vs NUBE ===
 if os.getenv("RAILWAY_ENVIRONMENT"):
     # === EN PRODUCCIÓN (RAILWAY) ===
-    DATABASE_URL = "postgresql://postgres:afUoyGMLrVDlYaqFkpSdobyJIfdbDlqc@postgres-mygo.railway.internal:5432/railway"  
+    DATABASE_URL = "postgresql://postgres:KrqwmMvsaQkqfZsWWRFZKKPpJMauQxPf@postgres.railway.internal:5432/railway"  
     DATABASES = {"default": _database_from_url(DATABASE_URL)}
 else:
     # === EN TU COMPUTADORA (LOCAL) ===
