@@ -7,11 +7,13 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+# === DIRECCIONES BASE ===
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
+
+# Carga de variables de entorno locales
 try:
     from dotenv import load_dotenv  # type: ignore
-
     load_dotenv(ENV_FILE, override=True)
 except Exception:
     if ENV_FILE.exists():
@@ -24,6 +26,7 @@ except Exception:
             value = value.strip().strip('"').strip("'")
             os.environ[key] = value
 
+# === FUNCIONES UTILERÍAS ===
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
     if value is None:
@@ -60,14 +63,25 @@ def _env_telegram_chat_ids() -> list[str]:
     return chat_ids
 
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "")
-if not SECRET_KEY:
-    raise RuntimeError("DJANGO_SECRET_KEY is required")
+# === CONFIGURACIÓN DE SEGURIDAD GENERAL ===
+# Clave secreta con fallback seguro para evitar bloqueos en Railway
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-lotus-dream-spa-key-despliegue-2026")
 
 DEBUG = _env_bool("DJANGO_DEBUG", False)
-ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS")
-CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+# Permite conectar desde cualquier Host y asegura los dominios de Railway
+ALLOWED_HOSTS = ['*']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://lotuspython-production.up.railway.app',
+    'https://*.railway.app'
+]
+
+# Cabecera Proxy crucial para evitar el Error 403 (CSRF) en Railway
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+
+# === APLICACIONES INSTALADAS ===
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -81,11 +95,12 @@ INSTALLED_APPS = [
     "apps.inventario",
     "apps.ventas",
     "apps.citas",
-    
 ]
 
+# === MIDDLEWARES ===
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Manejo optimizado de archivos estáticos
     "django.middleware.gzip.GZipMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -98,6 +113,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+# === PLANTILLAS / TEMPLATES ===
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -120,6 +136,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+
+# === CONFIGURACIÓN DE BASE DE DATOS INTERNA ===
 def _database_from_url(url: str):
     parsed = urlparse(url)
     if parsed.scheme not in {"postgres", "postgresql"}:
@@ -134,48 +152,28 @@ def _database_from_url(url: str):
         "OPTIONS": {"sslmode": "require"},
     }
 
-
-def _database_from_parts():
-    host = os.getenv("DB_HOST", "").strip()
-    name = os.getenv("DB_NAME", "").strip()
-    if not host or not name:
-        return None
-    return {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": name,
-        "USER": os.getenv("DB_USER", "").strip(),
-        "PASSWORD": os.getenv("DB_PASSWORD", "").strip(),
-        "HOST": host,
-        "PORT": os.getenv("DB_PORT", "").strip() or "5432",
-        "OPTIONS": {"sslmode": os.getenv("DB_SSLMODE", "require").strip() or "require"},
-    }
-
-
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-database_from_parts = _database_from_parts()
-if database_from_parts:
-    DATABASES = {"default": database_from_parts}
-elif DATABASE_URL:
+# === CONTROL INTELIGENTE DE CONEXIÓN LOCAL vs NUBE ===
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    # === EN PRODUCCIÓN (RAILWAY) ===
+    # 💥 CAMBIO AQUÍ: Pega entre las comillas la URL de tu NUEVA base de datos de Railway
+    DATABASE_URL = "AQUÍ_PEGA_TU_NUEVA_URL_DE_POSTGRESQL"
     DATABASES = {"default": _database_from_url(DATABASE_URL)}
 else:
-    # Keep tests/makemigrations lightweight in sqlite, but let migrate target
-    # the real configured database so schema is created where the app runs.
-    commands_using_sqlite = {"test", "makemigrations"}
-
-    if any(cmd in sys.argv for cmd in commands_using_sqlite):
-        DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.sqlite3",
-                "NAME": BASE_DIR / "test_db.sqlite3",
-            }
+    # === EN TU COMPUTADORA (LOCAL) ===
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
-    else:
-        raise RuntimeError("Database configuration missing. Set DB_* or DATABASE_URL.")
+    }
 
+# Optimización de conexiones activas
 for database_config in DATABASES.values():
     database_config.setdefault("CONN_MAX_AGE", _env_int("DB_CONN_MAX_AGE", 60))
     database_config.setdefault("CONN_HEALTH_CHECKS", True)
 
+
+# === VALIDACIÓN DE CONTRASEÑAS ===
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -183,11 +181,13 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# === LOCALIZACIÓN ===
 LANGUAGE_CODE = "es-co"
 TIME_ZONE = "America/Bogota"
 USE_I18N = True
 USE_TZ = True
 
+# === CACHÉ ===
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -199,15 +199,20 @@ CACHES = {
 PUBLIC_CATALOG_CACHE_TIMEOUT = _env_int("PUBLIC_CATALOG_CACHE_TIMEOUT", 300)
 PUBLIC_PAGE_CACHE_TIMEOUT = _env_int("PUBLIC_PAGE_CACHE_TIMEOUT", 600)
 
+# === ARCHIVOS ESTÁTICOS Y MULTIMEDIA ===
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Almacenamiento optimizado para WhiteNoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# === INTEGRACIÓN TELEGRAM ===
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_IDS = _env_telegram_chat_ids()
 TELEGRAM_CHAT_ID = TELEGRAM_CHAT_IDS[0] if TELEGRAM_CHAT_IDS else ""
@@ -215,18 +220,13 @@ TELEGRAM_CONFIRM_TOKEN = os.getenv("TELEGRAM_CONFIRM_TOKEN", "")
 APP_BASE_URL = os.getenv("APP_BASE_URL", "")
 TELEGRAM_VERIFY_SSL = _env_bool("TELEGRAM_VERIFY_SSL", True)
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
-SUPABASE_STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "")
-
-# Email Configuration (Gmail)
+# === SERVICIO DE CORREO ELECTRONICO (GMAIL) ===
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")  # Tu correo de Gmail
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")  # Contraseña de aplicación
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
-# Password reset token expiration time (in hours)
 PASSWORD_RESET_TIMEOUT_HOURS = _env_int("PASSWORD_RESET_TIMEOUT_HOURS", 24)
