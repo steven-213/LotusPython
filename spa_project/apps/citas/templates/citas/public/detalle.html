@@ -371,6 +371,9 @@
         } else {
           amountInput.readOnly = false;
           amountInput.classList.remove("is-readonly");
+          if (amountInput.value === "" || Number(amountInput.value) <= 0) {
+            amountInput.value = Number(pendingBalance).toFixed(2);
+          }
 
           if (helpText) {
             helpText.textContent = `Anticipo: ingresa un monto menor a ${formatter.format(pendingBalance)}.`;

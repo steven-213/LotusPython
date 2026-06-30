@@ -212,6 +212,23 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
         self.assertEqual(reserva.pagos.count(), 1)
 
+    def test_registrar_pago_total_con_monto_cero_usa_saldo_pendiente(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(4, 10))
+
+        pago = registrar_pago(
+            reserva=reserva,
+            monto=0,
+            metodo_pago=PagoReserva.METODO_EFECTIVO,
+            referencia="",
+            tipo=PagoReserva.TIPO_TOTAL,
+            actor=self.admin,
+        )
+
+        reserva.refresh_from_db()
+        self.assertEqual(pago.monto, Decimal("50000"))
+        self.assertEqual(reserva.total_pagado, Decimal("50000"))
+        self.assertEqual(reserva.saldo_pendiente, Decimal("0"))
+
     def test_same_professional_overlap_is_rejected(self):
         fecha = self._future_weekday_start(0, 10)
         self._crear_reserva(cliente=self.cliente, fecha_inicio=fecha)

@@ -262,14 +262,18 @@ def _validar_monto_pago_reserva(*, reserva, monto, tipo):
     if saldo_pendiente <= 0:
         raise ValidationError("La cita ya no tiene saldo pendiente por cobrar.")
 
+    if tipo == PagoReserva.TIPO_TOTAL:
+        if monto <= 0:
+            return
+        if monto != saldo_pendiente:
+            raise ValidationError(
+                f"Para registrar un pago completo debes cobrar exactamente el saldo pendiente ({format_money(saldo_pendiente)})."
+            )
+        return
+
     if monto > saldo_pendiente:
         raise ValidationError(
             f"El monto supera el saldo pendiente de la cita ({format_money(saldo_pendiente)})."
-        )
-
-    if tipo == PagoReserva.TIPO_TOTAL and monto != saldo_pendiente:
-        raise ValidationError(
-            f"Para registrar un pago completo debes cobrar exactamente el saldo pendiente ({format_money(saldo_pendiente)})."
         )
 
     if tipo == PagoReserva.TIPO_ANTICIPO and monto >= saldo_pendiente:
@@ -284,7 +288,9 @@ def registrar_pago(*, reserva, monto, metodo_pago, referencia="", tipo=PagoReser
     except (InvalidOperation, TypeError, ValueError) as exc:
         raise ValidationError("El monto del pago no es valido.") from exc
 
-    if monto <= 0:
+    if tipo == PagoReserva.TIPO_TOTAL and (monto is None or monto <= 0):
+        monto = reserva.saldo_pendiente
+    elif monto <= 0:
         raise ValidationError("El monto del pago debe ser mayor a cero.")
     if reserva.estado in {Reserva.ESTADO_CANCELADA, Reserva.ESTADO_NO_ASISTIO}:
         raise ValidationError("No se pueden registrar pagos para una cita cerrada.")
