@@ -9,82 +9,60 @@
 
 {% block content %}
 <section class="dashboard-shell">
-  <!-- SECCIÓN DE KPIs FINANCIEROS -->
-  <section class="stats-grid" style="background: linear-gradient(135deg, #f5e6e8 0%, #ffe8ec 100%); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; gap: 16px;">
-    <article style="flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-      <span style="display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500;">Ingresos facturados</span>
-      <strong style="display: block; font-size: 20px; color: #2d3436; font-weight: 700;">{{ ingresos_por_periodo.todas.total_monto }}</strong>
-      <p style="font-size: 11px; color: #999; margin: 4px 0 0 0;">{{ ingresos_por_periodo.todas.cantidad }} cita{{ ingresos_por_periodo.todas.cantidad|pluralize }}</p>
-      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px;">
-        <div style="padding: 10px; border-radius: 6px; background: #f9f9f9;">
-          <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas</span>
-          <strong style="display: block; font-size: 14px; color: #2d3436;">{{ ingresos_por_periodo.todas.servicios_monto }}</strong>
+  <section class="dashboard-metrics">
+    <div class="metrics-row">
+      <article class="stats-card metric-card">
+        <span class="stats-label">Ingresos facturados</span>
+        <strong>{{ ingresos_por_periodo.todas.total_monto }}</strong>
+        <p>{{ ingresos_por_periodo.todas.cantidad }} cita{{ ingresos_por_periodo.todas.cantidad|pluralize }}</p>
+        <div class="metric-breakdown">
+          <div>
+            <span class="summary-label">Citas</span>
+            <strong>{{ ingresos_por_periodo.todas.servicios_monto }}</strong>
+          </div>
+          <div>
+            <span class="summary-label">Productos</span>
+            <strong>{{ ingresos_por_periodo.todas.productos_monto }}</strong>
+          </div>
         </div>
-        <div style="padding: 10px; border-radius: 6px; background: #f9f9f9;">
-          <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Productos</span>
-          <strong style="display: block; font-size: 14px; color: #2d3436;">{{ ingresos_por_periodo.todas.productos_monto }}</strong>
-        </div>
-      </div>
-    </article>
-    <article style="flex: 1; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-      <span style="display: block; font-size: 12px; color: #666; margin-bottom: 4px; font-weight: 500;">Citas totales</span>
-      <strong style="display: block; font-size: 20px; color: #2d3436; font-weight: 700;">{{ reservas_todas }}</strong>
-      <p style="font-size: 11px; color: #999; margin: 4px 0 0 0;">Todas las reservas registradas</p>
-    </article>
+      </article>
+      <article class="stats-card metric-card">
+        <span class="stats-label">Reservas totales</span>
+        <strong>{{ reservas_todas }}</strong>
+        <p>Todas las reservas registradas</p>
+      </article>
+    </div>
   </section>
 
-  <!-- SECCIÓN DE PERÍODOS -->
-  <section class="period-section" style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
-    <div style="margin-bottom: 16px;">
-      <h2 style="font-size: 16px; margin: 0 0 4px 0; color: #2d3436;">Ingresos por período</h2>
-      <p style="font-size: 12px; color: #999; margin: 0;">Cada botón actualiza el resumen y la tabla de reservas.</p>
+  <section class="period-section">
+    <div class="panel-heading">
+      <div>
+        <h2>Ingresos por período</h2>
+        <p>Actualiza el resumen según el atajo seleccionado.</p>
+      </div>
     </div>
-    
-    <!-- Botones de período -->
-    <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+    <div class="period-actions">
       {% for item in atajos_dashboard %}
-        <a href="{{ item.url }}" style="
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 500;
-          text-decoration: none;
-          border: 1px solid #ddd;
-          background: white;
-          color: #666;
-          transition: all 0.2s;
-          {% if item.is_active %}
-            background: #ca6b86;
-            color: white;
-            border-color: #ca6b86;
-          {% else %}
-            cursor: pointer;
-            hover: background #f5f5f5;
-          {% endif %}
-        ">
-          {{ item.label }}
-        </a>
+      <a href="{{ item.url }}" class="period-chip {% if item.is_active %}is-active{% endif %}">{{ item.label }}</a>
       {% endfor %}
     </div>
-
-    <!-- Grid de información de período -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px;">
-      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
-        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas</span>
-        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.servicios_monto }}</strong>
-      </div>
-      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
-        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Productos</span>
-        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.productos_monto }}</strong>
-      </div>
-      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
-        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Total</span>
-        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.total_monto }}</strong>
-      </div>
-      <div style="background: #f9f9f9; padding: 12px; border-radius: 6px; border-left: 3px solid #ca6b86;">
-        <span style="display: block; font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500;">Citas facturadas</span>
-        <strong style="display: block; font-size: 16px; color: #2d3436;">{{ ingresos_periodo_activo.cantidad }}</strong>
-      </div>
+    <div class="period-summary-grid">
+      <article class="stats-card summary-card compact">
+        <span class="stats-label">Citas</span>
+        <strong>{{ ingresos_periodo_activo.servicios_monto }}</strong>
+      </article>
+      <article class="stats-card summary-card compact">
+        <span class="stats-label">Productos</span>
+        <strong>{{ ingresos_periodo_activo.productos_monto }}</strong>
+      </article>
+      <article class="stats-card summary-card compact">
+        <span class="stats-label">Total</span>
+        <strong>{{ ingresos_periodo_activo.total_monto }}</strong>
+      </article>
+      <article class="stats-card summary-card compact">
+        <span class="stats-label">Citas facturadas</span>
+        <strong>{{ ingresos_periodo_activo.cantidad }}</strong>
+      </article>
     </div>
   </section>
 

@@ -13,9 +13,9 @@
   <header class="citas-hero">
     <div>
       <h1>{{ reserva.servicio.nombre }}</h1>
+      <p class="tracking-meta">{{ reserva.fecha_inicio|date:"d/m/Y H:i" }} — {{ reserva.fecha_fin|time:"H:i" }}</p>
       <div class="status-stack">
         <span class="estado-badge estado-{{ reserva.estado }}">{{ reserva.get_estado_display }}</span>
-        <span class="estado-badge">{{ reserva.fecha_inicio|date:"d/m/Y" }} - {{ reserva.fecha_inicio|time:"H:i" }} - {{ reserva.fecha_fin|time:"H:i" }}</span>
       </div>
     </div>
     <div class="hero-actions">
@@ -243,7 +243,7 @@
         <p class="summary-muted">{{ reserva.profesional_reserva.nombre|default:"Pendiente" }}</p>
         <div class="form-grid two-up">
           <label class="field">
-            <span>Existente</span>
+            <span>Profesional</span>
             <select class="form-select" name="profesional_id">
               <option value="">Selecciona una profesional</option>
               {% for profesional in profesionales %}
@@ -252,7 +252,7 @@
             </select>
           </label>
           <label class="field">
-            <span>Nueva</span>
+            <span>Nombre</span>
             <input class="form-control" type="text" name="profesional_nombre" placeholder="Nombre">
           </label>
         </div>
@@ -261,19 +261,19 @@
       {% endif %}
       <div class="action-stack">
         {% if puede_confirmar %}
-        <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}">
+        <form method="post" action="{% url 'citas:reserva_confirmar' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-patch-check"></i> Confirmar cita</button>
         </form>
         {% endif %}
         {% if puede_iniciar %}
-        <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}">
+        <form method="post" action="{% url 'citas:reserva_iniciar' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <button type="submit" class="btn-secondary-soft btn-block"><i class="bi bi-play-circle"></i> Iniciar atencion</button>
         </form>
         {% endif %}
         {% if puede_finalizar %}
-        <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}">
+        <form method="post" action="{% url 'citas:reserva_finalizar' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <button type="submit" class="btn-primary-strong btn-block"><i class="bi bi-check2-square"></i> Finalizar cita</button>
         </form>
@@ -284,7 +284,7 @@
         </div>
         {% endif %}
         {% if puede_no_asistir %}
-        <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}">
+        <form method="post" action="{% url 'citas:reserva_no_asistio' reserva.id %}" class="embedded-form compact">
           {% csrf_token %}
           <button type="submit" class="btn-warning-soft btn-block"><i class="bi bi-person-x"></i> Marcar no asistio</button>
         </form>
