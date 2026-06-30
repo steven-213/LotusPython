@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import IntegerField, Q, Sum, Value
 from django.db.models.functions import Coalesce
@@ -18,7 +19,7 @@ from django.urls import reverse
 from django.utils import timezone  # CORRECCIÓN: Importación necesaria para MovimientoInventario
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
-from apps.inventario.models import Producto, Proveedor, Inventario, MovimientoInventario
+from apps.inventario.models import CategoriaProducto, Producto, Proveedor, Inventario, MovimientoInventario
 from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
 from apps.inventario.storage import subir_imagen_producto
 
@@ -40,6 +41,7 @@ CSV_PRODUCT_COLUMN_ALIASES = {
     "margen_ganancia": {"margen_ganancia", "margen", "margin"},
     "imagen": {"imagen", "image", "imagen_url"},
 }
+DEFAULT_PRODUCT_CATEGORY_NAME = "Sin categoria"
 
 
 def _parse_decimal_csv(valor, etiqueta):
@@ -66,6 +68,65 @@ def _calcular_precio_venta(precio_compra, impuesto, margen_ganancia):
     impuesto_valor = precio_compra * (impuesto / Decimal("100"))
     margen_valor = precio_compra * (margen_ganancia / Decimal("100"))
     return (precio_compra + impuesto_valor + margen_valor).quantize(Decimal("0.01"))
+
+
+def _categoria_producto_default():
+    categoria, _created = CategoriaProducto.objects.get_or_create(
+        nombre=DEFAULT_PRODUCT_CATEGORY_NAME,
+        defaults={"activo": True},
+    )
+    return categoria
+
+
+def _categorias_producto_activas():
+    return CategoriaProducto.objects.filter(activo=True).order_by("nombre")
+
+
+def _render_producto_form(request, producto=None):
+    return render(
+        request,
+        "inventario/dashboard/productos/form.html",
+        {
+            "producto": producto,
+            "proveedores": Proveedor.objects.all().order_by("nombre"),
+            "categorias": _categorias_producto_activas(),
+        },
+    )
+
+
+def _parse_decimal_form(request, campo, default, etiqueta):
+    raw_value = request.POST.get(campo)
+    value = raw_value if raw_value not in (None, "") else default
+
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        messages.error(request, f"{etiqueta} debe ser un numero valido.")
+        return None
+
+
+def _resolver_proveedor_form(request):
+    proveedor_id = request.POST.get("proveedor_id")
+    if not proveedor_id:
+        messages.error(request, "El proveedor es obligatorio.")
+        return None
+
+    proveedor = Proveedor.objects.filter(id=proveedor_id, activo=True).first()
+    if proveedor is None:
+        messages.error(request, "Selecciona un proveedor valido.")
+    return proveedor
+
+
+def _resolver_categoria_form(request):
+    categoria_id = request.POST.get("categoria_id")
+    if not categoria_id:
+        messages.error(request, "La categoria es obligatoria.")
+        return None
+
+    categoria = CategoriaProducto.objects.filter(id=categoria_id, activo=True).first()
+    if categoria is None:
+        messages.error(request, "Selecciona una categoria valida.")
+    return categoria
 
 
 def _detectar_delimitador_csv(contenido):
@@ -486,9 +547,10 @@ def producto_lista(request):
     query = request.GET.get("q", "")
     estado_filtro = request.GET.get("estado", "")
     proveedor_id = request.GET.get("proveedor_id", "")
+    categoria_id = request.GET.get("categoria_id", "")
 
     productos = anotar_stock_disponible(
-        Producto.objects.filter(activo=True).select_related("proveedor")
+        Producto.objects.filter(activo=True).select_related("categoria", "proveedor")
     )
 
     if query:
@@ -500,7 +562,11 @@ def producto_lista(request):
     if proveedor_id:
         productos = productos.filter(proveedor_id=proveedor_id)
 
-    proveedores = Proveedor.objects.all()
+    if categoria_id:
+        productos = productos.filter(categoria_id=categoria_id)
+
+    proveedores = Proveedor.objects.all().order_by("nombre")
+    categorias = _categorias_producto_activas()
 
     productos_list = []
     for producto in productos:
@@ -514,7 +580,9 @@ def producto_lista(request):
         "query": query,
         "estado_filtro": estado_filtro,
         "proveedor_id": proveedor_id,
+        "categoria_id": categoria_id,
         "proveedores": proveedores,
+        "categorias": categorias,
     })
 
 
@@ -540,6 +608,7 @@ def producto_importar_csv(request):
         messages.error(request, str(exc))
         return redirect("inventario:producto_lista")
 
+    categoria_default = _categoria_producto_default()
     creados = 0
     errores = []
 
@@ -582,16 +651,23 @@ def producto_importar_csv(request):
             )
             continue
 
-        Producto.objects.create(
+        producto = Producto(
             nombre=nombre,
             descripcion=fila["descripcion"],
             imagen=fila["imagen"] or None,
             proveedor=proveedor,
+            categoria=categoria_default,
             precio_compra=precio_compra,
             impuesto=impuesto,
             margen_ganancia=margen_ganancia,
             precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia),
         )
+        try:
+            producto.full_clean()
+            producto.save()
+        except ValidationError as exc:
+            errores.append(f"Fila {numero_linea}: {' '.join(exc.messages)}")
+            continue
         creados += 1
 
     if creados:
@@ -616,72 +692,103 @@ def producto_nuevo(request):
     if request.method == "POST":
         nombre = request.POST.get("nombre", "").strip()
         descripcion = request.POST.get("descripcion", "")
-        precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        impuesto = Decimal(request.POST.get("impuesto") or 19)
-        margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
-        proveedor_id = request.POST.get("proveedor_id")
+        precio_compra = _parse_decimal_form(request, "precio_compra", "0", "Precio de compra")
+        impuesto = _parse_decimal_form(request, "impuesto", "19", "Impuesto")
+        margen_ganancia = _parse_decimal_form(request, "margen_ganancia", "20", "Margen de ganancia")
+        proveedor = _resolver_proveedor_form(request)
+        categoria = _resolver_categoria_form(request)
 
-        if not nombre or not proveedor_id:
-            messages.error(request, "Nombre y Proveedor son obligatorios")
-            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+        if not nombre:
+            messages.error(request, "El nombre es obligatorio.")
+
+        if not all([nombre, precio_compra is not None, impuesto is not None, margen_ganancia is not None, proveedor, categoria]):
+            return _render_producto_form(request)
 
         if Producto.objects.filter(nombre__iexact=nombre).exists():
             messages.error(request, "Ya existe un producto con ese nombre")
-            return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+            return _render_producto_form(request)
 
-        Producto.objects.create(
+        producto = Producto(
             nombre=nombre,
             descripcion=descripcion,
             imagen=subir_imagen_producto(request.FILES.get("imagen")),
-            proveedor_id=proveedor_id,
+            proveedor=proveedor,
+            categoria=categoria,
             precio_compra=precio_compra,
             impuesto=impuesto,
             margen_ganancia=margen_ganancia,
             precio_venta=_calcular_precio_venta(precio_compra, impuesto, margen_ganancia) # CORRECCIÓN: Cálculo de precio
         )
 
+        try:
+            producto.full_clean()
+            producto.save()
+        except ValidationError as exc:
+            for error in exc.messages:
+                messages.error(request, error)
+            return _render_producto_form(request)
+
         messages.success(request, "Producto creado correctamente")
         _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
-    return render(request, "inventario/dashboard/productos/form.html", {"proveedores": Proveedor.objects.all()})
+    return _render_producto_form(request)
 
 
 @admin_required_session
 def producto_editar(request, producto_id):
-    producto = get_object_or_404(Producto, id=producto_id)
+    producto = get_object_or_404(Producto.objects.select_related("categoria", "proveedor"), id=producto_id)
 
     if request.method == "POST":
         nombre = (request.POST.get("nombre") or "").strip()
+        if not nombre:
+            messages.error(request, "El nombre es obligatorio.")
+            return _render_producto_form(request, producto)
+
         if Producto.objects.filter(nombre__iexact=nombre).exclude(id=producto.id).exists():
             messages.error(request, "Ya existe otro producto con ese nombre")
-            return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+            return _render_producto_form(request, producto)
+
+        precio_compra = _parse_decimal_form(request, "precio_compra", "0", "Precio de compra")
+        impuesto = _parse_decimal_form(request, "impuesto", "19", "Impuesto")
+        margen_ganancia = _parse_decimal_form(request, "margen_ganancia", "20", "Margen de ganancia")
+        proveedor = _resolver_proveedor_form(request)
+        categoria = _resolver_categoria_form(request)
+
+        if not all([precio_compra is not None, impuesto is not None, margen_ganancia is not None, proveedor, categoria]):
+            return _render_producto_form(request, producto)
 
         producto.nombre = nombre
         producto.descripcion = request.POST.get("descripcion", "")
-        producto.precio_compra = Decimal(request.POST.get("precio_compra") or 0)
-        producto.impuesto = Decimal(request.POST.get("impuesto") or 19)
-        producto.margen_ganancia = Decimal(request.POST.get("margen_ganancia") or 20)
+        producto.precio_compra = precio_compra
+        producto.impuesto = impuesto
+        producto.margen_ganancia = margen_ganancia
         producto.precio_venta = _calcular_precio_venta(producto.precio_compra, producto.impuesto, producto.margen_ganancia)
 
         imagen_url = subir_imagen_producto(request.FILES.get("imagen"))
         if imagen_url:
             producto.imagen = imagen_url
 
-        proveedor_id = request.POST.get("proveedor_id")
-        producto.proveedor = Proveedor.objects.filter(id=proveedor_id).first() if proveedor_id else None
-        producto.save()
+        producto.proveedor = proveedor
+        producto.categoria = categoria
+        try:
+            producto.full_clean()
+            producto.save()
+        except ValidationError as exc:
+            for error in exc.messages:
+                messages.error(request, error)
+            return _render_producto_form(request, producto)
 
         _invalidar_cache_productos_publicos()
         return redirect("inventario:producto_lista")
 
-    return render(request, "inventario/dashboard/productos/form.html", {"producto": producto, "proveedores": Proveedor.objects.all()})
+    return _render_producto_form(request, producto)
 
 
 @admin_required_session
 def producto_detalle(request, producto_id):
     producto = get_object_or_404(
-        anotar_stock_disponible(Producto.objects.select_related("proveedor")),
+        anotar_stock_disponible(Producto.objects.select_related("categoria", "proveedor")),
         id=producto_id,
     )
     return render(request, "inventario/dashboard/productos/detalle.html", {"producto": producto, "margen": producto.margen_ganancia})

@@ -22,6 +22,29 @@ class Proveedor(models.Model):
         return self.nombre
 
 
+class CategoriaProducto(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    activo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nombre"]
+        verbose_name = "Categoria de producto"
+        verbose_name_plural = "Categorias de producto"
+
+    def __str__(self):
+        return self.nombre
+
+
+def get_default_categoria_producto_id():
+    categoria, _created = CategoriaProducto.objects.get_or_create(
+        nombre="Sin categoria",
+        defaults={"activo": True},
+    )
+    return categoria.id
+
+
 class Producto(models.Model):
     nombre = models.CharField(max_length=255, unique=True)
     descripcion = models.TextField(blank=True)
@@ -34,10 +57,16 @@ class Producto(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
     proveedor = models.ForeignKey(Proveedor, on_delete=models.SET_NULL, null=True)
+    categoria = models.ForeignKey(
+        CategoriaProducto,
+        on_delete=models.PROTECT,
+        default=get_default_categoria_producto_id,
+    )
 
     class Meta:
         indexes = [
             models.Index(fields=["activo", "nombre"], name="inv_prod_act_nom_idx"),
+            models.Index(fields=["categoria", "activo"], name="inv_prod_cat_act_idx"),
         ]
 
     def __str__(self):

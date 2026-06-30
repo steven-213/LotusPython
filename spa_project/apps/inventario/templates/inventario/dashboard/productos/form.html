@@ -102,6 +102,23 @@
                     </div>
 
                     <div class="mb-4">
+                        <label for="categoria_id" class="form-label fw-bold">
+                            <i class="bi bi-tags icono"></i> Categoria
+                        </label>
+
+                        <select id="categoria_id" name="categoria_id" class="form-select form-select-lg" required>
+                            <option value="">-- Selecciona una categoria --</option>
+
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}"
+                                    {% if request.POST.categoria_id == categoria.id|stringformat:"s" %}selected{% elif producto.categoria_id == categoria.id %}selected{% endif %}>
+                                    {{ categoria.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
                         <label for="proveedor_id" class="form-label fw-bold">
                             <i class="bi bi-building icono"></i> Proveedor
                         </label>

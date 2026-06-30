@@ -19,6 +19,8 @@ ESTADOS_CONFLICTIVOS = {
 }
 
 INTERVALO_RESERVA_MINUTOS = 15
+DIAS_GRACIA_CANCELACION_AUTOMATICA = 5
+DIAS_ANTIGUEDAD_HISTORIAL = 7
 
 TRANSICIONES_VALIDAS = {
     Reserva.ESTADO_PROGRAMADA: {
@@ -435,16 +437,18 @@ def cambiar_estado_reserva(*, reserva, nuevo_estado, actor=None, observacion="")
 
 def cancelar_reservas_vencidas(*, actor=None):
     ahora = timezone.now()
+    fecha_limite = ahora - timedelta(days=DIAS_GRACIA_CANCELACION_AUTOMATICA)
     estados_vencibles = [
         Reserva.ESTADO_PROGRAMADA,
         Reserva.ESTADO_CONFIRMADA,
         Reserva.ESTADO_EN_PROCESO,
     ]
-    observacion = "Cancelada automaticamente porque la fecha de la cita ya paso."
+    observacion = "Cancelada automaticamente por superar el plazo sin finalizar."
     reservas_vencidas = list(
         Reserva.objects.filter(
             estado__in=estados_vencibles,
-            fecha_fin__lt=ahora,
+            fecha_inicio__lt=fecha_limite,
+            archivada_en__isnull=True,
         ).values("id", "estado")
     )
     if not reservas_vencidas:
@@ -470,6 +474,53 @@ def cancelar_reservas_vencidas(*, actor=None):
             ]
         )
     return len(reservas_vencidas)
+
+
+def archivar_reservas_antiguas(*, actor=None):
+    ahora = timezone.now()
+    fecha_limite = ahora - timedelta(days=DIAS_ANTIGUEDAD_HISTORIAL)
+    estados_historial = [
+        Reserva.ESTADO_FINALIZADA,
+        Reserva.ESTADO_CANCELADA,
+        Reserva.ESTADO_NO_ASISTIO,
+    ]
+    observacion = "Movida automaticamente al historial."
+    reservas_antiguas = list(
+        Reserva.objects.filter(
+            estado__in=estados_historial,
+            fecha_inicio__lt=fecha_limite,
+            archivada_en__isnull=True,
+        ).values("id", "estado")
+    )
+    if not reservas_antiguas:
+        return 0
+
+    reserva_ids = [reserva["id"] for reserva in reservas_antiguas]
+    with transaction.atomic():
+        Reserva.objects.filter(id__in=reserva_ids).update(
+            archivada_en=ahora,
+            archivada_automaticamente=True,
+            updated_at=ahora,
+        )
+        ReservaHistorialEstado.objects.bulk_create(
+            [
+                ReservaHistorialEstado(
+                    reserva_id=reserva["id"],
+                    estado_anterior=reserva["estado"],
+                    estado_nuevo=reserva["estado"],
+                    usuario_actor=actor,
+                    observacion=observacion,
+                )
+                for reserva in reservas_antiguas
+            ]
+        )
+    return len(reservas_antiguas)
+
+
+def mantenimiento_reservas_dashboard(*, actor=None):
+    canceladas = cancelar_reservas_vencidas(actor=actor)
+    archivadas = archivar_reservas_antiguas(actor=actor)
+    return {"canceladas": canceladas, "archivadas": archivadas}
 
 
 def construir_token_comprobante(pago):
@@ -598,7 +649,6 @@ def _calcular_ingresos_citas_facturadas():
 
 
 def resumen_dashboard_admin():
-    cancelar_reservas_vencidas()
     hoy = timezone.localdate()
     inicio_semana = hoy - timedelta(days=hoy.weekday())
     inicio_mes = hoy.replace(day=1)
@@ -608,22 +658,29 @@ def resumen_dashboard_admin():
     else:
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
     
-    reservas = Reserva.objects.all()
+    reservas_activas = Reserva.objects.filter(archivada_en__isnull=True)
     ingresos_por_periodo = _calcular_ingresos_citas_facturadas()
+    ingresos_historial = _agregar_ingresos_facturados(
+        _reservas_facturadas_queryset().filter(archivada_en__isnull=False)
+    )
     
     return {
-        "reservas_hoy": reservas.filter(fecha_inicio__date=hoy).count(),
-        "reservas_semana": reservas.filter(
+        "reservas_hoy": reservas_activas.filter(fecha_inicio__date=hoy).count(),
+        "reservas_semana": reservas_activas.filter(
             fecha_inicio__date__gte=inicio_semana,
             fecha_inicio__date__lt=fin_semana,
         ).count(),
-        "reservas_mes": reservas.filter(
+        "reservas_mes": reservas_activas.filter(
             fecha_inicio__date__gte=inicio_mes,
             fecha_inicio__date__lt=inicio_mes_siguiente,
         ).count(),
-        "reservas_todas": reservas.count(),
-        "pendientes": reservas.filter(
+        "reservas_todas": reservas_activas.count(),
+        "reservas_historial": Reserva.objects.filter(archivada_en__isnull=False).count(),
+        "pendientes": reservas_activas.filter(
             estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA]
         ).count(),
-        "ingresos_por_periodo": ingresos_por_periodo,
+        "ingresos_por_periodo": {
+            **ingresos_por_periodo,
+            "historial": _serializar_ingresos_facturados(ingresos_historial),
+        },
     }

@@ -24,6 +24,7 @@ from apps.citas.services import (
     cancelar_reservas_vencidas,
     configuracion_horario_reserva,
     crear_reserva,
+    mantenimiento_reservas_dashboard,
     pagos_reserva_por_validos,
     puede_editar_reserva,
     reservas_visibles_para_usuario,
@@ -303,7 +304,7 @@ def _reservas_admin_queryset():
 
 def _leer_filtros_dashboard(request):
     atajo = (request.GET.get("atajo") or "").strip().lower()
-    if atajo not in {"hoy", "semana", "mes", "todas", "pendientes"}:
+    if atajo not in {"hoy", "semana", "mes", "todas", "pendientes", "historial"}:
         atajo = ""
     return {
         "atajo": atajo,
@@ -337,6 +338,10 @@ def _aplicar_atajo_dashboard(queryset, atajo):
     else:
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
 
+    if atajo == "historial":
+        return queryset.filter(archivada_en__isnull=False)
+
+    queryset = queryset.filter(archivada_en__isnull=True)
     if atajo == "hoy":
         return queryset.filter(fecha_inicio__date=hoy)
     if atajo == "semana":
@@ -411,6 +416,7 @@ def _atajos_dashboard(filtros, resumen):
         ("semana", "Semana actual", resumen["reservas_semana"]),
         ("mes", "Mes actual", resumen["reservas_mes"]),
         ("pendientes", "Pendientes de atencion", resumen["pendientes"]),
+        ("historial", "Historial", resumen.get("reservas_historial", 0)),
     ]
     tarjetas = []
     for slug, label, value in definiciones:
@@ -439,7 +445,7 @@ def _redirect_admin_dashboard_target(request, *, default_view="citas:dashboard")
 
 @admin_required_session
 def dashboard(request):
-    cancelar_reservas_vencidas(actor=_usuario_admin(request))
+    mantenimiento_reservas_dashboard(actor=_usuario_admin(request))
     filtros = _leer_filtros_dashboard(request)
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros)
     reservas = _ordenar_reservas_dashboard(reservas)
@@ -473,7 +479,7 @@ def dashboard(request):
 
 @admin_required_session
 def almanaque(request):
-    cancelar_reservas_vencidas(actor=_usuario_admin(request))
+    mantenimiento_reservas_dashboard(actor=_usuario_admin(request))
     filtros = _leer_filtros_dashboard(request)
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros).order_by("fecha_inicio")
     resumen = resumen_dashboard_admin()

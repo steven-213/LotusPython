@@ -101,6 +101,8 @@ class Reserva(models.Model):
     motivo_cancelacion = models.TextField(blank=True)
     fecha_inicio_real = models.DateTimeField(null=True, blank=True)
     fecha_fin_real = models.DateTimeField(null=True, blank=True)
+    archivada_en = models.DateTimeField(null=True, blank=True)
+    archivada_automaticamente = models.BooleanField(default=False)
     creada_por = models.ForeignKey(
         "sesiones.Usuario",
         on_delete=models.SET_NULL,
@@ -175,6 +177,10 @@ class Reserva(models.Model):
     def ultimo_pago_confirmado(self):
         return self.pagos_confirmados.first()
 
+    @property
+    def esta_en_historial(self) -> bool:
+        return self.archivada_en is not None
+
     class Meta:
         db_table = "citas_reserva"
         ordering = ["-fecha_inicio"]
@@ -182,6 +188,7 @@ class Reserva(models.Model):
             models.Index(fields=["fecha_inicio"]),
             models.Index(fields=["estado"]),
             models.Index(fields=["origen_reserva"]),
+            models.Index(fields=["archivada_en", "fecha_inicio"], name="cita_res_arch_fecha_idx"),
         ]
 
 

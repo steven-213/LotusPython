@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
+from apps.inventario.models import CategoriaProducto, Compra, DetalleCompra, DevolucionCompra, Producto, Proveedor
+
+
+@admin.register(CategoriaProducto)
+class CategoriaProductoAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "activo", "created_at", "updated_at")
+    list_filter = ("activo",)
+    search_fields = ("nombre",)
 
 
 @admin.register(Proveedor)
@@ -17,12 +24,12 @@ class ProveedorAdmin(admin.ModelAdmin):
 
 @admin.register(Producto)
 class ProductoAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "proveedor", "precio_compra", "precio_venta", "impuesto", "activo")
-    list_filter = ("proveedor", "activo")
+    list_display = ("nombre", "categoria", "proveedor", "precio_compra", "precio_venta", "impuesto", "activo")
+    list_filter = ("categoria", "proveedor", "activo")
     search_fields = ("nombre", "descripcion")
     fieldsets = (
         ("Información del Producto", {"fields": ("nombre", "descripcion", "imagen")}),
-        ("Proveedor", {"fields": ("proveedor",)}),
+        ("Clasificacion", {"fields": ("categoria", "proveedor")}),
         ("Precios", {"fields": ("precio_compra", "precio_venta", "impuesto", "margen_ganancia")}),
         ("Estado", {"fields": ("activo",)}),
     )

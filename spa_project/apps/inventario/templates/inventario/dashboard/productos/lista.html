@@ -36,6 +36,19 @@
                         </div>
 
                         <div class="col-12 productos-provider-field">
+                            <label class="form-label panel-label">Categoria</label>
+                            <select name="categoria_id" class="form-select panel-input">
+                                <option value="">-- Todas --</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}"
+                                    {% if categoria.id|stringformat:"s" == categoria_id %}selected{% endif %}>
+                                    {{ categoria.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12 productos-provider-field">
                             <label class="form-label panel-label">Proveedor</label>
                             <select name="proveedor_id" class="form-select panel-input">
                                 <option value="">-- Todos --</option>
@@ -171,6 +184,10 @@
                                 <small>{{ p.proveedor.nombre }}</small>
                             </div>
                             {% endif %}
+                            <div>
+                                <span>Categoria</span>
+                                <small>{{ p.categoria.nombre }}</small>
+                            </div>
                         </div>
                     </div>
 
