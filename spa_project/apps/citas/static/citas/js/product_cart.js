@@ -47,10 +47,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateSuggestedAmount() {
+      const suggestedAmount = serviceBalance + currentProductTotal();
+      if (form) {
+        form.dataset.currentSuggestedAmount = String(suggestedAmount);
+      }
       if (!amountInput || amountInput.dataset.userEdited === "1") {
         return;
       }
-      setAmountValue(amountInput, serviceBalance + currentProductTotal());
+      setAmountValue(amountInput, suggestedAmount);
     }
 
     function updateSelectedProductSummary() {

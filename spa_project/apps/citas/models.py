@@ -147,12 +147,11 @@ class Reserva(models.Model):
 
     @property
     def esta_pagada(self) -> bool:
-        return self.total_pagado >= (self.servicio.precio or Decimal("0"))
+        return self.total_pagado >= self.total_factura
 
     @property
     def saldo_pendiente(self) -> Decimal:
-        precio = self.servicio.precio or Decimal("0")
-        saldo = precio - self.total_pagado
+        saldo = self.total_factura - self.total_pagado
         return saldo if saldo > 0 else Decimal("0")
 
     @property

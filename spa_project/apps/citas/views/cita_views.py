@@ -834,6 +834,19 @@ def reserva_registrar_pago(request, reserva_id):
             raise ValidationError("Debes registrar un pago o agregar al menos un producto para facturar.")
 
         with transaction.atomic():
+            venta = None
+            total_productos = Decimal("0")
+            if es_admin and productos_seleccionados:
+                venta, total_productos = registrar_venta_desde_reserva(
+                    reserva=reserva,
+                    items=productos_seleccionados,
+                    metodo_pago=pago_data["metodo_pago"],
+                    referencia_pago=pago_data.get("referencia", ""),
+                    validado_por=usuario.id,
+                )
+                if pago_data.get("tipo", PagoReserva.TIPO_TOTAL) == PagoReserva.TIPO_TOTAL:
+                    monto_pago = reserva.saldo_pendiente
+
             pago = None
             if monto_pago > 0:
                 pago = registrar_pago(
@@ -843,15 +856,6 @@ def reserva_registrar_pago(request, reserva_id):
                     referencia=pago_data.get("referencia", ""),
                     tipo=pago_data.get("tipo", PagoReserva.TIPO_TOTAL),
                     actor=usuario,
-                )
-
-            if es_admin and productos_seleccionados:
-                venta, total_productos = registrar_venta_desde_reserva(
-                    reserva=reserva,
-                    items=productos_seleccionados,
-                    metodo_pago=pago_data["metodo_pago"],
-                    referencia_pago=pago_data.get("referencia", ""),
-                    validado_por=usuario.id,
                 )
 
             if pago and reserva.estado == Reserva.ESTADO_PROGRAMADA:
