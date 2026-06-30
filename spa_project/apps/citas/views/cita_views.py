@@ -300,7 +300,7 @@ def _reservas_admin_queryset():
         "servicio",
         "servicio__profesional",
         "venta_asociada",
-    ).prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto")
+    ).prefetch_related("pagos", "historial_estados")
 
 
 def _leer_filtros_dashboard(request):
@@ -617,7 +617,7 @@ def reserva_detalle(request, reserva_id):
         Reserva.objects.select_related(
             "cliente", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
         )
-        .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
+        .prefetch_related("pagos", "historial_estados"),
         id=reserva_id,
     )
     usuario = _asegurar_propiedad_reserva(request, reserva)
@@ -628,20 +628,32 @@ def reserva_detalle(request, reserva_id):
     )
 
 
+def _detalles_venta_para_contexto(venta_asociada):
+    if not venta_asociada:
+        return []
+
+    detalles = venta_asociada.detalles.select_related("producto").only(
+        "id",
+        "cantidad",
+        "precio_unitario",
+        "producto__id",
+        "producto__nombre",
+    )
+    return [
+        {
+            "detalle": detalle,
+            "subtotal": detalle.cantidad * detalle.precio_unitario,
+        }
+        for detalle in detalles.all()
+    ]
+
+
 def _construir_contexto_detalle_reserva(reserva, usuario):
     """Construye el contexto para renderizar la vista de detalle de una reserva."""
     historial = reserva.historial_estados.select_related("usuario_actor").all()
     pagos = pagos_reserva_por_validos(reserva)
     venta_asociada = reserva.venta_asociada_segura
-    venta_detalles = []
-    if venta_asociada:
-        for detalle in venta_asociada.detalles.select_related("producto").all():
-            venta_detalles.append(
-                {
-                    "detalle": detalle,
-                    "subtotal": detalle.cantidad * detalle.precio_unitario,
-                }
-            )
+    venta_detalles = _detalles_venta_para_contexto(venta_asociada)
     return {
         "reserva": reserva,
         "usuario": usuario,
@@ -865,7 +877,7 @@ def reserva_registrar_pago(request, reserva_id):
             Reserva.objects.select_related(
                 "cliente", "servicio", "servicio__profesional", "profesional", "creada_por", "venta_asociada"
             )
-            .prefetch_related("pagos", "historial_estados", "venta_asociada__detalles__producto"),
+            .prefetch_related("pagos", "historial_estados"),
             id=reserva_id,
         )
         return render(
@@ -946,7 +958,13 @@ def comprobante_pago_pdf(request, pago_id):
         pdf.drawString(50, y, "Detalle de productos:")
         y -= 20
         pdf.setFont("Helvetica", 10)
-        for detalle in venta_asociada.detalles.select_related("producto").all():
+        for detalle in venta_asociada.detalles.select_related("producto").only(
+            "id",
+            "cantidad",
+            "precio_unitario",
+            "producto__id",
+            "producto__nombre",
+        ).all():
             pdf.drawString(
                 55,
                 y,
