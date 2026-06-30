@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from django.core import signing
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import ProgrammingError, transaction
 from django.db.models import Sum, Count, Avg, Q, OuterRef, Subquery, Case, When, DecimalField, Value, DateField
 from django.db.models.functions import TruncDate, Coalesce
 from django.utils import timezone
@@ -61,6 +61,15 @@ def obtener_horario_atencion(fecha_inicio):
 
 def _formatear_horario(apertura, cierre):
     return f"{apertura.strftime('%I:%M %p')} - {cierre.strftime('%I:%M %p')}"
+
+
+def _filtrar_por_archivado(queryset, archivada=False):
+    try:
+        if archivada:
+            return queryset.filter(archivada_en__isnull=False)
+        return queryset.filter(archivada_en__isnull=True)
+    except ProgrammingError:
+        return queryset if not archivada else queryset.none()
 
 
 def _formatear_hora_input(hora):
@@ -444,13 +453,16 @@ def cancelar_reservas_vencidas(*, actor=None):
         Reserva.ESTADO_EN_PROCESO,
     ]
     observacion = "Cancelada automaticamente por superar el plazo sin finalizar."
-    reservas_vencidas = list(
-        Reserva.objects.filter(
-            estado__in=estados_vencibles,
-            fecha_inicio__lt=fecha_limite,
-            archivada_en__isnull=True,
-        ).values("id", "estado")
-    )
+    try:
+        reservas_vencidas = list(
+            Reserva.objects.filter(
+                estado__in=estados_vencibles,
+                fecha_inicio__lt=fecha_limite,
+                archivada_en__isnull=True,
+            ).values("id", "estado")
+        )
+    except ProgrammingError:
+        return 0
     if not reservas_vencidas:
         return 0
 
@@ -485,13 +497,16 @@ def archivar_reservas_antiguas(*, actor=None):
         Reserva.ESTADO_NO_ASISTIO,
     ]
     observacion = "Movida automaticamente al historial."
-    reservas_antiguas = list(
-        Reserva.objects.filter(
-            estado__in=estados_historial,
-            fecha_inicio__lt=fecha_limite,
-            archivada_en__isnull=True,
-        ).values("id", "estado")
-    )
+    try:
+        reservas_antiguas = list(
+            Reserva.objects.filter(
+                estado__in=estados_historial,
+                fecha_inicio__lt=fecha_limite,
+                archivada_en__isnull=True,
+            ).values("id", "estado")
+        )
+    except ProgrammingError:
+        return 0
     if not reservas_antiguas:
         return 0
 
@@ -658,11 +673,17 @@ def resumen_dashboard_admin():
     else:
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
     
-    reservas_activas = Reserva.objects.filter(archivada_en__isnull=True)
+    try:
+        reservas_activas = Reserva.objects.filter(archivada_en__isnull=True)
+        ingresos_historial = _agregar_ingresos_facturados(
+            _reservas_facturadas_queryset().filter(archivada_en__isnull=False)
+        )
+        reservas_historial = Reserva.objects.filter(archivada_en__isnull=False).count()
+    except ProgrammingError:
+        reservas_activas = Reserva.objects.all()
+        ingresos_historial = _agregar_ingresos_facturados(_reservas_facturadas_queryset().none())
+        reservas_historial = 0
     ingresos_por_periodo = _calcular_ingresos_citas_facturadas()
-    ingresos_historial = _agregar_ingresos_facturados(
-        _reservas_facturadas_queryset().filter(archivada_en__isnull=False)
-    )
     
     return {
         "reservas_hoy": reservas_activas.filter(fecha_inicio__date=hoy).count(),
@@ -675,12 +696,12 @@ def resumen_dashboard_admin():
             fecha_inicio__date__lt=inicio_mes_siguiente,
         ).count(),
         "reservas_todas": reservas_activas.count(),
-        "reservas_historial": Reserva.objects.filter(archivada_en__isnull=False).count(),
+        "reservas_historial": reservas_historial,
         "pendientes": reservas_activas.filter(
             estado__in=[Reserva.ESTADO_PROGRAMADA, Reserva.ESTADO_CONFIRMADA]
         ).count(),
         "ingresos_por_periodo": {
             **ingresos_por_periodo,
-            "historial": _serializar_ingresos_facturados(ingresos_historial),
+            "historial": ingresos_historial,
         },
     }

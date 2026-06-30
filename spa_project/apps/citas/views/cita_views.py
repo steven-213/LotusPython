@@ -30,6 +30,7 @@ from apps.citas.services import (
     reservas_visibles_para_usuario,
     resumen_horario_atencion,
     resumen_dashboard_admin,
+    _filtrar_por_archivado,
 )
 from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.decorators import admin_required_session, login_required_session
@@ -339,9 +340,9 @@ def _aplicar_atajo_dashboard(queryset, atajo):
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
 
     if atajo == "historial":
-        return queryset.filter(archivada_en__isnull=False)
-
-    queryset = queryset.filter(archivada_en__isnull=True)
+        queryset = _filtrar_por_archivado(queryset, archivada=True)
+    else:
+        queryset = _filtrar_por_archivado(queryset, archivada=False)
     if atajo == "hoy":
         return queryset.filter(fecha_inicio__date=hoy)
     if atajo == "semana":
