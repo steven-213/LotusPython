@@ -362,6 +362,7 @@
 
         if (isTotal) {
           amountInput.value = Number(suggestedAmount).toFixed(2);
+          amountInput.setAttribute("readonly", "readonly");
           amountInput.readOnly = true;
           amountInput.classList.add("is-readonly");
 
@@ -369,6 +370,7 @@
             helpText.textContent = `Pago completo: ${formatter.format(suggestedAmount)}. El monto se calcula automáticamente.`;
           }
         } else {
+          amountInput.removeAttribute("readonly");
           amountInput.readOnly = false;
           amountInput.classList.remove("is-readonly");
           if (amountInput.value === "" || Number(amountInput.value) <= 0) {
