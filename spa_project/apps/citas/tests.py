@@ -600,6 +600,42 @@ class CitasFlowTest(TestCase):
         self.assertEqual(reserva.venta_asociada_segura.total, producto.precio_venta * 2)
         self.assertEqual(obtener_stock_disponible(producto), 3)
 
+    def test_admin_can_register_products_and_total_payment_for_reservation(self):
+        reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(1, 11))
+        proveedor = Proveedor.objects.create(nombre="Proveedor Spa", nit="900100100")
+        producto = Producto.objects.create(
+            nombre="Serum Premium",
+            proveedor=proveedor,
+            precio_compra=20000,
+            precio_venta=35000,
+            impuesto=19,
+            margen_ganancia=20,
+            activo=True,
+        )
+        registrar_ingreso(producto, 5, lote="TEST-CITA-2")
+
+        self._force_session(self.admin)
+        response = self.client.post(
+            reverse("citas:reserva_registrar_pago", kwargs={"reserva_id": reserva.id}),
+            {
+                "monto": "0",
+                "tipo_pago": PagoReserva.TIPO_TOTAL,
+                "metodo_pago": PagoReserva.METODO_EFECTIVO,
+                "referencia_pago": "FACTURA-CITA-2",
+                "producto_id[]": [str(producto.id)],
+                "cantidad_producto[]": ["2"],
+            },
+        )
+
+        self.assertRedirects(response, reverse("citas:calendario"))
+        reserva.refresh_from_db()
+        self.assertEqual(reserva.pagos.count(), 1)
+        self.assertEqual(reserva.total_pagado, Decimal("120000"))
+        self.assertEqual(reserva.saldo_pendiente, Decimal("0"))
+        self.assertEqual(reserva.estado, Reserva.ESTADO_CONFIRMADA)
+        self.assertEqual(reserva.venta_asociada_segura.total, producto.precio_venta * 2)
+        self.assertEqual(obtener_stock_disponible(producto), 3)
+
     def test_total_payment_must_match_pending_balance_exactly(self):
         reserva = self._crear_reserva(cliente=self.cliente, fecha_inicio=self._future_weekday_start(2, 11))
 

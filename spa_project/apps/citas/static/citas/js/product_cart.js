@@ -51,6 +51,9 @@ document.addEventListener("DOMContentLoaded", function () {
       if (form) {
         form.dataset.currentSuggestedAmount = String(suggestedAmount);
       }
+      if (amountInput) {
+        amountInput.removeAttribute("max");
+      }
       if (!amountInput || amountInput.dataset.userEdited === "1") {
         return;
       }

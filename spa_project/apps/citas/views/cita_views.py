@@ -844,6 +844,7 @@ def reserva_registrar_pago(request, reserva_id):
                     referencia_pago=pago_data.get("referencia", ""),
                     validado_por=usuario.id,
                 )
+                reserva.refresh_from_db()
                 if pago_data.get("tipo", PagoReserva.TIPO_TOTAL) == PagoReserva.TIPO_TOTAL:
                     monto_pago = reserva.saldo_pendiente
 
