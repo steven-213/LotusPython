@@ -240,3 +240,4 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 # Password reset token expiration time (in hours)
 PASSWORD_RESET_TIMEOUT_HOURS = _env_int("PASSWORD_RESET_TIMEOUT_HOURS", 24)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")

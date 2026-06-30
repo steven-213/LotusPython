@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.core.mail import send_mail
+import resend
 from django.conf import settings
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
@@ -264,14 +265,15 @@ def solicitar_reset_contrasena(request):
             Lotus Dream Spa
             """
             
+            
             try:
-                send_mail(
-                    asunto,
-                    mensaje,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [usuario.correo],
-                    fail_silently=False,
-                )
+                resend.api_key = settings.RESEND_API_KEY
+                resend.Emails.send({
+                    "from": "Lotus Dream Spa <onboarding@resend.dev>",
+                    "to": [usuario.correo],
+                    "subject": asunto,
+                    "text": mensaje,
+                })
                 messages.success(
                     request,
                     f"Se ha enviado un enlace de recuperación a {correo}. Revisa tu bandeja de entrada."
@@ -281,6 +283,7 @@ def solicitar_reset_contrasena(request):
                     request,
                     "Error al enviar el correo. Por favor, intenta más tarde."
                 )
+                
         else:
             # Por seguridad, no revelar si el correo existe
             messages.info(
