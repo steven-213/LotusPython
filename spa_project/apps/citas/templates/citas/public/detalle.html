@@ -202,6 +202,16 @@
               <input class="form-control" type="text" name="referencia_pago" placeholder="Opcional">
             </label>
           </div>
+          <div class="invoice-summary-card" style="margin-bottom: 1rem;">
+            <div>
+              <span class="summary-label">Saldo servicio</span>
+              <strong>{{ reserva.saldo_pendiente|currency }}</strong>
+            </div>
+            <div>
+              <span class="summary-label">Total de la cita</span>
+              <strong>{{ reserva.total_factura|currency }}</strong>
+            </div>
+          </div>
           {% include "citas/partials/productos_carrito.html" %}
           <button type="submit" class="btn-primary-strong"><i class="bi bi-cash-coin"></i> Guardar</button>
         </form>
