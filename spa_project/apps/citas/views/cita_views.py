@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import ProgrammingError, transaction
 from django.db.models import Case, DecimalField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
 from django.http import Http404, HttpResponse, HttpResponseForbidden
@@ -162,19 +162,37 @@ def _productos_facturables():
         .values("precio_venta")[:1]
     )
 
-    return (
-        anotar_stock_disponible(Producto.objects.filter(activo=True))
-        .annotate(
-            precio_facturable=Coalesce(
-                Subquery(precio_reciente, output_field=DecimalField(max_digits=10, decimal_places=2)),
-                "precio_venta",
-                Value(0),
-                output_field=DecimalField(max_digits=10, decimal_places=2),
+    try:
+        return (
+            anotar_stock_disponible(
+                Producto.objects.filter(activo=True).only(
+                    "id",
+                    "nombre",
+                    "descripcion",
+                    "imagen",
+                    "precio_compra",
+                    "impuesto",
+                    "precio_venta",
+                    "margen_ganancia",
+                    "activo",
+                    "created_at",
+                    "updated_at",
+                    "proveedor_id",
+                )
             )
+            .annotate(
+                precio_facturable=Coalesce(
+                    Subquery(precio_reciente, output_field=DecimalField(max_digits=10, decimal_places=2)),
+                    "precio_venta",
+                    Value(0),
+                    output_field=DecimalField(max_digits=10, decimal_places=2),
+                )
+            )
+            .filter(stock_disponible__gt=0, precio_facturable__gt=0)
+            .order_by("nombre")
         )
-        .filter(stock_disponible__gt=0, precio_facturable__gt=0)
-        .order_by("nombre")
-    )
+    except ProgrammingError:
+        return Producto.objects.none()
 
 
 def _extraer_pago_publico(request, servicio, requerido=False, monto=None):
