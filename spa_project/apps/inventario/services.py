@@ -16,7 +16,7 @@ def generar_lote_default(producto_id, *, prefix=DEFAULT_LOT_PREFIX):
 def anotar_stock_disponible(queryset):
     return queryset.annotate(
         stock_disponible=Coalesce(
-            Sum("inventario__stock"),
+            Sum("inventario_set__stock"),
             Value(0),
             output_field=IntegerField(),
         )

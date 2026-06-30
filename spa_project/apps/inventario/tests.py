@@ -176,6 +176,22 @@ class InventarioUrlsTest(TestCase):
         self.assertEqual(stocks_por_nombre["Producto agotado"], 0)
         self.assertContains(response, "Producto agotado")
 
+    def test_lista_productos_admin_no_falla_con_categoria_legacy(self):
+        Producto.objects.create(
+            nombre="Producto legacy",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=18000,
+            impuesto=19,
+            margen_ganancia=20,
+            categoria_id=None,
+        )
+
+        response = self.client.get(reverse("inventario:producto_lista"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Producto legacy")
+
     def test_compra_nueva_rechaza_valores_negativos_o_en_cero(self):
         producto = Producto.objects.create(
             nombre="Aceite de prueba",

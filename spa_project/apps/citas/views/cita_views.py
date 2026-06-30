@@ -176,9 +176,9 @@ def _productos_facturables():
             .filter(stock_disponible__gt=0, precio_facturable__gt=0)
             .order_by("nombre")
         )
-        return list(queryset)
+        return queryset
     except ProgrammingError:
-        return []
+        return queryset_productos_basico().none()
 
 
 def _extraer_pago_publico(request, servicio, requerido=False, monto=None):

@@ -334,7 +334,9 @@
       const amountInput = form.querySelector("[data-payment-amount]");
       const typeSelect = form.querySelector("[data-payment-type]");
       const helpText = form.querySelector("[data-payment-help]");
-      const pendingBalance = parseFloat(form.dataset.saldoPendiente || "0");
+      // Parse saldo pendiente robustly (accepts formatted numbers with commas)
+      const rawPending = form.dataset.saldoPendiente || "0";
+      const pendingBalance = Number(String(rawPending).replace(/[^0-9.-]+/g, "")) || 0;
 
       console.log("Elementos encontrados:", { amountInput, typeSelect, helpText, pendingBalance });
 
@@ -359,7 +361,8 @@
         console.log("Actualizando estado del input. Tipo:", typeSelect.value);
         
         if (typeSelect.value === "total") {
-          amountInput.value = pendingBalance.toFixed(2);
+          // Ensure the amount input shows the full pending balance and is read-only
+          amountInput.value = Number(pendingBalance).toFixed(2);
           amountInput.readOnly = true;
           amountInput.classList.add("is-readonly");
           

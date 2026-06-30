@@ -302,7 +302,7 @@ def _cargar_productos_publicos(query):
         Producto.objects.filter(activo=True)
         .annotate(
             stock_disponible=Coalesce(
-                Sum("inventario__stock", filter=Q(inventario__stock__gt=0)),
+                Sum("inventario_set__stock", filter=Q(inventario_set__stock__gt=0)),
                 Value(0),
                 output_field=IntegerField(),
             )
