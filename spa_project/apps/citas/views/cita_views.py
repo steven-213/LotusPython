@@ -339,10 +339,7 @@ def _aplicar_atajo_dashboard(queryset, atajo):
     else:
         inicio_mes_siguiente = hoy.replace(month=hoy.month + 1, day=1)
 
-    if atajo == "historial":
-        queryset = _filtrar_por_archivado(queryset, archivada=True)
-    else:
-        queryset = _filtrar_por_archivado(queryset, archivada=False)
+    queryset = _filtrar_por_archivado(queryset, archivada=(atajo == "historial"))
     if atajo == "hoy":
         return queryset.filter(fecha_inicio__date=hoy)
     if atajo == "semana":
@@ -483,6 +480,7 @@ def almanaque(request):
     mantenimiento_reservas_dashboard(actor=_usuario_admin(request))
     filtros = _leer_filtros_dashboard(request)
     reservas = _aplicar_filtros_dashboard(_reservas_admin_queryset(), filtros).order_by("fecha_inicio")
+    reservas = list(reservas)
     resumen = resumen_dashboard_admin()
 
     return render(
