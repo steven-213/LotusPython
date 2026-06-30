@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import IntegerField, Q, Sum, Value
+from django.db.models import IntegerField, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -298,15 +298,17 @@ def _build_productos_structured_data(productos):
 
 
 def _cargar_productos_publicos(query):
+    stock_disponible_subquery = Subquery(
+        Inventario.objects.filter(producto=OuterRef("pk"), stock__gt=0)
+        .values("producto")
+        .annotate(total_stock=Sum("stock"))
+        .values("total_stock")[:1],
+        output_field=IntegerField(),
+    )
+
     productos = (
         Producto.objects.filter(activo=True)
-        .annotate(
-            stock_disponible=Coalesce(
-                Sum("inventario_set__stock", filter=Q(inventario_set__stock__gt=0)),
-                Value(0),
-                output_field=IntegerField(),
-            )
-        )
+        .annotate(stock_disponible=Coalesce(stock_disponible_subquery, Value(0), output_field=IntegerField()))
         .values("id", "nombre", "descripcion", "imagen", "precio_venta", "stock_disponible")
         .order_by("nombre")
     )

@@ -1,4 +1,4 @@
-from django.db.models import IntegerField, Sum, Value
+from django.db.models import IntegerField, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -14,12 +14,15 @@ def generar_lote_default(producto_id, *, prefix=DEFAULT_LOT_PREFIX):
 
 
 def anotar_stock_disponible(queryset):
+    stock_disponible_subquery = Subquery(
+        Inventario.objects.filter(producto=OuterRef("pk"))
+        .values("producto")
+        .annotate(total_stock=Sum("stock"))
+        .values("total_stock")[:1],
+        output_field=IntegerField(),
+    )
     return queryset.annotate(
-        stock_disponible=Coalesce(
-            Sum("inventario_set__stock"),
-            Value(0),
-            output_field=IntegerField(),
-        )
+        stock_disponible=Coalesce(stock_disponible_subquery, Value(0), output_field=IntegerField())
     )
 
 

@@ -4,6 +4,7 @@ from django.urls import reverse
 from decimal import Decimal
 
 from apps.inventario.models import Compra, DetalleCompra, DevolucionCompra, Inventario, Producto, Proveedor
+from apps.inventario.services import anotar_stock_disponible
 from apps.sesiones.models import Usuario
 
 
@@ -143,6 +144,28 @@ class InventarioUrlsTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Navegación admin")
+
+    def test_anotar_stock_disponible_no_depende_del_nombre_de_relacion(self):
+        producto = Producto.objects.create(
+            nombre="Producto con stock",
+            proveedor=self.proveedor,
+            precio_compra=10000,
+            precio_venta=18000,
+            impuesto=19,
+            margen_ganancia=20,
+        )
+        Inventario.objects.create(producto=producto, lote="L-1", stock=2, precio_venta=18000)
+        Inventario.objects.create(producto=producto, lote="L-2", stock=3, precio_venta=18000)
+
+        field = Inventario._meta.get_field("producto")
+        original_related_name = field.remote_field.related_name
+        field.remote_field.related_name = "inventario"
+        try:
+            annotated = anotar_stock_disponible(Producto.objects.filter(id=producto.id)).get()
+        finally:
+            field.remote_field.related_name = original_related_name
+
+        self.assertEqual(annotated.stock_disponible, 5)
 
     def test_catalogo_publico_agrupa_stock_por_producto(self):
         producto = Producto.objects.create(
