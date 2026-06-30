@@ -20,7 +20,12 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, Tabl
 
 from apps.common.currency import format_money, parse_money
 from apps.inventario.models import Producto
-from apps.inventario.services import anotar_stock_disponible, descontar_stock, obtener_stock_disponible
+from apps.inventario.services import (
+    anotar_stock_disponible,
+    descontar_stock,
+    obtener_stock_disponible,
+    queryset_productos_basico,
+)
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.models import DetalleVenta, SolicitudDevolucionVenta, ValidacionVenta, Venta
@@ -522,7 +527,7 @@ def _exportar_ventas_pdf(ventas, titulo):
 
 
 def _obtener_productos_para_venta():
-    return anotar_stock_disponible(Producto.objects.filter(activo=True)).filter(
+    return anotar_stock_disponible(queryset_productos_basico()).filter(
         stock_disponible__gt=0
     ).order_by("nombre")
 
@@ -552,7 +557,7 @@ def _obtener_detalles_venta_desde_post(request):
         if cantidad <= 0:
             raise ValueError(f"La cantidad de la fila {fila} debe ser mayor a cero.")
 
-        producto = Producto.objects.filter(id=producto_id, activo=True).first()
+        producto = queryset_productos_basico().filter(id=producto_id).first()
         if not producto:
             raise ValueError(f"El producto de la fila {fila} no existe o esta inactivo.")
 

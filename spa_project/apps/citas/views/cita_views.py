@@ -32,7 +32,7 @@ from apps.citas.services import (
     resumen_dashboard_admin,
     _filtrar_por_archivado,
 )
-from apps.inventario.services import anotar_stock_disponible
+from apps.inventario.services import anotar_stock_disponible, queryset_productos_basico
 from apps.sesiones.decorators import admin_required_session, login_required_session
 from apps.sesiones.models import Usuario
 from apps.ventas.services import registrar_venta_desde_reserva
@@ -151,7 +151,7 @@ def _contexto_formulario_reserva(*, request, usuario, servicios, reserva=None, s
 
 
 def _productos_facturables():
-    from apps.inventario.models import Inventario, Producto
+    from apps.inventario.models import Inventario
 
     precio_reciente = (
         Inventario.objects.filter(
@@ -163,23 +163,8 @@ def _productos_facturables():
     )
 
     try:
-        return (
-            anotar_stock_disponible(
-                Producto.objects.filter(activo=True).only(
-                    "id",
-                    "nombre",
-                    "descripcion",
-                    "imagen",
-                    "precio_compra",
-                    "impuesto",
-                    "precio_venta",
-                    "margen_ganancia",
-                    "activo",
-                    "created_at",
-                    "updated_at",
-                    "proveedor_id",
-                )
-            )
+        queryset = (
+            anotar_stock_disponible(queryset_productos_basico())
             .annotate(
                 precio_facturable=Coalesce(
                     Subquery(precio_reciente, output_field=DecimalField(max_digits=10, decimal_places=2)),
@@ -191,8 +176,9 @@ def _productos_facturables():
             .filter(stock_disponible__gt=0, precio_facturable__gt=0)
             .order_by("nombre")
         )
+        return list(queryset)
     except ProgrammingError:
-        return Producto.objects.none()
+        return []
 
 
 def _extraer_pago_publico(request, servicio, requerido=False, monto=None):

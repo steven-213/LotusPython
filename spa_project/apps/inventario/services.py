@@ -2,7 +2,7 @@ from django.db.models import IntegerField, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from apps.inventario.models import Inventario
+from apps.inventario.models import Inventario, Producto
 
 
 DEFAULT_LOT_PREFIX = "LOTE"
@@ -20,6 +20,26 @@ def anotar_stock_disponible(queryset):
             Value(0),
             output_field=IntegerField(),
         )
+    )
+
+
+def queryset_productos_basico(*, activo=True):
+    queryset = Producto.objects
+    if activo is not None:
+        queryset = queryset.filter(activo=activo)
+    return queryset.only(
+        "id",
+        "nombre",
+        "descripcion",
+        "imagen",
+        "precio_compra",
+        "impuesto",
+        "precio_venta",
+        "margen_ganancia",
+        "activo",
+        "created_at",
+        "updated_at",
+        "proveedor_id",
     )
 
 

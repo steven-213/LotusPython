@@ -20,7 +20,11 @@ from django.utils import timezone  # CORRECCIÓN: Importación necesaria para Mo
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.inventario.models import CategoriaProducto, Producto, Proveedor, Inventario, MovimientoInventario
-from apps.inventario.services import anotar_stock_disponible, obtener_stock_disponible
+from apps.inventario.services import (
+    anotar_stock_disponible,
+    obtener_stock_disponible,
+    queryset_productos_basico,
+)
 from apps.inventario.storage import subir_imagen_producto
 
 from apps.sesiones.decorators import admin_required_session, login_required_session
@@ -550,7 +554,7 @@ def producto_lista(request):
     categoria_id = request.GET.get("categoria_id", "")
 
     productos = anotar_stock_disponible(
-        Producto.objects.filter(activo=True).select_related("categoria", "proveedor")
+        queryset_productos_basico()
     )
 
     if query:
@@ -737,7 +741,7 @@ def producto_nuevo(request):
 
 @admin_required_session
 def producto_editar(request, producto_id):
-    producto = get_object_or_404(Producto.objects.select_related("categoria", "proveedor"), id=producto_id)
+    producto = get_object_or_404(queryset_productos_basico(), id=producto_id)
 
     if request.method == "POST":
         nombre = (request.POST.get("nombre") or "").strip()
@@ -788,7 +792,7 @@ def producto_editar(request, producto_id):
 @admin_required_session
 def producto_detalle(request, producto_id):
     producto = get_object_or_404(
-        anotar_stock_disponible(Producto.objects.select_related("categoria", "proveedor")),
+        anotar_stock_disponible(queryset_productos_basico()),
         id=producto_id,
     )
     return render(request, "inventario/dashboard/productos/detalle.html", {"producto": producto, "margen": producto.margen_ganancia})
