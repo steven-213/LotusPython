@@ -170,6 +170,34 @@ def obtener_conflicto_reserva(*, servicio, fecha_inicio, fecha_fin, profesional=
     ).first()
 
 
+def _reservas_conflictivas_cliente(*, cliente, fecha_inicio, fecha_fin, exclude_reserva_id=None):
+    """Busca reservas del cliente que se solapen en horario."""
+    conflictos = Reserva.objects.select_related(
+        "cliente", "servicio", "servicio__profesional", "profesional"
+    ).filter(
+        cliente=cliente,
+        estado__in=ESTADOS_CONFLICTIVOS,
+        fecha_inicio__lt=fecha_fin,
+        fecha_fin__gt=fecha_inicio,
+    )
+    if exclude_reserva_id:
+        conflictos = conflictos.exclude(id=exclude_reserva_id)
+    return conflictos
+
+
+def obtener_conflicto_cliente(*, cliente, fecha_inicio, fecha_fin, exclude_reserva_id=None):
+    """Obtiene la primera reserva del cliente que conflictúa en horario."""
+    if not cliente:
+        return None
+
+    return _reservas_conflictivas_cliente(
+        cliente=cliente,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        exclude_reserva_id=exclude_reserva_id,
+    ).first()
+
+
 def obtener_horas_disponibles_reserva(*, servicio, fecha_reserva, exclude_reserva_id=None):
     if not servicio.activo:
         raise ValidationError("El servicio seleccionado no esta disponible.")
@@ -327,6 +355,15 @@ def crear_reserva(
     profesional = servicio.profesional
     validar_reserva(servicio=servicio, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, profesional=profesional)
 
+    # Validar que el cliente no tenga otra cita en la misma franja horaria
+    conflicto_cliente = obtener_conflicto_cliente(
+        cliente=cliente,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+    )
+    if conflicto_cliente:
+        raise ValidationError("Ya tienes una cita programada a esa hora.")
+
     hay_pago = bool(pago_data)
     estado_inicial = Reserva.ESTADO_CONFIRMADA if hay_pago else Reserva.ESTADO_PROGRAMADA
     reserva = Reserva.objects.create(
@@ -374,6 +411,16 @@ def actualizar_reserva(*, reserva, servicio, fecha_inicio, notas="", actor=None)
         profesional=profesional,
         exclude_reserva_id=reserva.id,
     )
+
+    # Validar que el cliente no tenga otra cita en la misma franja horaria (excluyendo esta)
+    conflicto_cliente = obtener_conflicto_cliente(
+        cliente=reserva.cliente,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        exclude_reserva_id=reserva.id,
+    )
+    if conflicto_cliente:
+        raise ValidationError("Ya tienes una cita programada a esa hora.")
 
     reserva.servicio = servicio
     reserva.profesional = profesional

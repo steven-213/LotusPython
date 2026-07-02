@@ -49,7 +49,10 @@
       </div>
       <div>
         <label for="fechaNacimiento">Fecha de nacimiento</label>
-        <input id="fechaNacimiento" type="date" name="fechaNacimiento" value="{{ form_data.fecha_nacimiento|default:'' }}" required>
+        <input id="fechaNacimiento" type="date" name="fechaNacimiento" value="{{ form_data.fecha_nacimiento|default:'' }}" class="{% if age_invalid %}campo-invalido{% endif %}" max="{{ max_birth_date }}" required>
+        {% if age_invalid %}
+        <p class="campo-alerta" role="alert">Debes tener mínimo 18 años para crear una cuenta.</p>
+        {% endif %}
       </div>
       <div>
         <label for="clave">Contraseña</label>

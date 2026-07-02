@@ -5,6 +5,11 @@ from django.urls import NoReverseMatch, reverse
 ADMIN_VIEW_NAMES = {
     "sesiones": {
         "admin_dashboard",
+        "usuarios_lista",
+        "usuarios_nuevo",
+        "usuarios_editar",
+        "usuarios_detalle",
+        "usuarios_eliminar",
     },
     "inventario": {
         "dashboard",
@@ -227,6 +232,35 @@ def _module_sidebar_map(namespace: str, url_name: str):
                 ),
             ],
         },
+        "sesiones": {
+            "title": "Usuarios",
+            "eyebrow": "Modulo activo",
+            "copy": "Administra usuarios del sistema, roles y permisos de acceso.",
+            "items": [
+                _build_item(
+                    namespace,
+                    url_name,
+                    label="Listar usuarios",
+                    icon="bi-people",
+                    view_name="sesiones:usuarios_lista",
+                    active_urls={
+                        "usuarios_lista",
+                        "usuarios_nuevo",
+                        "usuarios_editar",
+                        "usuarios_detalle",
+                        "usuarios_eliminar",
+                    },
+                ),
+                _build_item(
+                    namespace,
+                    url_name,
+                    label="Nuevo usuario",
+                    icon="bi-person-plus",
+                    view_name="sesiones:usuarios_nuevo",
+                    active_urls={"usuarios_nuevo"},
+                ),
+            ],
+        },
     }
 
 
@@ -254,6 +288,12 @@ def _build_dashboard_sections():
             "label": "Devoluciones",
             "icon": "bi-arrow-return-left",
             "url": _safe_reverse("inventario:devolucion_lista"),
+            "is_active": False,
+        },
+        {
+            "label": "Usuarios",
+            "icon": "bi-people",
+            "url": _safe_reverse("sesiones:usuarios_lista"),
             "is_active": False,
         },
     ]

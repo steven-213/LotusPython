@@ -1,0 +1,175 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Eliminar Usuario | Lotus Dream Spa{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-workspace {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .eliminar-container {
+    padding: 2rem 0;
+  }
+
+  .confirmacion-card {
+    border-radius: 16px;
+    border: 2px solid #dc3545;
+    background-color: #fff5f6;
+    margin-top: 2rem;
+  }
+
+  .confirmacion-header {
+    background-color: #dc3545;
+    color: white;
+    padding: 2rem;
+    border-radius: 16px 16px 0 0;
+    text-align: center;
+  }
+
+  .confirmacion-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .confirmacion-body {
+    padding: 2rem;
+  }
+
+  .usuario-info {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .usuario-info p {
+    margin: 0.5rem 0;
+  }
+
+  .usuario-info strong {
+    color: #dc3545;
+  }
+
+  .botones-confirmacion {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  .botones-confirmacion .btn {
+    min-width: 150px;
+  }
+
+  .advertencia {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .advertencia-icon {
+    color: #ff6b6b;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-workspace">
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="eliminar-container">
+    <div class="container-fluid py-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <!-- PANEL HEADER -->
+          <section class="inv-panel-shell">
+            <div class="inv-panel-header">
+              <div class="inv-panel-copy">
+                <div class="inv-panel-breadcrumbs">
+                  <a href="{% url 'sesiones:admin_dashboard' %}">Panel Admin</a>
+                  <span>/</span>
+                  <a href="{% url 'sesiones:usuarios_lista' %}">Usuarios</a>
+                  <span>/</span>
+                  <span>Eliminar</span>
+                </div>
+                <h1 class="inv-panel-title">Eliminar Usuario</h1>
+                <p class="inv-panel-description">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- CARD DE CONFIRMACIÓN -->
+          <div class="confirmacion-card">
+            <div class="confirmacion-header">
+              <div class="confirmacion-icon">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+              </div>
+              <h2>¿Estás seguro de que deseas eliminar este usuario?</h2>
+            </div>
+
+            <div class="confirmacion-body">
+              <!-- INFORMACIÓN DEL USUARIO A ELIMINAR -->
+              <div class="usuario-info">
+                <p>
+                  <i class="bi bi-person"></i> <strong>Nombre:</strong> 
+                  {{ usuario.nombre }} {{ usuario.apellido }}
+                </p>
+                <p>
+                  <i class="bi bi-credit-card"></i> <strong>Documento:</strong> 
+                  {{ usuario.documento }}
+                </p>
+                <p>
+                  <i class="bi bi-envelope"></i> <strong>Correo:</strong> 
+                  {{ usuario.correo }}
+                </p>
+                <p>
+                  <i class="bi bi-shield-check"></i> <strong>Rol:</strong> 
+                  {% if usuario.rol == "admin" %}
+                    <span class="badge bg-danger">Administrador</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Cliente</span>
+                  {% endif %}
+                </p>
+              </div>
+
+              <!-- ADVERTENCIAS -->
+              <div class="advertencia">
+                <p class="mb-0">
+                  <i class="bi bi-exclamation-circle advertencia-icon"></i>
+                  <strong>⚠️ Advertencia:</strong>
+                </p>
+                <ul class="mb-0 mt-2">
+                  <li>Se eliminará completamente el usuario del sistema</li>
+                  <li>Todos los datos asociados se perderán</li>
+                  <li>Esta acción no se puede deshacer</li>
+                  <li>Las citas y reservas quedarán sin cliente asociado</li>
+                </ul>
+              </div>
+
+              <!-- BOTONES DE CONFIRMACIÓN -->
+              <form method="POST" onsubmit="return confirm('¿Realmente deseas eliminar este usuario? Esta acción no se puede deshacer.');">
+                {% csrf_token %}
+                <div class="botones-confirmacion">
+                  <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" class="btn btn-secondary btn-lg">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                  </a>
+                  <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-trash"></i> Eliminar Definitivamente
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

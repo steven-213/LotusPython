@@ -1,0 +1,210 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Nuevo Usuario | Lotus Dream Spa{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-workspace {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .form-container {
+    padding: 2rem 0;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  .form-actions .btn {
+    min-width: 150px;
+  }
+
+  .tarjeta {
+    border-radius: 16px;
+    border: none;
+  }
+
+  .encabezado-tarjeta {
+    background-color: #fbcdd9;
+    color: #3b2b32;
+    font-weight: 600;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-workspace">
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="form-container">
+    <div class="container-fluid py-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <!-- PANEL HEADER CON BREADCRUMB -->
+          <section class="inv-panel-shell">
+            <div class="inv-panel-header">
+              <div class="inv-panel-copy">
+                <div class="inv-panel-breadcrumbs">
+                  <a href="{% url 'sesiones:admin_dashboard' %}">Panel Admin</a>
+                  <span>/</span>
+                  <a href="{% url 'sesiones:usuarios_lista' %}">Usuarios</a>
+                  <span>/</span>
+                  <span>Nuevo Usuario</span>
+                </div>
+                <h1 class="inv-panel-title">Crear Nuevo Usuario</h1>
+                <p class="inv-panel-description">Completa la información para registrar un nuevo usuario en el sistema</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- MENSAJES DE ERROR -->
+          {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+          {% endif %}
+
+          <form method="POST">
+            {% csrf_token %}
+
+            <!-- TARJETA: INFORMACIÓN PERSONAL -->
+            <div class="card shadow-lg mb-4 tarjeta">
+              <div class="card-header encabezado-tarjeta">
+                <h5 class="mb-0">
+                  <i class="bi bi-person-vcard"></i> Información Personal
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label for="documento" class="form-label fw-bold">
+                    <i class="bi bi-credit-card"></i> Documento
+                  </label>
+                  <input type="number" id="documento" name="documento" 
+                         class="form-control form-control-lg"
+                         placeholder="Ej: 12345678"
+                         required>
+                  <small class="text-muted">Documento único (cédula, pasaporte, etc.)</small>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-4">
+                    <label for="nombre" class="form-label fw-bold">
+                      <i class="bi bi-person"></i> Nombre
+                    </label>
+                    <input type="text" id="nombre" name="nombre" 
+                           class="form-control form-control-lg"
+                           placeholder="Ej: Juan"
+                           required>
+                  </div>
+                  <div class="col-md-6 mb-4">
+                    <label for="apellido" class="form-label fw-bold">
+                      <i class="bi bi-person"></i> Apellido
+                    </label>
+                    <input type="text" id="apellido" name="apellido" 
+                           class="form-control form-control-lg"
+                           placeholder="Ej: Pérez"
+                           required>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label for="correo" class="form-label fw-bold">
+                    <i class="bi bi-envelope"></i> Correo Electrónico
+                  </label>
+                  <input type="email" id="correo" name="correo" 
+                         class="form-control form-control-lg"
+                         placeholder="Ej: juan@ejemplo.com"
+                         required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="fecha_nacimiento" class="form-label fw-bold">
+                    <i class="bi bi-calendar"></i> Fecha de Nacimiento
+                  </label>
+                  <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" 
+                         class="form-control form-control-lg"
+                         required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="telefono" class="form-label fw-bold">
+                    <i class="bi bi-telephone"></i> Teléfono
+                  </label>
+                  <input type="tel" id="telefono" name="telefono" 
+                         class="form-control form-control-lg"
+                         placeholder="Ej: 3105551234"
+                         required>
+                </div>
+              </div>
+            </div>
+
+            <!-- TARJETA: SEGURIDAD Y ACCESO -->
+            <div class="card shadow-lg mb-4 tarjeta">
+              <div class="card-header encabezado-tarjeta">
+                <h5 class="mb-0">
+                  <i class="bi bi-shield-lock"></i> Seguridad y Acceso
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label for="clave" class="form-label fw-bold">
+                    <i class="bi bi-key"></i> Contraseña
+                  </label>
+                  <input type="password" id="clave" name="clave" 
+                         class="form-control form-control-lg"
+                         placeholder="Mínimo 8 caracteres"
+                         minlength="8"
+                         required>
+                  <small class="text-muted">La contraseña debe tener al menos 8 caracteres</small>
+                </div>
+
+                <div class="mb-4">
+                  <label for="rol" class="form-label fw-bold">
+                    <i class="bi bi-shield-check"></i> Rol
+                  </label>
+                  <select id="rol" name="rol" class="form-select form-select-lg" required>
+                    <option value="cliente">Cliente</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                  <small class="text-muted">
+                    <strong>Cliente:</strong> acceso a servicios públicos |
+                    <strong>Administrador:</strong> acceso al panel admin
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-actions">
+              <a href="{% url 'sesiones:usuarios_lista' %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-check-circle"></i> Crear Usuario
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

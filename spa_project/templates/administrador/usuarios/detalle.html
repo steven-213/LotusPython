@@ -1,0 +1,274 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}{{ usuario.nombre }} {{ usuario.apellido }} | Lotus Dream Spa{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-workspace {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .detalle-container {
+    padding: 2rem 0;
+  }
+
+  .usuario-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .usuario-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #fbcdd9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #ca6b86;
+  }
+
+  .usuario-header-info h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    color: #3b2b32;
+  }
+
+  .usuario-header-info p {
+    margin: 0.5rem 0 0 0;
+    color: #6e5b63;
+  }
+
+  .botones-detalle {
+    display: flex;
+    gap: 12px;
+    margin-top: 1rem;
+  }
+
+  .tarjeta {
+    border-radius: 16px;
+    border: none;
+  }
+
+  .encabezado-tarjeta {
+    background-color: #fbcdd9;
+    color: #3b2b32;
+    font-weight: 600;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .detalle-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .detalle-item {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+  }
+
+  .detalle-label {
+    font-size: 0.875rem;
+    color: #6e5b63;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .detalle-valor {
+    font-size: 1rem;
+    color: #3b2b32;
+    font-weight: 500;
+  }
+
+  .usuario-rol-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .usuario-rol-admin {
+    background-color: #ca6b86;
+    color: white;
+  }
+
+  .usuario-rol-cliente {
+    background-color: #e8d4db;
+    color: #3b2b32;
+  }
+
+  .usuario-activo {
+    color: #28a745;
+  }
+
+  .usuario-inactivo {
+    color: #dc3545;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-workspace">
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="detalle-container">
+    <div class="container-fluid py-5">
+      <!-- PANEL HEADER -->
+      <section class="inv-panel-shell">
+        <div class="inv-panel-header">
+          <div class="inv-panel-copy">
+            <div class="inv-panel-breadcrumbs">
+              <a href="{% url 'sesiones:admin_dashboard' %}">Panel Admin</a>
+              <span>/</span>
+              <a href="{% url 'sesiones:usuarios_lista' %}">Usuarios</a>
+              <span>/</span>
+              <span>{{ usuario.nombre }} {{ usuario.apellido }}</span>
+            </div>
+            <h1 class="inv-panel-title">Detalles del Usuario</h1>
+          </div>
+        </div>
+      </section>
+
+      <!-- HEADER CON AVATAR E INFO -->
+      <div class="usuario-header">
+        <div class="usuario-avatar">
+          <i class="bi bi-person"></i>
+        </div>
+        <div class="usuario-header-info">
+          <h1>{{ usuario.nombre }} {{ usuario.apellido }}</h1>
+          <p>
+            <i class="bi bi-credit-card"></i> Documento: <strong>{{ usuario.documento }}</strong>
+          </p>
+          <p>
+            <i class="bi bi-envelope"></i> <strong>{{ usuario.correo }}</strong>
+          </p>
+          <div class="botones-detalle">
+            <a href="{% url 'sesiones:usuarios_editar' usuario.id %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{% url 'sesiones:usuarios_eliminar' usuario.id %}" class="btn btn-danger btn-sm">
+              <i class="bi bi-trash"></i> Eliminar
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA: INFORMACIÓN PERSONAL -->
+      <div class="card shadow-lg mb-4 tarjeta">
+        <div class="card-header encabezado-tarjeta">
+          <h5 class="mb-0">
+            <i class="bi bi-person-vcard"></i> Información Personal
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="detalle-row">
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-credit-card"></i> Documento</p>
+              <p class="detalle-valor">{{ usuario.documento }}</p>
+            </div>
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-envelope"></i> Correo</p>
+              <p class="detalle-valor">{{ usuario.correo }}</p>
+            </div>
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-calendar"></i> Fecha de Nacimiento</p>
+              <p class="detalle-valor">{{ usuario.fecha_nacimiento|date:"d/m/Y" }}</p>
+            </div>
+            {% if usuario.telefono %}
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-telephone"></i> Teléfono</p>
+              <p class="detalle-valor">{{ usuario.telefono }}</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA: ACCESO Y ESTADO -->
+      <div class="card shadow-lg mb-4 tarjeta">
+        <div class="card-header encabezado-tarjeta">
+          <h5 class="mb-0">
+            <i class="bi bi-shield-check"></i> Acceso y Estado
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="detalle-row">
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-shield-check"></i> Rol</p>
+              <p>
+                <span class="usuario-rol-badge usuario-rol-{{ usuario.rol|lower }}">
+                  {% if usuario.rol == "admin" %}
+                    <i class="bi bi-shield-check"></i> Administrador
+                  {% else %}
+                    <i class="bi bi-person"></i> Cliente
+                  {% endif %}
+                </span>
+              </p>
+            </div>
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-toggle2-on"></i> Estado</p>
+              <p>
+                {% if usuario.activo %}
+                  <span class="usuario-activo"><i class="bi bi-check-circle-fill"></i> Activo</span>
+                {% else %}
+                  <span class="usuario-inactivo"><i class="bi bi-x-circle-fill"></i> Inactivo</span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA: INFORMACIÓN DEL REGISTRO -->
+      <div class="card shadow-lg mb-4 tarjeta">
+        <div class="card-header encabezado-tarjeta">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar3"></i> Información del Registro
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="detalle-row">
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-calendar"></i> Fecha de Registro</p>
+              <p class="detalle-valor">{{ usuario.fecha_registro|date:"d/m/Y H:i" }}</p>
+            </div>
+            <div class="detalle-item">
+              <p class="detalle-label"><i class="bi bi-clock-history"></i> Tiempo Registrado</p>
+              <p class="detalle-valor">
+                {% now "U" as current_time %}
+                {% with ago=usuario.fecha_registro|timesince %}
+                  hace {{ ago }}
+                {% endwith %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTONES DE NAVEGACIÓN -->
+      <div style="margin-top: 2rem;">
+        <a href="{% url 'sesiones:usuarios_lista' %}" class="btn btn-secondary btn-lg">
+          <i class="bi bi-arrow-left"></i> Volver a Lista
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,246 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Editar Usuario - {{ usuario.nombre }} | Lotus Dream Spa{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-workspace {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .form-container {
+    padding: 2rem 0;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 2rem;
+  }
+
+  .form-actions .btn {
+    min-width: 150px;
+  }
+
+  .tarjeta {
+    border-radius: 16px;
+    border: none;
+  }
+
+  .encabezado-tarjeta {
+    background-color: #fbcdd9;
+    color: #3b2b32;
+    font-weight: 600;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .campo-readonly {
+    background-color: #f8f9fa;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-workspace">
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="form-container">
+    <div class="container-fluid py-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <!-- PANEL HEADER CON BREADCRUMB -->
+          <section class="inv-panel-shell">
+            <div class="inv-panel-header">
+              <div class="inv-panel-copy">
+                <div class="inv-panel-breadcrumbs">
+                  <a href="{% url 'sesiones:admin_dashboard' %}">Panel Admin</a>
+                  <span>/</span>
+                  <a href="{% url 'sesiones:usuarios_lista' %}">Usuarios</a>
+                  <span>/</span>
+                  <span>Editar {{ usuario.nombre }}</span>
+                </div>
+                <h1 class="inv-panel-title">Editar Usuario</h1>
+                <p class="inv-panel-description">Actualiza la información del usuario {{ usuario.nombre }} {{ usuario.apellido }}</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- MENSAJES DE ERROR -->
+          {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+          {% endif %}
+
+          <form method="POST">
+            {% csrf_token %}
+
+            <!-- TARJETA: INFORMACIÓN PERSONAL -->
+            <div class="card shadow-lg mb-4 tarjeta">
+              <div class="card-header encabezado-tarjeta">
+                <h5 class="mb-0">
+                  <i class="bi bi-person-vcard"></i> Información Personal
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label for="documento" class="form-label fw-bold">
+                    <i class="bi bi-credit-card"></i> Documento
+                  </label>
+                  <input type="number" id="documento" name="documento" 
+                         class="form-control form-control-lg campo-readonly"
+                         value="{{ usuario.documento }}"
+                         readonly
+                         disabled>
+                  <small class="text-muted">El documento no puede ser modificado</small>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-4">
+                    <label for="nombre" class="form-label fw-bold">
+                      <i class="bi bi-person"></i> Nombre
+                    </label>
+                    <input type="text" id="nombre" name="nombre" 
+                           class="form-control form-control-lg"
+                           value="{{ usuario.nombre }}"
+                           required>
+                  </div>
+                  <div class="col-md-6 mb-4">
+                    <label for="apellido" class="form-label fw-bold">
+                      <i class="bi bi-person"></i> Apellido
+                    </label>
+                    <input type="text" id="apellido" name="apellido" 
+                           class="form-control form-control-lg"
+                           value="{{ usuario.apellido }}"
+                           required>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label for="correo" class="form-label fw-bold">
+                    <i class="bi bi-envelope"></i> Correo Electrónico
+                  </label>
+                  <input type="email" id="correo" name="correo" 
+                         class="form-control form-control-lg"
+                         value="{{ usuario.correo }}"
+                         required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="fecha_nacimiento" class="form-label fw-bold">
+                    <i class="bi bi-calendar"></i> Fecha de Nacimiento
+                  </label>
+                  <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" 
+                         class="form-control form-control-lg"
+                         value="{{ usuario.fecha_nacimiento|date:'Y-m-d' }}"
+                         required>
+                </div>
+
+                <div class="mb-4">
+                  <label for="telefono" class="form-label fw-bold">
+                    <i class="bi bi-telephone"></i> Teléfono
+                  </label>
+                  <input type="tel" id="telefono" name="telefono" 
+                         class="form-control form-control-lg"
+                         value="{% if usuario.telefono %}{{ usuario.telefono }}{% endif %}">
+                </div>
+              </div>
+            </div>
+
+            <!-- TARJETA: SEGURIDAD Y ACCESO -->
+            <div class="card shadow-lg mb-4 tarjeta">
+              <div class="card-header encabezado-tarjeta">
+                <h5 class="mb-0">
+                  <i class="bi bi-shield-lock"></i> Seguridad y Acceso
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label for="rol" class="form-label fw-bold">
+                    <i class="bi bi-shield-check"></i> Rol
+                  </label>
+                  <select id="rol" name="rol" class="form-select form-select-lg" required>
+                    <option value="cliente" {% if usuario.rol == "cliente" %}selected{% endif %}>Cliente</option>
+                    <option value="admin" {% if usuario.rol == "admin" %}selected{% endif %}>Administrador</option>
+                  </select>
+                  <small class="text-muted">
+                    <strong>Cliente:</strong> acceso a servicios públicos |
+                    <strong>Administrador:</strong> acceso al panel admin
+                  </small>
+                </div>
+
+                <div class="mb-4">
+                  <label for="activo" class="form-label fw-bold">
+                    <i class="bi bi-toggle2-on"></i> Estado
+                  </label>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="activo" name="activo"
+                           {% if usuario.activo %}checked{% endif %}>
+                    <label class="form-check-label" for="activo">
+                      Usuario activo en el sistema
+                    </label>
+                  </div>
+                  <small class="text-muted d-block mt-2">
+                    Si desactivas el usuario, no podrá acceder al sistema
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <!-- TARJETA: INFORMACIÓN DEL REGISTRO -->
+            <div class="card shadow-lg mb-4 tarjeta">
+              <div class="card-header encabezado-tarjeta">
+                <h5 class="mb-0">
+                  <i class="bi bi-info-circle"></i> Información del Registro
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <p class="text-muted mb-1"><small>Registrado el:</small></p>
+                    <p class="fw-bold">{{ usuario.fecha_registro|date:"d/m/Y H:i" }}</p>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <p class="text-muted mb-1"><small>Estado:</small></p>
+                    <p class="fw-bold">
+                      {% if usuario.activo %}
+                        <span class="badge bg-success">Activo</span>
+                      {% else %}
+                        <span class="badge bg-danger">Inactivo</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="form-actions">
+              <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" class="btn btn-secondary btn-lg">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-check-circle"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@ from django.urls import NoReverseMatch, reverse
 from django.core.mail import send_mail
 import resend
 from django.conf import settings
+from datetime import datetime, timedelta
 
 from apps.common.seo import apply_public_page_cache_headers, serialize_structured_data
 from apps.ventas.models import SolicitudDevolucionVenta
@@ -49,6 +50,37 @@ def conocenos(request):
         },
     )
     return apply_public_page_cache_headers(response)
+
+
+def calcular_edad(fecha_nacimiento):
+    """
+    Calcula la edad en años a partir de una fecha de nacimiento.
+    Retorna la edad o None si la fecha es inválida.
+    """
+    try:
+        if isinstance(fecha_nacimiento, str):
+            fecha_nacimiento = datetime.strptime(fecha_nacimiento, "%Y-%m-%d").date()
+        
+        hoy = datetime.now().date()
+        edad = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+        
+        # Validar que no sea una fecha futura
+        if fecha_nacimiento > hoy:
+            return None
+        
+        return edad
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def obtener_fecha_maxima_nacimiento():
+    """
+    Retorna la fecha máxima de nacimiento permitida (hoy - 18 años)
+    en formato YYYY-MM-DD para usar en el atributo max del input date.
+    """
+    hoy = datetime.now().date()
+    fecha_maxima = hoy - timedelta(days=365*18)  # Aproximadamente 18 años
+    return fecha_maxima.strftime("%Y-%m-%d")
 
 
 def login_view(request):
@@ -105,7 +137,7 @@ def registro(request):
             return render(
                 request,
                 "registro.html",
-                {"form_data": form_data},
+                {"form_data": form_data, "max_birth_date": obtener_fecha_maxima_nacimiento()},
             )
 
         if not clave or len(clave) < 8:
@@ -113,7 +145,34 @@ def registro(request):
             return render(
                 request,
                 "registro.html",
-                {"form_data": form_data},
+                {"form_data": form_data, "max_birth_date": obtener_fecha_maxima_nacimiento()},
+            )
+
+        # Validar edad mínima de 18 años
+        fecha_nacimiento = form_data["fecha_nacimiento"]
+        if fecha_nacimiento:
+            edad = calcular_edad(fecha_nacimiento)
+            if edad is None or edad < 18:
+                messages.error(request, "Debes tener mínimo 18 años para crear una cuenta.")
+                return render(
+                    request,
+                    "registro.html",
+                    {
+                        "form_data": form_data,
+                        "age_invalid": True,
+                        "max_birth_date": obtener_fecha_maxima_nacimiento(),
+                    },
+                )
+        else:
+            messages.error(request, "Debes proporcionar una fecha de nacimiento válida.")
+            return render(
+                request,
+                "registro.html",
+                {
+                    "form_data": form_data,
+                    "age_invalid": True,
+                    "max_birth_date": obtener_fecha_maxima_nacimiento(),
+                },
             )
 
         if Usuario.objects.filter(documento=documento).exists():
@@ -124,6 +183,7 @@ def registro(request):
                 {
                     "form_data": form_data,
                     "duplicate_documento": True,
+                    "max_birth_date": obtener_fecha_maxima_nacimiento(),
                 },
             )
 
@@ -135,6 +195,7 @@ def registro(request):
                 {
                     "form_data": form_data,
                     "duplicate_correo": True,
+                    "max_birth_date": obtener_fecha_maxima_nacimiento(),
                 },
             )
 
@@ -149,7 +210,7 @@ def registro(request):
         )
         messages.success(request, "Usuario registrado correctamente.")
         return redirect("sesiones:login")
-    return render(request, "registro.html", {"form_data": {}})
+    return render(request, "registro.html", {"form_data": {}, "max_birth_date": obtener_fecha_maxima_nacimiento()})
 
 
 def logout_view(request):
@@ -211,6 +272,16 @@ def admin_dashboard(request):
                 {"label": "Nueva devolución", "url": safe_reverse("inventario:devolucion_nueva")},
             ],
             "badge": f"{pending_client_returns} pendiente(s)" if pending_client_returns else "",
+        },
+        {
+            "title": "Usuarios",
+            "icon": "bi-people",
+            "copy": "Administra usuarios del sistema, roles y permisos de acceso.",
+            "url": safe_reverse("sesiones:usuarios_lista"),
+            "links": [
+                {"label": "Listar usuarios", "url": safe_reverse("sesiones:usuarios_lista")},
+                {"label": "Nuevo usuario", "url": safe_reverse("sesiones:usuarios_nuevo")},
+            ],
         },
     ]
     module_cards = [
