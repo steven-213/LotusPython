@@ -32,13 +32,20 @@
         {% endfor %}
     </div>
     {% if low_stock_products %}
-    <div class="admin-sidebar-lowstock">
-        <p class="admin-sidebar-group-title">Stock bajo</p>
-        <ul class="lowstock-list">
+    <div class="admin-sidebar-lowstock mt-3 p-3 rounded-3 border border-warning-subtle bg-warning bg-opacity-10">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+            <p class="admin-sidebar-group-title mb-0">Stock bajo</p>
+        </div>
+        <p class="small text-muted mb-2">Revisa estos productos y repónlos pronto.</p>
+        <ul class="lowstock-list list-unstyled d-flex flex-column gap-2 mb-0">
             {% for p in low_stock_products %}
-            <li class="lowstock-item">
-                <a href="{% url 'inventario:producto_detalle' p.id %}">{{ p.nombre }} <span class="muted">({{ p.stock_disponible }})</span></a>
-                <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'inventario:compra_nueva' %}?producto_id={{ p.id }}">Comprar</a>
+            <li class="lowstock-item d-flex align-items-start justify-content-between gap-2 p-2 rounded-2 bg-white bg-opacity-75">
+                <a href="{% url 'inventario:producto_detalle' p.id %}" class="text-decoration-none text-dark flex-grow-1">
+                    <div class="fw-semibold small">{{ p.nombre }}</div>
+                    <div class="small text-muted">Quedan {{ p.stock_disponible }} unidades</div>
+                </a>
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'inventario:compra_nueva' %}?producto_id={{ p.id }}">Comprar</a>
             </li>
             {% endfor %}
         </ul>
