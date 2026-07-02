@@ -291,13 +291,15 @@ def compra_nueva(request):
 
     proveedores = Proveedor.objects.all()
     productos = Producto.objects.filter(activo=True)
+    producto_preseleccionado = request.GET.get("producto_id") or ""
 
     return render(
         request,
         "inventario/dashboard/compras/nueva.html",
         {
             "proveedores": proveedores,
-            "productos": productos
+            "productos": productos,
+            "producto_preseleccionado": producto_preseleccionado,
         }
     )
 

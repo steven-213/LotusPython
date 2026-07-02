@@ -1,5 +1,6 @@
 from apps.common.seo import build_site_meta
 from django.urls import NoReverseMatch, reverse
+from apps.inventario.services import anotar_stock_disponible, queryset_productos_basico
 
 
 ADMIN_VIEW_NAMES = {
@@ -375,5 +376,13 @@ def admin_shell(request):
         "show_admin_sidebar": show_admin_sidebar,
         "session_user_name": request.session.get("usuario_nombre", ""),
         **sidebar_state,
+        # Productos con stock bajo (<=5 y >0) para atajos rápidos en el admin de inventario
+        **({
+            "low_stock_products": list(
+                anotar_stock_disponible(queryset_productos_basico())
+                .filter(stock_disponible__lte=5, stock_disponible__gt=0)
+                .order_by("stock_disponible")[:8]
+            )
+        } if show_admin_sidebar and namespace == "inventario" else {}),
         **build_site_meta(request, show_admin_sidebar=show_admin_sidebar),
     }

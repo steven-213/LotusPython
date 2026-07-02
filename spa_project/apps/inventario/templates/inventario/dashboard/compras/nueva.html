@@ -260,6 +260,16 @@ document.getElementById('proveedor-select').addEventListener('change', function 
 
 document.addEventListener('DOMContentLoaded', () => {
     agregarEventosProducto(document.querySelector('.producto-row'));
+    // Preseleccionar producto si viene desde query string
+    const pre = '{{ producto_preseleccionado|default:"" }}';
+    if (pre) {
+        const firstRow = document.querySelector('.producto-row');
+        const select = firstRow && firstRow.querySelector('.producto-select');
+        if (select) {
+            select.value = pre;
+            select.dispatchEvent(new Event('change'));
+        }
+    }
 });
 
 </script>

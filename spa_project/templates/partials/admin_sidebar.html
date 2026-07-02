@@ -31,4 +31,17 @@
         </section>
         {% endfor %}
     </div>
+    {% if low_stock_products %}
+    <div class="admin-sidebar-lowstock">
+        <p class="admin-sidebar-group-title">Stock bajo</p>
+        <ul class="lowstock-list">
+            {% for p in low_stock_products %}
+            <li class="lowstock-item">
+                <a href="{% url 'inventario:producto_detalle' p.id %}">{{ p.nombre }} <span class="muted">({{ p.stock_disponible }})</span></a>
+                <a class="btn btn-sm btn-outline-primary ms-2" href="{% url 'inventario:compra_nueva' %}?producto_id={{ p.id }}">Comprar</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 </aside>
