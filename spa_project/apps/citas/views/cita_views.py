@@ -38,6 +38,16 @@ from apps.sesiones.models import Usuario
 from apps.ventas.services import registrar_venta_desde_reserva
 
 
+# Motivos de cancelacion: (value, label)
+MOTIVOS_CANCELACION = [
+    ("cliente_solicito_cambio", "Cliente solicitó cambio"),
+    ("no_puede_asistir", "No puede asistir"),
+    ("problema_pago", "Problema con el pago"),
+    ("reprogramacion", "Reprogramación"),
+    ("otro", "Otro"),
+]
+
+
 def _usuario_actual(request):
     usuario_id = request.session.get("usuario_id")
     if not usuario_id:
@@ -665,6 +675,7 @@ def _construir_contexto_detalle_reserva(reserva, usuario):
         "pagos": pagos,
         "venta_asociada": venta_asociada,
         "venta_detalles": venta_detalles,
+        "motivos_cancelacion": MOTIVOS_CANCELACION,
         "productos_facturables": _productos_facturables() if usuario.rol == Usuario.ROL_ADMIN else [],
         "horario_atencion": resumen_horario_atencion(),
         "metodos_pago": PagoReserva.METODOS,
@@ -691,7 +702,21 @@ def reserva_cancelar(request, reserva_id):
         return redirect("citas:reserva_detalle", reserva_id=reserva.id)
 
     try:
-        observacion = request.POST.get("motivo_cancelacion", "Cancelada desde el modulo de citas.")
+        motivo = (request.POST.get("motivo_cancelacion") or "").strip()
+        if not motivo:
+            messages.error(request, "Debes indicar el motivo de la cancelación.")
+            return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+
+        if motivo == "otro":
+            detalle = (request.POST.get("motivo_cancelacion_otro") or "").strip()
+            if not detalle:
+                messages.error(request, "Si seleccionas 'Otro', debes indicar el detalle del motivo.")
+                return redirect("citas:reserva_detalle", reserva_id=reserva.id)
+            observacion = detalle
+        else:
+            # map value -> label for readable observacion
+            label = dict(MOTIVOS_CANCELACION).get(motivo, motivo)
+            observacion = label
         cambiar_estado_reserva(
             reserva=reserva,
             nuevo_estado=Reserva.ESTADO_CANCELADA,

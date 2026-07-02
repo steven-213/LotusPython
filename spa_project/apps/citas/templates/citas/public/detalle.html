@@ -304,7 +304,16 @@
           {% csrf_token %}
           <label class="field">
             <span>Motivo</span>
-            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Motivo">
+            <select class="form-select" name="motivo_cancelacion" required>
+              <option value="">Selecciona una razón</option>
+              {% for value,label in motivos_cancelacion %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="field motivo-otro-field" style="display:none;">
+            <span>Detalle</span>
+            <input class="form-control" type="text" name="motivo_cancelacion_otro" placeholder="Describe el motivo">
           </label>
           <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
         </form>
@@ -320,7 +329,16 @@
           {% csrf_token %}
           <label class="field">
             <span>Motivo</span>
-            <input class="form-control" type="text" name="motivo_cancelacion" placeholder="Opcional">
+            <select class="form-select" name="motivo_cancelacion" required>
+              <option value="">Selecciona una razón</option>
+              {% for value,label in motivos_cancelacion %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="field motivo-otro-field" style="display:none;">
+            <span>Detalle</span>
+            <input class="form-control" type="text" name="motivo_cancelacion_otro" placeholder="Describe el motivo">
           </label>
           <button type="submit" class="btn-danger-soft btn-block"><i class="bi bi-x-circle"></i> Cancelar cita</button>
         </form>
@@ -406,6 +424,28 @@
       // Inicializar
       console.log("Inicializando estado del input");
       updateInputState();
+    });
+  });
+</script>
+<script>
+  // Toggle 'Otro' detail field for motivo_cancelacion selects
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('form.embedded-form.compact, form.embedded-form').forEach(function (form) {
+      const motivoSelect = form.querySelector('select[name="motivo_cancelacion"]');
+      const otroField = form.querySelector('.motivo-otro-field');
+      const otroInput = form.querySelector('input[name="motivo_cancelacion_otro"]');
+      if (!motivoSelect || !otroField) return;
+      function toggle(){
+        if (motivoSelect.value === 'otro'){
+          otroField.style.display = 'block';
+          if (otroInput) otroInput.required = true;
+        } else {
+          otroField.style.display = 'none';
+          if (otroInput) { otroInput.required = false; otroInput.value = ''; }
+        }
+      }
+      motivoSelect.addEventListener('change', toggle);
+      toggle();
     });
   });
 </script>
