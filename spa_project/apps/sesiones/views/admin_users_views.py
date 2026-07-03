@@ -4,6 +4,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.sesiones.decorators import admin_required_session
 from apps.sesiones.models import Usuario
+from apps.citas.models import Reserva
+from apps.ventas.models import Venta
 
 
 def _usuario_duplicado(*, correo, documento, exclude_id=None):
@@ -210,3 +212,66 @@ def usuarios_eliminar(request, usuario_id):
     
     # GET: Mostrar página de confirmación
     return render(request, "administrador/usuarios/eliminar.html", {"usuario": usuario})
+
+
+@admin_required_session
+def usuarios_citas(request, usuario_id):
+    """Muestra todas las citas agendadas de un usuario"""
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    citas = Reserva.objects.filter(cliente=usuario).select_related('servicio', 'profesional').order_by('-fecha_inicio')
+    
+    # Estadísticas de citas
+    total_citas = citas.count()
+    citas_confirmadas = citas.filter(estado=Reserva.ESTADO_CONFIRMADA).count()
+    citas_finalizadas = citas.filter(estado=Reserva.ESTADO_FINALIZADA).count()
+    
+    context = {
+        "usuario": usuario,
+        "citas": citas,
+        "total_citas": total_citas,
+        "citas_confirmadas": citas_confirmadas,
+        "citas_finalizadas": citas_finalizadas,
+    }
+    
+    return render(
+        request,
+        "administrador/usuarios/citas.html",
+        context,
+    )
+
+
+@admin_required_session
+def usuarios_compras(request, usuario_id):
+    """Muestra todas las compras realizadas por un usuario"""
+    usuario = get_object_or_404(Usuario, id=usuario_id)
+    ventas = Venta.objects.filter(cliente=usuario).prefetch_related('detalles__producto').order_by('-fecha')
+    
+    # Estadísticas de ventas
+    total_ventas = ventas.count()
+    total_gastado = sum(venta.total_factura for venta in ventas)
+    
+    # Agrupar productos comprados
+    productos_comprados = []
+    for venta in ventas:
+        for detalle in venta.detalles.all():
+            productos_comprados.append({
+                'producto': detalle.producto,
+                'cantidad': detalle.cantidad,
+                'precio_unitario': detalle.precio_unitario,
+                'venta': venta,
+                'subtotal': detalle.cantidad * detalle.precio_unitario,
+            })
+    
+    context = {
+        "usuario": usuario,
+        "ventas": ventas,
+        "productos_comprados": productos_comprados,
+        "total_ventas": total_ventas,
+        "total_gastado": total_gastado,
+    }
+    
+    return render(
+        request,
+        "administrador/usuarios/compras.html",
+        context,
+    )

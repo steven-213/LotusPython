@@ -1,0 +1,323 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block title %}Citas de {{ usuario.nombre }} {{ usuario.apellido }} | Lotus Dream Spa{% endblock %}
+{% block body_class %}admin-page{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-workspace {
+    display: grid;
+    grid-template-columns: 248px minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .detalle-container {
+    padding: 2rem 0;
+  }
+
+  .usuario-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .usuario-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #fbcdd9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #ca6b86;
+  }
+
+  .usuario-header-info h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    color: #3b2b32;
+  }
+
+  .usuario-header-info p {
+    margin: 0.5rem 0 0 0;
+    color: #6e5b63;
+  }
+
+  .botones-detalle {
+    display: flex;
+    gap: 12px;
+    margin-top: 1rem;
+  }
+
+  .tarjeta {
+    border-radius: 16px;
+    border: none;
+  }
+
+  .encabezado-tarjeta {
+    background-color: #fbcdd9;
+    color: #3b2b32;
+    font-weight: 600;
+    border: none;
+    padding: 1.25rem;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .estadisticas-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .estadistica-item {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #fbcdd9 0%, #f8d4df 100%);
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #f0b8c7;
+  }
+
+  .estadistica-numero {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ca6b86;
+  }
+
+  .estadistica-label {
+    font-size: 0.875rem;
+    color: #6e5b63;
+    margin-top: 0.5rem;
+    font-weight: 500;
+  }
+
+  .badge-programada {
+    background-color: #ffc107;
+    color: #333;
+  }
+
+  .badge-confirmada {
+    background-color: #17a2b8;
+    color: white;
+  }
+
+  .badge-en_proceso {
+    background-color: #007bff;
+    color: white;
+  }
+
+  .badge-finalizada {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .badge-cancelada {
+    background-color: #dc3545;
+    color: white;
+  }
+
+  .badge-no_asistio {
+    background-color: #6c757d;
+    color: white;
+  }
+
+  .tabla-citas {
+    font-size: 0.95rem;
+  }
+
+  .tabla-citas thead {
+    background-color: #f8f9fa;
+  }
+
+  .tabla-citas tbody tr:hover {
+    background-color: #fff5f7;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-text {
+    color: #999;
+    font-size: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-workspace">
+  {% include "partials/admin_sidebar.html" %}
+
+  <main class="detalle-container">
+    <div class="container-fluid py-5">
+      <!-- PANEL HEADER -->
+      <section class="inv-panel-shell">
+        <div class="inv-panel-header">
+          <div class="inv-panel-copy">
+            <div class="inv-panel-breadcrumbs">
+              <a href="{% url 'sesiones:admin_dashboard' %}">Panel Admin</a>
+              <span>/</span>
+              <a href="{% url 'sesiones:usuarios_lista' %}">Usuarios</a>
+              <span>/</span>
+              <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}">{{ usuario.nombre }} {{ usuario.apellido }}</a>
+              <span>/</span>
+              <span>Citas Agendadas</span>
+            </div>
+            <h1 class="inv-panel-title">Citas Agendadas</h1>
+          </div>
+        </div>
+      </section>
+
+      <!-- HEADER CON AVATAR E INFO -->
+      <div class="usuario-header">
+        <div class="usuario-avatar">
+          <i class="bi bi-person"></i>
+        </div>
+        <div class="usuario-header-info">
+          <h1>{{ usuario.nombre }} {{ usuario.apellido }}</h1>
+          <p>
+            <i class="bi bi-credit-card"></i> Documento: <strong>{{ usuario.documento }}</strong>
+          </p>
+          <p>
+            <i class="bi bi-envelope"></i> <strong>{{ usuario.correo }}</strong>
+          </p>
+          <div class="botones-detalle">
+            <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-person-vcard"></i> Ver Perfil
+            </a>
+            <a href="{% url 'sesiones:usuarios_compras' usuario.id %}" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-bag-check"></i> Ver Compras
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- TARJETA: ESTADÍSTICAS -->
+      {% if total_citas > 0 %}
+      <div class="card shadow-lg mb-4 tarjeta">
+        <div class="card-header encabezado-tarjeta">
+          <h5 class="mb-0">
+            <i class="bi bi-bar-chart"></i> Estadísticas de Citas
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="estadisticas-row">
+            <div class="estadistica-item">
+              <div class="estadistica-numero">{{ total_citas }}</div>
+              <div class="estadistica-label">Total de Citas</div>
+            </div>
+            <div class="estadistica-item">
+              <div class="estadistica-numero">{{ citas_confirmadas }}</div>
+              <div class="estadistica-label">Confirmadas</div>
+            </div>
+            <div class="estadistica-item">
+              <div class="estadistica-numero">{{ citas_finalizadas }}</div>
+              <div class="estadistica-label">Finalizadas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- TARJETA: LISTA DE CITAS -->
+      <div class="card shadow-lg mb-4 tarjeta">
+        <div class="card-header encabezado-tarjeta">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar-check"></i> Citas
+          </h5>
+        </div>
+        {% if citas %}
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover tabla-citas mb-0">
+              <thead>
+                <tr>
+                  <th><i class="bi bi-tools"></i> Servicio</th>
+                  <th><i class="bi bi-person-check"></i> Profesional</th>
+                  <th><i class="bi bi-calendar-event"></i> Fecha y Hora</th>
+                  <th><i class="bi bi-hourglass-split"></i> Duración</th>
+                  <th><i class="bi bi-info-circle"></i> Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for cita in citas %}
+                <tr>
+                  <td>
+                    <strong>{{ cita.servicio.nombre }}</strong>
+                    {% if cita.servicio.precio %}
+                    <br><small class="text-muted">${{ cita.servicio.precio }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if cita.profesional %}
+                      <strong>{{ cita.profesional.nombre }}</strong>
+                    {% else %}
+                      <span class="text-muted">Sin asignar</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ cita.fecha_inicio|date:"d/m/Y H:i" }}
+                  </td>
+                  <td>
+                    {% with duracion=cita.servicio.duracion_minutos %}
+                      {{ duracion }} min
+                    {% endwith %}
+                  </td>
+                  <td>
+                    {% if cita.estado == "programada" %}
+                      <span class="badge badge-programada">Programada</span>
+                    {% elif cita.estado == "confirmada" %}
+                      <span class="badge badge-confirmada">Confirmada</span>
+                    {% elif cita.estado == "en_proceso" %}
+                      <span class="badge badge-en_proceso">En Proceso</span>
+                    {% elif cita.estado == "finalizada" %}
+                      <span class="badge badge-finalizada">Finalizada</span>
+                    {% elif cita.estado == "cancelada" %}
+                      <span class="badge badge-cancelada">Cancelada</span>
+                    {% elif cita.estado == "no_asistio" %}
+                      <span class="badge badge-no_asistio">No Asistió</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="bi bi-calendar-x"></i>
+          </div>
+          <p class="empty-state-text">Este cliente no tiene citas agendadas.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- BOTONES DE NAVEGACIÓN -->
+      <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+        <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" class="btn btn-secondary btn-lg">
+          <i class="bi bi-arrow-left"></i> Volver a Perfil
+        </a>
+        <a href="{% url 'sesiones:usuarios_lista' %}" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-list"></i> Volver a Usuarios
+        </a>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

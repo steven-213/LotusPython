@@ -17,6 +17,8 @@ from apps.sesiones.views.admin_users_views import (
     usuarios_detalle,
     usuarios_editar,
     usuarios_eliminar,
+    usuarios_citas,
+    usuarios_compras,
 )
 
 app_name = "sesiones"
@@ -37,4 +39,6 @@ urlpatterns = [
     path("usuarios/<int:usuario_id>/", usuarios_detalle, name="usuarios_detalle"),
     path("usuarios/<int:usuario_id>/editar/", usuarios_editar, name="usuarios_editar"),
     path("usuarios/<int:usuario_id>/eliminar/", usuarios_eliminar, name="usuarios_eliminar"),
+    path("usuarios/<int:usuario_id>/citas/", usuarios_citas, name="usuarios_citas"),
+    path("usuarios/<int:usuario_id>/compras/", usuarios_compras, name="usuarios_compras"),
 ]

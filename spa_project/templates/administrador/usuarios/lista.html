@@ -62,6 +62,19 @@
   .btn-usuario-eliminar:hover {
     background-color: #f8d7da;
   }
+
+  .btn-usuario-citas,
+  .btn-usuario-compras {
+    padding: 6px 10px;
+    font-size: 0.875rem;
+  }
+
+  .btn-grupo-acciones {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 </style>
 {% endblock %}
 
@@ -158,21 +171,33 @@
               </td>
               <td class="fecha">{{ usuario.fecha_registro|date:"d/m/Y" }}</td>
               <td class="text-end">
-                <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" 
-                   class="btn btn-sm btn-ver btn-usuario-ver"
-                   title="Ver usuario">
-                  <i class="bi bi-eye"></i>
-                </a>
-                <a href="{% url 'sesiones:usuarios_editar' usuario.id %}" 
-                   class="btn btn-sm btn-editar btn-usuario-editar"
-                   title="Editar usuario">
-                  <i class="bi bi-pencil"></i>
-                </a>
-                <a href="{% url 'sesiones:usuarios_eliminar' usuario.id %}" 
-                   class="btn btn-sm btn-usuario-eliminar"
-                   title="Eliminar usuario">
-                  <i class="bi bi-trash"></i>
-                </a>
+                <div class="btn-grupo-acciones">
+                  <a href="{% url 'sesiones:usuarios_detalle' usuario.id %}" 
+                     class="btn btn-sm btn-ver btn-usuario-ver"
+                     title="Ver usuario">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                  <a href="{% url 'sesiones:usuarios_citas' usuario.id %}" 
+                     class="btn btn-sm btn-info btn-usuario-citas"
+                     title="Ver citas">
+                    <i class="bi bi-calendar-check"></i>
+                  </a>
+                  <a href="{% url 'sesiones:usuarios_compras' usuario.id %}" 
+                     class="btn btn-sm btn-success btn-usuario-compras"
+                     title="Ver compras">
+                    <i class="bi bi-bag-check"></i>
+                  </a>
+                  <a href="{% url 'sesiones:usuarios_editar' usuario.id %}" 
+                     class="btn btn-sm btn-editar btn-usuario-editar"
+                     title="Editar usuario">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <a href="{% url 'sesiones:usuarios_eliminar' usuario.id %}" 
+                     class="btn btn-sm btn-usuario-eliminar"
+                     title="Eliminar usuario">
+                    <i class="bi bi-trash"></i>
+                  </a>
+                </div>
               </td>
             </tr>
             {% empty %}
